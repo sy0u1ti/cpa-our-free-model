@@ -8,7 +8,7 @@ binary Release is implied.
 ## Our Free Model
 
 - Source: https://github.com/Ebony-Vinyl/dsh-our-free-model
-- Commit: `f8974369c5904858c696b520d8b9b82ad4425f78`
+- Commit: `f9cdb664f00738e14106290ff511f34455904122`
 - Runtime, providers, console, usage accounting, authentication flows and model
   policy are upstream functionality, not newly authored by this adapter.
 - License: `service/vendor/ofm/LICENSE` (MIT).
@@ -19,10 +19,10 @@ binary Release is implied.
   in `service/vendor/WEB_LICENSE_SOURCES.json`; no reference-fork license bundle
   is reused.
 
-**The original OFM repository is the sole product-source upstream.** The 51
+**The original OFM repository is the sole product-source upstream.** The 53
 retained files are read directly from that repository's pinned Git blobs by
 `scripts/import-upstream.mjs`, never from a secondary fork or working-tree copy.
-49 files, including the standalone service and complete web UI, remain byte for
+51 files, including the standalone service and complete web UI, remain byte for
 byte identical to the original. Two CPA-only changes are reproducible in
 `scripts/upstream-patches.mjs`:
 

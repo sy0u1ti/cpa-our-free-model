@@ -15,7 +15,7 @@ if (!fs.existsSync(binary)) throw new Error('Build the target binary first.');
 const stage = fs.mkdtempSync(path.join(root, 'dist', '.package-'));
 try {
   fs.copyFileSync(binary, path.join(stage, path.basename(binary)));
-  for (const name of ['README.md', 'README_CN.md', 'NOTICE.md', 'LICENSE', 'VALIDATION.md', 'config.example.yaml']) fs.copyFileSync(path.join(root, name), path.join(stage, name));
+  for (const name of ['README.md', 'README_CN.md', 'NOTICE.md', 'LICENSE', 'VALIDATION.md', 'AUDIT.md', 'config.example.yaml']) fs.copyFileSync(path.join(root, name), path.join(stage, name));
   fs.mkdirSync(path.join(stage, 'licenses'));
   for (const [from, to] of [
     ['service/vendor/ofm/LICENSE', 'OFM_LICENSE'], ['service/vendor/CPA_LICENSE', 'CPA_LICENSE'],

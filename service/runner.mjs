@@ -8,11 +8,13 @@ import { admitModel, modelRows, normalizeBody } from './src/catalog.mjs';
 
 let service;
 let handoff;
+let handoffPromise;
 let stopping;
 let parentWatch;
 let initialized;
 let inputClosed = false;
 let initialReady;
+let settingsInUse;
 const input = createInterface({ input: process.stdin });
 // Stdout is a private control protocol, never a vendor logging sink.
 const send = value => process.stdout.write(JSON.stringify(value) + '\n');
@@ -25,6 +27,7 @@ function stop() {
   clearInterval(parentWatch);
   stopping = (async () => {
     await initialized?.catch(() => {});
+    await handoffPromise?.catch(() => {});
     await Promise.allSettled([handoff?.close(), service?.close()]);
   })().finally(() => process.exit(0));
   return stopping;
@@ -61,6 +64,7 @@ function recoverDeadLock(directory) {
 
 async function initialize(settings) {
   if (!path.isAbsolute(settings.dataDir) || !Number.isInteger(settings.parentPid) || settings.parentPid < 1) throw new Error('Invalid service settings');
+  settingsInUse = settings;
   fs.mkdirSync(settings.dataDir, { recursive: true, mode: 0o700 });
   privateClientConfig(settings);
   recoverDeadLock(settings.dataDir);
@@ -70,7 +74,6 @@ async function initialize(settings) {
     refresh: settings.refresh !== false,
     logger: { info() {}, warn() {}, error() {} } });
   initialReady = service.ready.catch(() => {});
-  handoff = await openConsoleTickets(service, settings.consolePort);
   if (inputClosed) return;
   send({ type: 'ready' });
   parentWatch = setInterval(() => {
@@ -91,7 +94,12 @@ async function command(message) {
   if (!service || inputClosed) throw new Error('Service is stopping');
   switch (message.type) {
     case 'connection': return connection();
-    case 'console': return handoff.issue();
+    case 'console': {
+      handoffPromise ??= openConsoleTickets(service, settingsInUse.consolePort).then(value => { handoff = value; return value; }, error => { handoffPromise = undefined; throw error; });
+      await handoffPromise;
+      if (inputClosed) throw new Error('Service is stopping');
+      return handoff.issue();
+    }
     case 'models': {
       // Initial discovery waits for bounded catalog work, not model inference.
       let timer;

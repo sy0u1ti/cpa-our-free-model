@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const files = [];
-for (const directory of ['service', 'scripts', 'tests']) {
+for (const directory of ['service', 'scripts', 'tests', 'web']) {
   for (const file of fs.readdirSync(path.join(root, directory), { recursive: true })) {
     if (/\.(mjs|js)$/.test(file)) files.push(path.join(root, directory, file));
   }

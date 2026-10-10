@@ -136,11 +136,35 @@ try {
   pass('Concurrent requests share one private runtime without cross-call response mixups');
   const consoleReply = await api('/v0/management/ofm/console', {}, managementKey);
   const link = (await consoleReply.json()).url;
-  const opened = await fetch(link, { redirect: 'manual' });
+  assert.equal(link, '/v0/resource/plugins/our-free-model/app');
+  const consoleHTML = await fetch(base + link).then(response => response.text());
+  assert.match(consoleHTML, /\.\/console-bridge\.js/);
+  assert.match(consoleHTML, /\.\/app-assets\/app\.js/);
+  assert.ok(!consoleHTML.includes('127.0.0.1'));
+  const proxyRequest = async (path, method = 'GET', body) => api('/v0/management/ofm/console-api', {
+    id: crypto.randomBytes(16).toString('hex'), path, method, ...(body === undefined ? {} : { body }),
+  }, managementKey);
+  assert.equal((await fetch(base + '/v0/management/ofm/console-api', { method: 'POST' })).status, 401);
+  const remoteSummary = await proxyRequest('/api/management/summary');
+  assert.equal(remoteSummary.status, 200);
+  assert.equal((await remoteSummary.json()).product, 'our-free-model-standalone');
+  assert.equal(remoteSummary.headers.get('set-cookie'), null);
+  assert.equal((await proxyRequest('https://example.invalid/api/management/summary')).status, 400);
+  assert.equal((await proxyRequest('/api/management/login/terminal', 'POST', {})).status, 400);
+  assert.equal((await proxyRequest('/api/management/key')).status, 409);
+  const modelTest = await proxyRequest('/api/management/models/test', 'POST', { model });
+  assert.equal(modelTest.status, 200, await modelTest.clone().text());
+  const remoteGateway = await proxyRequest('/api/management/channels/rpc', 'POST', { method: 'gateway.getEnabled', payload: {} });
+  assert.equal(remoteGateway.status, 200);
+  assert.equal((await remoteGateway.json()).value.apiKey.value, '');
+  pass('Remote console uses CPA resource/API routes with authentication, path allowlists and no internal key disclosure');
+  const localReply = await api('/v0/management/ofm/console-local', {}, managementKey);
+  const localLink = (await localReply.json()).url;
+  const opened = await fetch(localLink, { redirect: 'manual' });
   assert.equal(opened.status, 303);
   assert.match(opened.headers.get('set-cookie'), /HttpOnly/i);
-  assert.equal((await fetch(link, { redirect: 'manual' })).status, 401);
-  pass('Private one-use browser handoff to the actual OFM account console');
+  assert.equal((await fetch(localLink, { redirect: 'manual' })).status, 401);
+  pass('Explicit local-only fallback retains its one-use HttpOnly console handoff');
   const consoleHeaders = { cookie: opened.headers.get('set-cookie').split(';')[0], origin: status.url, 'content-type': 'application/json' };
   const oldKey = JSON.parse(fs.readFileSync(path.join(data, 'settings.json'))).forwardKey;
   const rotated = await fetch(status.url + '/api/management/key/rotate', { method: 'POST', headers: consoleHeaders, body: '{"confirm":true}' });

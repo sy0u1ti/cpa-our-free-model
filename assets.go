@@ -26,12 +26,12 @@ import (
 //go:embed service/vendor/ofm/packages/standalone/channels/business.mjs service/vendor/ofm/packages/standalone/channels/contracts.mjs service/vendor/ofm/packages/standalone/channels/credentials.mjs
 //go:embed service/vendor/ofm/packages/standalone/channels/images.mjs service/vendor/ofm/packages/standalone/channels/runtime.mjs service/vendor/ofm/packages/standalone/channels/worker.mjs
 //go:embed service/vendor/ofm/packages/standalone/web/_ofm-provider-list-D9WP3xjp.js service/vendor/ofm/packages/standalone/web/app.css service/vendor/ofm/packages/standalone/web/app.js
-//go:embed service/vendor/ofm/packages/standalone/web/assets.json service/vendor/ofm/packages/standalone/web/channels-jv6LXryG.js service/vendor/ofm/packages/standalone/web/index.html
-//go:embed service/vendor/ofm/packages/standalone/web/models-dO2Z52ZC.js service/vendor/ofm/packages/standalone/web/search-RZVy3Eoo.js service/vendor/ofm/packages/standalone/web/settings-D20NFL0A.js
-//go:embed service/vendor/ofm/packages/standalone/web/usage-BUbyDRGb.js service/vendor/ofm/packages/standalone/web/x-CzfajR1e.js
+//go:embed service/vendor/ofm/packages/standalone/web/assets.json service/vendor/ofm/packages/standalone/web/channels-DtR2ayCL.js service/vendor/ofm/packages/standalone/web/index.html
+//go:embed service/vendor/ofm/packages/standalone/web/loader-circle-BGKf-mYU.js service/vendor/ofm/packages/standalone/web/models-8lE4ufFd.js service/vendor/ofm/packages/standalone/web/search-RZVy3Eoo.js
+//go:embed service/vendor/ofm/packages/standalone/web/settings-Cq1Y-v4k.js service/vendor/ofm/packages/standalone/web/usage-SUrY-tWU.js service/vendor/ofm/packages/standalone/web/x-CzfajR1e.js
 //go:embed service/vendor/ofm/src/adapter.js service/vendor/ofm/src/catalog.js service/vendor/ofm/src/channel.js service/vendor/ofm/src/effort.js
 //go:embed service/vendor/ofm/src/eac.js service/vendor/ofm/src/eac-login.js service/vendor/ofm/src/eac-user.js service/vendor/ofm/src/egress.js
-//go:embed service/vendor/ofm/src/forward.js service/vendor/ofm/src/http.js service/vendor/ofm/src/kilo.js service/vendor/ofm/src/messages.js
+//go:embed service/vendor/ofm/src/forward.js service/vendor/ofm/src/http.js service/vendor/ofm/src/image-pricing.js service/vendor/ofm/src/kilo.js service/vendor/ofm/src/messages.js
 //go:embed service/vendor/ofm/src/probe.js service/vendor/ofm/src/recovery.js service/vendor/ofm/src/store.js service/vendor/ofm/src/stream.js service/vendor/ofm/src/trust.js service/vendor/ofm/src/upstream.js
 //go:embed service/vendor/ofm/src/core/completion.js service/vendor/ofm/src/core/runtime.js service/vendor/ofm/src/core/stats.js
 //go:embed service/vendor/ofm/vendor/channel-pack/LICENSE service/vendor/ofm/vendor/channel-pack/NOTICE.md service/vendor/ofm/vendor/channel-pack/qoder-auth-wasm.wasm
@@ -39,6 +39,12 @@ var serviceAssets embed.FS
 
 //go:embed web/index.html
 var managementPage []byte
+
+//go:embed web/manager.js
+var managementScript []byte
+
+//go:embed web/console-bridge.js
+var consoleBridgeScript []byte
 
 func assetFiles() ([]string, string, error) {
 	var files []string

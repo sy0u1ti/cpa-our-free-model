@@ -3,7 +3,7 @@
 Reviewed on 2026-10-10 after the reported malformed streaming response.
 Scope: all CPA-owned Go source, Node runner/helpers, build/import/packaging
 scripts, static management page, and their boundaries with the pinned original
-OFM runtime and CPA 8.0.23. The 51 original-source files and two existing CPA
+OFM runtime and CPA 8.0.23. The then-pinned 51 original-source files and two existing CPA
 patches are unchanged. This is not a line-by-line security audit of the generated
 third-party channel bundle or a live login test for every provider.
 

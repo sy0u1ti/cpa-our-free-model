@@ -9,7 +9,7 @@ plugin directories and data directories inside `.test-output/`.
 
 | Component | Revision |
 | --- | --- |
-| OFM | `f8974369c5904858c696b520d8b9b82ad4425f78` |
+| OFM | `f9cdb664f00738e14106290ff511f34455904122` |
 | Official CPA | v8.0.23 / `d318bcc3afb9ea8782862f5e8cdb541afdc9dfa5` |
 | Native contract | C ABI 1, negotiated RPC schema up to 6 |
 
@@ -63,7 +63,7 @@ history; their substring-only streaming checks are superseded by these strict
 
 Version 0.2.0 supersedes the earlier reference-derived prototype. Original OFM
 is the sole product-source upstream. Import and provenance tests compare all
-51 files directly to the original commit: 49 unchanged, two CPA-only patches.
+53 files directly to the original commit: 51 unchanged, two CPA-only patches.
 The original service and web UI are unchanged. Reference helper modules were
 removed and replaced by CPA-owned implementations. Validation of the old
 prototype is not treated as validation of the corrected source baseline;

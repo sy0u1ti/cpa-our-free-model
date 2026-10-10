@@ -11,7 +11,7 @@ plugins:
       auto-install-node: true
       auto-install-eac: false
       port: 0
-      console-port: 0
+      console-port: 0 # Optional local fallback only; normal console uses the CPA domain.
       refresh-models: true
       catalog-revision: 1
       # Optional absolute private data directory (not your plugin source path).

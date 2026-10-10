@@ -10,18 +10,17 @@ repository**. The [Magpie adaptation](https://github.com/mu-zi-lee/magpie-our-fr
 is an architectural reference only, not a code source or dependency. The CPA
 C ABI integration is separate. Original authorship and MIT licenses are retained.
 
-Version **0.2.1** uses 51 original-source files: 49 unchanged and two documented,
+Version **0.3.0** uses 53 original-source files: 51 unchanged and two documented,
 reproducible CPA patches. `npm run vendor:original -- /path/to/original-checkout`
 regenerates the snapshot from pinned Git blobs. See `scripts/upstream-patches.mjs`
 and `service/vendor/ofm/UPSTREAM.json` for exact provenance.
 
-**Upgrade from 0.2.0:** 0.2.1 fixes double `data:` prefixes and duplicate `[DONE]`
-markers in Chat streaming. Pull the source, rebuild, stop CPA, replace the installed
-plugin binary and restart CPA. Keep the existing config and private data directory;
-account login is not required again. The plugin ID remains `our-free-model`.
-The same update rejects oversized requests without wedging the local service,
-uses an explicit embedded-file allowlist, and hardens cache/startup handling.
-See `AUDIT.md` for the review findings and validation limits.
+**New in 0.3.0:** the upstream snapshot is refreshed to OFM `f9cdb664`
+(channel proxy support, image pricing, UI rebuilds and upstream fixes), alongside
+a Chinese management UI, a same-origin OFM console under CPA's own domain,
+manual repository update checks, and a safe source-update/install command.
+No extra public listener or copied loopback link is required. The 0.2.1 SSE and
+runtime fixes remain in place. The plugin ID remains `our-free-model`.
 
 ## Quick start
 
@@ -31,7 +30,7 @@ before the installation steps below. Generated `dist/` files are not committed.
 
 1. Use a plugin-enabled CLIProxyAPI build. Validated against **CPA 8.0.23**.
 2. Copy the matching binary into CPA's configured `plugins` directory:
-   `our-free-model-v0.2.1.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
+   `our-free-model-v0.3.0.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
 3. Merge `config.example.yaml` into CPA's configuration and restart CPA:
 
 ```yaml
@@ -43,10 +42,10 @@ plugins:
       enabled: true
 ```
 
-4. Open **Our Free Model** in CPA's plugin sidebar, enter your CPA **management
-   key**, and request a one-use link to the original OFM console.
+4. Open **免费模型管理** in CPA's plugin sidebar, enter your CPA **management
+   key**, and click **打开账号控制台**. It opens inside the same CPA page/domain.
 5. Anonymous/Kilo pools need no account. Log in to other channels in that console,
-   then click **Sync models to CPA**. Client model IDs start with `ofm/`.
+   then click **同步模型到 CPA**. Client model IDs start with `ofm/`.
 
 The plugin manages a private Node child process automatically. It uses installed
 Node.js 22.19+ or 24+, or installs a pinned SHA-256-verified official Node build
@@ -66,7 +65,9 @@ Gemini and Loomy require private OAuth/App ID configuration; see the Chinese gui
 - Original OFM account console, account pools, token usage and channel behavior.
 - Tool calls, streaming reasoning, real effort controls and cancellation.
 - Prefix isolation; live model/account admission checks; local key rotation.
-- Private loopback service and one-use, HttpOnly console handoff.
+- Same-origin remote console: original static assets stay public; all data
+  operations pass through CPA management authentication and an API allowlist.
+- Manual version/commit checks and a fast-forward-only source updater with backups.
 - Native host HTTP callbacks normally; direct cancellable local IPC when CPA's
   global proxy would otherwise receive a private loopback API key.
 - Stop/reconfigure lifecycle, content-addressed embedded assets and integrity checks.
@@ -74,6 +75,44 @@ Gemini and Loomy require private OAuth/App ID configuration; see the Chinese gui
 No custom frontend-auth provider is installed. Normal CPA client and management
 authentication remain in force. Plugin menu resources are unauthenticated in CPA,
 so the menu is a static page only; all private operations require management auth.
+The parent page keeps the management key in memory and never sends it to the
+embedded console, URLs or browser storage. The server substitutes the private
+OFM key only for fixed loopback management endpoints. Local key export, terminal
+launch and arbitrary forwarding are unavailable through the remote console.
+
+## Updating
+
+In a clean clone on the CPA server, with Go, a C compiler and Node available:
+
+```sh
+node scripts/update.mjs --check
+node scripts/update.mjs --apply --plugin-dir /absolute/path/to/CPA/plugins
+```
+
+The second command verifies `origin`, requires clean `main`, fetches/fast-forwards
+to a fixed commit, runs JS checks/tests and Go tests, builds a native library,
+backs up existing plugin files under `<plugins>/.ofm-backups/`, and installs the
+versioned library with an atomic rename. Restart CPA afterward. It never rewrites
+CPA configuration or account data, resets local changes, or restarts your service.
+If a build fails, the source can already be updated but the installed library is
+left intact; fix the toolchain and rerun. A backup manifest records rollback paths.
+This is source-based updating, not a claim of prebuilt Releases or background
+self-updates. On 0.2.x, first `git pull --ff-only` once to obtain this script.
+
+The **检查仓库更新** button reads fixed GitHub metadata only (five-minute cache).
+Failed checks never claim that the installation is current. `npm run build`
+embeds the source commit and dirty-state marker for accurate comparison.
+
+## VPS Access
+
+Use the existing HTTPS CPA domain and its management authorization policy.
+Requests use `/v0/resource/plugins/our-free-model/...` for static files and
+`/v0/management/ofm/...` for authenticated data. Reverse proxies must forward
+both; deployments under a path prefix are supported when the proxy strips it.
+Do not open the OFM internal ports. Some vendor OAuth flows still require their
+own registered localhost callback and may need an SSH tunnel for that callback.
+The explicit `/v0/management/ofm/console-local` endpoint retains the old local
+one-use handoff for advanced users; it is no longer the default UI entry.
 
 ## Development
 
@@ -93,7 +132,7 @@ CPA_BIN=/path/to/cli-proxy-api CPA_TEST_PROXY=1 npm run smoke
 Build directly if preferred:
 
 ```sh
-CGO_ENABLED=1 go build -trimpath -buildmode=c-shared -o our-free-model-v0.2.1.so .
+CGO_ENABLED=1 go build -trimpath -buildmode=c-shared -o our-free-model-v0.3.0.so .
 ```
 
 Windows needs MinGW-w64 or Zig as `CC`; MSVC alone does not support Go cgo. The

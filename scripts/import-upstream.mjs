@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { PATCHES, patchOriginal } from './upstream-patches.mjs';
 
 export const ORIGINAL_REPOSITORY = 'https://github.com/Ebony-Vinyl/dsh-our-free-model';
-export const ORIGINAL_COMMIT = 'f8974369c5904858c696b520d8b9b82ad4425f78';
+export const ORIGINAL_COMMIT = 'f9cdb664f00738e14106290ff511f34455904122';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const checkout = path.resolve(process.argv[2] || path.join(root, '.reference/ofm'));
 const destination = path.join(root, 'service/vendor/ofm');
@@ -20,7 +20,7 @@ const selected = [
   ...['package.json', 'cli.mjs', 'service.mjs', 'management.mjs', 'login-terminal.mjs', 'eac.mjs'].map(file => 'packages/standalone/' + file),
   ...['business', 'contracts', 'credentials', 'images', 'runtime', 'worker'].map(file => `packages/standalone/channels/${file}.mjs`),
   ...tree.filter(file => file.startsWith('packages/standalone/web/')),
-  ...['adapter', 'catalog', 'channel', 'eac', 'eac-login', 'eac-user', 'effort', 'egress', 'forward', 'http', 'kilo', 'messages', 'probe', 'recovery', 'store', 'stream', 'trust', 'upstream'].map(file => `src/${file}.js`),
+  ...['adapter', 'catalog', 'channel', 'eac', 'eac-login', 'eac-user', 'effort', 'egress', 'forward', 'http', 'image-pricing', 'kilo', 'messages', 'probe', 'recovery', 'store', 'stream', 'trust', 'upstream'].map(file => `src/${file}.js`),
   ...['completion', 'runtime', 'stats'].map(file => `src/core/${file}.js`),
   'vendor/channel-pack/qoder-auth-wasm.wasm', 'vendor/channel-pack/LICENSE', 'vendor/channel-pack/NOTICE.md',
 ].sort();

@@ -355,7 +355,7 @@ func TestPublicMenuNeverCreatesCredentials(t *testing.T) {
 		t.Fatal(err)
 	}
 	response := result.(httpResponse)
-	if response.StatusCode != 200 || !strings.Contains(string(response.Body), "CPA management key") || response.Headers.Get("Cache-Control") != "no-store" {
+	if response.StatusCode != 200 || !strings.Contains(string(response.Body), "CPA 管理密钥") || response.Headers.Get("Cache-Control") != "no-store" {
 		t.Fatal("invalid public landing page")
 	}
 	if p.runtime != nil {

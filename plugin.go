@@ -15,21 +15,23 @@ type controlRuntime interface {
 }
 
 type plugin struct {
-	lifecycle  sync.Mutex
-	mu         sync.Mutex
-	active     sync.WaitGroup
-	accepting  bool
-	config     config
-	runtime    controlRuntime
-	models     []modelInfo
-	operations map[string]string
-	localCalls map[string]*localCall
-	proxy      string
-	call       hostCaller
+	lifecycle    sync.Mutex
+	mu           sync.Mutex
+	active       sync.WaitGroup
+	accepting    bool
+	config       config
+	runtime      controlRuntime
+	models       []modelInfo
+	operations   map[string]string
+	localCalls   map[string]*localCall
+	proxy        string
+	call         hostCaller
+	consoleCalls map[string]context.CancelFunc
+	updates      updateCache
 }
 
 func newPlugin(caller hostCaller) *plugin {
-	return &plugin{call: caller, operations: make(map[string]string), localCalls: make(map[string]*localCall)}
+	return &plugin{call: caller, operations: make(map[string]string), localCalls: make(map[string]*localCall), consoleCalls: make(map[string]context.CancelFunc)}
 }
 
 func (p *plugin) begin() (config, controlRuntime, error) {
@@ -85,6 +87,9 @@ func (p *plugin) stop() {
 	for id, call := range p.localCalls {
 		call.cancel()
 		delete(p.localCalls, id)
+	}
+	for _, cancel := range p.consoleCalls {
+		cancel()
 	}
 	p.mu.Unlock()
 	for id, callback := range operations {
@@ -179,9 +184,9 @@ func (p *plugin) Handle(method string, raw []byte) (any, error) {
 		if err := decodeRequest(raw, &request); err != nil {
 			return nil, err
 		}
-		// CPA menu resources are public. Never start a service or mint tickets here.
-		if request.Path == "/v0/resource/plugins/"+pluginID+"/console" && request.Method == "GET" {
-			return httpResponse{StatusCode: 200, Headers: pageHeaders(), Body: managementPage}, nil
+		// Resource routes contain static code only; all data operations require CPA auth.
+		if response, ok := consoleResource(request); ok {
+			return response, nil
 		}
 		return p.management(request)
 	case "model.static", "model.register":
@@ -279,26 +284,48 @@ func (p *plugin) discover(cfg config, rt controlRuntime) (modelResponse, error) 
 
 func managementRegistration() any {
 	routes := []map[string]string{}
-	for _, item := range [][2]string{{"GET", "status"}, {"POST", "console"}, {"GET", "models"}} {
+	for _, item := range [][2]string{{"GET", "status"}, {"POST", "console"}, {"POST", "console-local"}, {"POST", "console-api"}, {"POST", "console-cancel"}, {"GET", "updates"}, {"GET", "models"}} {
 		routes = append(routes, map[string]string{"Method": item[0], "Path": "/ofm/" + item[1]})
 	}
-	return map[string]any{"routes": routes, "resources": []map[string]string{{
-		"Path": "/console", "Menu": "Our Free Model", "Description": "OFM console (CPA management authentication required)",
-	}}}
+	resources := []map[string]string{{"Path": "/console", "Menu": "免费模型管理", "Description": "通过当前 CPA 域名管理 OFM，需要 CPA 管理密钥"}}
+	for _, path := range consoleResourcePaths() {
+		resources = append(resources, map[string]string{"Path": path})
+	}
+	return map[string]any{"routes": routes, "resources": resources}
 }
 
 func pageHeaders() http.Header {
 	return http.Header{
 		"Content-Type": {"text/html; charset=utf-8"}, "Cache-Control": {"no-store"},
 		"Referrer-Policy": {"no-referrer"}, "X-Content-Type-Options": {"nosniff"},
-		"Content-Security-Policy": {"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"},
+		"Content-Security-Policy": {"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"},
 	}
 }
 
 func (p *plugin) management(request managementRequest) (any, error) {
 	key := request.Method + " " + request.Path
-	if key != "GET /v0/management/ofm/status" && key != "GET /v0/management/ofm/models" && key != "POST /v0/management/ofm/console" {
+	allowed := map[string]bool{"GET /v0/management/ofm/status": true, "GET /v0/management/ofm/models": true,
+		"POST /v0/management/ofm/console": true, "POST /v0/management/ofm/console-local": true,
+		"POST /v0/management/ofm/console-api": true, "POST /v0/management/ofm/console-cancel": true, "GET /v0/management/ofm/updates": true}
+	if !allowed[key] {
 		return httpResponse{StatusCode: 404, Body: []byte("Not found")}, nil
+	}
+	if key == "GET /v0/management/ofm/updates" {
+		return jsonHTTP(200, p.checkUpdates()), nil
+	}
+	if key == "POST /v0/management/ofm/console-cancel" {
+		var body struct {
+			ID string `json:"id"`
+		}
+		if err := decodeRequest(request.Body, &body); err != nil {
+			return jsonHTTP(400, map[string]string{"error": "无效的取消请求"}), nil
+		}
+		p.mu.Lock()
+		if cancel := p.consoleCalls[body.ID]; cancel != nil {
+			cancel()
+		}
+		p.mu.Unlock()
+		return jsonHTTP(200, map[string]bool{"ok": true}), nil
 	}
 	cfg, rt, err := p.begin()
 	if err != nil {
@@ -311,7 +338,17 @@ func (p *plugin) management(request managementRequest) (any, error) {
 		value, err = p.discover(cfg, rt)
 	case "GET /v0/management/ofm/status":
 		err = rt.command("status", nil, &value)
+		if status, ok := value.(map[string]any); ok {
+			status["pluginVersion"] = version
+			status["sourceRevision"] = sourceRevision
+			status["modelPrefix"] = cfg.ModelPrefix
+		}
 	case "POST /v0/management/ofm/console":
+		err = rt.command("status", nil, &value)
+		value = map[string]string{"url": consoleResourceBase + "/app", "mode": "same-origin"}
+	case "POST /v0/management/ofm/console-api":
+		return p.proxyConsole(rt, request.Body), nil
+	case "POST /v0/management/ofm/console-local":
 		var link string
 		err = rt.command("console", nil, &link)
 		value = map[string]string{"url": link}
