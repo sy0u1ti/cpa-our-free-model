@@ -80,8 +80,9 @@ func pluginRegistration(schema uint32) registration {
 		Capabilities: map[string]any{
 			"model_provider": true, "model_router": true, "executor": true, "executor_model_scope": "static",
 			"request_interceptor": true, "request_lifecycle_plugin": true,
-			"executor_input_formats":  []string{"chat-completions"},
-			"executor_output_formats": []string{"chat-completions"}, "management_api": true,
+			"response_before_translator": true,
+			"executor_input_formats":     []string{"chat-completions"},
+			"executor_output_formats":    []string{"chat-completions"}, "management_api": true,
 		},
 	}
 }

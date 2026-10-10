@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -104,6 +105,33 @@ func (p *plugin) Handle(method string, raw []byte) (any, error) {
 		return map[string]any{}, nil
 	case "executor.identifier":
 		return map[string]string{"identifier": pluginID}, nil
+	case "response.normalize_before":
+		var request struct {
+			FromFormat, ToFormat, Model string
+			Stream                      bool
+			Body                        []byte
+		}
+		if err := decodeRequest(raw, &request); err != nil {
+			return nil, err
+		}
+		p.mu.Lock()
+		owned := p.accepting && p.ownsModelLocked(request.Model)
+		if p.accepting && !owned {
+			for _, call := range p.localCalls {
+				if call.model == request.Model {
+					owned = true
+					break
+				}
+			}
+		}
+		p.mu.Unlock()
+		// CPA 8.0.23's OpenAI-to-Claude translator requires a data line, unlike
+		// its Chat handler. Restore it only at this converter's input boundary.
+		if owned && request.Stream && request.FromFormat == "openai" && request.ToFormat == "claude" &&
+			(json.Valid(request.Body) || bytes.Equal(bytes.TrimSpace(request.Body), []byte("[DONE]"))) {
+			request.Body = append([]byte("data: "), request.Body...)
+		}
+		return struct{ Body []byte }{request.Body}, nil
 	case "request.intercept_before":
 		return map[string]any{}, nil
 	case "request.intercept_after":
@@ -116,7 +144,7 @@ func (p *plugin) Handle(method string, raw []byte) (any, error) {
 		if p.accepting && request.RequestID != "" && p.ownsModelLocked(request.Model) {
 			if p.localCalls[request.RequestID] == nil {
 				ctx, cancel := context.WithCancel(context.Background())
-				p.localCalls[request.RequestID] = &localCall{ctx: ctx, cancel: cancel}
+				p.localCalls[request.RequestID] = &localCall{ctx: ctx, cancel: cancel, model: request.Model}
 			}
 			return map[string]any{"Headers": http.Header{executionHeader: {request.RequestID}}}, nil
 		}

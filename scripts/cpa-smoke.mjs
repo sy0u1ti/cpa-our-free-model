@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { fixtureUpstream, freePort, until, privateTestDirectory, removeTestDirectory, delay } from '../tests/helpers.mjs';
+import { assertJSONSSE } from '../tests/sse.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const binary = process.env.CPA_BIN || path.join(root, '.tools/cpa/cli-proxy-api.exe');
@@ -81,12 +83,29 @@ try {
     tools: [{ type: 'function', function: { name: 'lookup', parameters: { type: 'object', properties: {} } } }] });
   assert.equal(stream.status, 200);
   const sse = await stream.text();
-  assert.match(sse, /cpa-ofm-ok/); assert.match(sse, /lookup/); assert.match(sse, /fixture-thinking/); assert.match(sse, /\[DONE\]/);
-  pass('SSE text, reasoning, tool calls and completion under a mislabelled upstream Content-Type');
+  const chatChunks = assertJSONSSE(sse, { done: 1 }).map(event => event.value);
+  assert.ok(chatChunks.every(chunk => chunk.model === model));
+  const deltas = chatChunks.flatMap(chunk => chunk.choices ?? []).map(choice => choice.delta ?? {});
+  assert.equal(deltas.map(delta => delta.content ?? '').join(''), 'cpa-ofm-ok');
+  assert.equal(deltas.map(delta => delta.reasoning ?? delta.reasoning_content ?? '').join(''), 'fixture-thinking');
+  const tools = deltas.flatMap(delta => delta.tool_calls ?? []);
+  assert.ok(tools.some(tool => tool.function?.name === 'lookup'));
+  assert.deepEqual(JSON.parse(tools.map(tool => tool.function?.arguments ?? '').join('')), { value: 42 });
+  assert.equal(chatChunks.find(chunk => chunk.usage)?.usage.prompt_tokens, 7);
+  assert.ok(chatChunks.some(chunk => chunk.choices?.some(choice => choice.finish_reason === 'tool_calls')));
+  pass('Strict SSE JSON parsing: text, reasoning, tools, usage, prefixed models and exactly one DONE');
+  const oversized = await api('/v1/chat/completions', { ...body, large: 'x'.repeat(8 * 1024 * 1024) });
+  assert.equal(oversized.status, 413, await oversized.clone().text());
+  await oversized.text();
+  const afterOversized = await api('/v1/chat/completions', body);
+  assert.equal(afterOversized.status, 200); await afterOversized.text();
+  pass('Oversized requests return 413 without wedging subsequent service requests');
   const responses = await api('/v1/responses', { model, input: 'hi', stream: true });
   assert.equal(responses.status, 200, await responses.clone().text());
   const responseStream = await responses.text();
-  assert.match(responseStream, /response.completed/); assert.match(responseStream, /cpa-ofm-ok/);
+  const responseEvents = assertJSONSSE(responseStream);
+  assert.equal(responseEvents.filter(event => event.value.type === 'response.completed').length, 1);
+  assert.equal(responseEvents.filter(event => event.value.type === 'response.output_text.delta').map(event => event.value.delta).join(''), 'cpa-ofm-ok');
   pass('CPA native Responses API translation');
   const responsesJSON = await api('/v1/responses', { model, input: 'hi', stream: false });
   assert.equal(responsesJSON.status, 200, await responsesJSON.clone().text());
@@ -94,7 +113,9 @@ try {
   pass('CPA nonstream Responses API translation');
   const messages = await api('/v1/messages', { model, messages: [{ role: 'user', content: 'hi' }], max_tokens: 1024, stream: true });
   assert.equal(messages.status, 200, await messages.clone().text());
-  assert.match(await messages.text(), /cpa-ofm-ok/);
+  const messageEvents = assertJSONSSE(await messages.text());
+  assert.equal(messageEvents.filter(event => event.value.type === 'message_stop').length, 1);
+  assert.equal(messageEvents.filter(event => event.value.type === 'content_block_delta' && event.value.delta?.type === 'text_delta').map(event => event.value.delta.text).join(''), 'cpa-ofm-ok');
   pass('CPA native Anthropic Messages translation');
   const count = await api('/v1/messages/count_tokens', { model, messages: [{ role: 'user', content: 'hi' }] });
   assert.equal(count.status, 501, await count.clone().text());
@@ -103,6 +124,11 @@ try {
   assert.equal(gemini.status, 200, await gemini.clone().text());
   assert.match(await gemini.text(), /cpa-ofm-ok/);
   pass('CPA native Gemini generateContent translation');
+  const geminiStream = await api('/v1beta/models/' + model + ':streamGenerateContent?alt=sse', { contents: [{ role: 'user', parts: [{ text: 'hi' }] }] });
+  assert.equal(geminiStream.status, 200, await geminiStream.clone().text());
+  const geminiEvents = assertJSONSSE(await geminiStream.text());
+  assert.ok(geminiEvents.some(event => JSON.stringify(event.value).includes('cpa-ofm-ok')));
+  pass('CPA Gemini streaming returns parseable SSE JSON');
   const concurrent = await Promise.all(Array.from({ length: 6 }, () => api('/v1/chat/completions', body).then(async response => {
     assert.equal(response.status, 200); assert.match(await response.text(), /cpa-ofm-ok/);
   })));
@@ -160,12 +186,29 @@ try {
   const long = await fetch(base + '/v1/chat/completions', { method: 'POST', signal: abort.signal,
     headers: { authorization: 'Bearer ' + apiKey, 'content-type': 'application/json' }, body: JSON.stringify({ ...body, stream: true }) });
   const reader = long.body.getReader();
-  const first = await reader.read();
-  assert.ok(first.value?.length > 0);
+  let firstText = '';
+  while (!firstText.includes('cpa-ofm-ok')) {
+    const first = await reader.read();
+    assert.equal(first.done, false, 'Long stream ended before content');
+    firstText += new TextDecoder().decode(first.value);
+  }
   abort.abort(); await reader.cancel().catch(() => {});
   await until(() => upstream.state.cancelled > 0);
   upstream.state.long = false;
   pass('Real client cancellation propagates through CPA and OFM to the upstream');
+  upstream.state.long = true;
+  const cancelledBefore = upstream.state.cancelled;
+  const callsBefore = upstream.calls.length;
+  const pendingAbort = new AbortController();
+  const pendingChat = fetch(base + '/v1/chat/completions', { method: 'POST', signal: pendingAbort.signal,
+    headers: { authorization: 'Bearer ' + apiKey, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const pendingOutcome = pendingChat.then(response => response.text().then(() => 'completed'), () => 'cancelled');
+  await until(() => upstream.calls.slice(callsBefore).some(call => call.path.endsWith('/chat/completions')));
+  pendingAbort.abort();
+  assert.equal(await pendingOutcome, 'cancelled');
+  await until(() => upstream.state.cancelled > cancelledBefore);
+  upstream.state.long = false;
+  pass('Nonstream client cancellation before response closes upstream work');
   upstream.state.model = 'deepseek-v4-flash-free';
   const refreshed = await fetch(status.url + '/api/management/models/refresh', { method: 'POST', headers: consoleHeaders, body: '{"probe":false}' });
   assert.equal(refreshed.status, 200); await refreshed.text();
@@ -177,13 +220,20 @@ try {
   assert.equal(same.pid, ofmPid);
   await until(async () => (await (await api('/v1/models')).json()).data.some(row => row.id === 'ofm/' + upstream.state.model));
   pass('Catalog refresh reconfigures without spawning a duplicate OFM service');
+  upstream.state.long = true;
+  const activeResponse = await api('/v1/chat/completions', { ...body, model: 'ofm/' + upstream.state.model, stream: true });
+  const activeReader = activeResponse.body.getReader();
+  await activeReader.read();
+  const draining = (async () => { try { while (!(await activeReader.read()).done) {} } catch {} })();
   const disabled = await api('/v0/management/plugins/our-free-model/enabled', { enabled: false }, managementKey, 'PATCH');
   assert.equal(disabled.status, 200);
   await until(() => { try { process.kill(ofmPid, 0); return false; } catch (error) { return error.code === 'ESRCH'; } });
   assert.equal(fs.existsSync(path.join(data, 'service.lock')), false);
-  pass('Disabling the plugin stops the private service and releases its data lock');
+  await draining;
+  pass('Disabling during an active stream cancels work, stops the service and releases its lock');
   fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
-  fs.writeFileSync(path.join(root, `dist/CPA_${process.env.CPA_TEST_PROXY === '1' ? 'PROXY_' : ''}SMOKE_${platform}_${arch}.json`), JSON.stringify({ platform, arch, plugin: path.basename(plugin), checks: reports }, null, 2) + '\n');
+  fs.writeFileSync(path.join(root, `dist/CPA_${process.env.CPA_TEST_PROXY === '1' ? 'PROXY_' : ''}SMOKE_${platform}_${arch}.json`), JSON.stringify({ platform, arch, plugin: path.basename(plugin),
+    sha256: crypto.createHash('sha256').update(fs.readFileSync(plugin)).digest('hex'), checks: reports }, null, 2) + '\n');
 } catch (error) {
   console.error(logs.split('\n').filter(line => !line.includes('GET     "/v1/models"')).join('\n').slice(-16000));
   fs.writeFileSync(path.join(directory, 'cpa.log'), logs);

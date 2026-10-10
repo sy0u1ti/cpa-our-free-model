@@ -121,7 +121,8 @@ func (r *serviceRuntime) ensure() (*serviceChild, error) {
 
 func (c *serviceChild) read(stdout io.ReadCloser) {
 	scanner := bufio.NewScanner(stdout)
-	scanner.Buffer(make([]byte, 4096), 8*1024*1024)
+	// Control envelopes wrap the same 8 MiB inference payload, plus metadata.
+	scanner.Buffer(make([]byte, 4096), 16*1024*1024)
 	for scanner.Scan() {
 		var reply runtimeReply
 		if json.Unmarshal(scanner.Bytes(), &reply) != nil {
@@ -143,7 +144,15 @@ func (c *serviceChild) read(stdout io.ReadCloser) {
 		}
 	}
 	_ = stdout.Close()
+	_ = c.stdin.Close()
+	if scanner.Err() != nil {
+		// A broken reader cannot service any future command. Do not leave a
+		// live process parked behind an open stdin and a never-closed done channel.
+		_ = c.cmd.Process.Kill()
+	}
+	watchdog := time.AfterFunc(5*time.Second, func() { _ = c.cmd.Process.Kill() })
 	_ = c.cmd.Wait()
+	watchdog.Stop()
 	close(c.done)
 }
 

@@ -10,10 +10,18 @@ repository**. The [Magpie adaptation](https://github.com/mu-zi-lee/magpie-our-fr
 is an architectural reference only, not a code source or dependency. The CPA
 C ABI integration is separate. Original authorship and MIT licenses are retained.
 
-Version **0.2.0** uses 51 original-source files: 49 unchanged and two documented,
+Version **0.2.1** uses 51 original-source files: 49 unchanged and two documented,
 reproducible CPA patches. `npm run vendor:original -- /path/to/original-checkout`
 regenerates the snapshot from pinned Git blobs. See `scripts/upstream-patches.mjs`
 and `service/vendor/ofm/UPSTREAM.json` for exact provenance.
+
+**Upgrade from 0.2.0:** 0.2.1 fixes double `data:` prefixes and duplicate `[DONE]`
+markers in Chat streaming. Pull the source, rebuild, stop CPA, replace the installed
+plugin binary and restart CPA. Keep the existing config and private data directory;
+account login is not required again. The plugin ID remains `our-free-model`.
+The same update rejects oversized requests without wedging the local service,
+uses an explicit embedded-file allowlist, and hardens cache/startup handling.
+See `AUDIT.md` for the review findings and validation limits.
 
 ## Quick start
 
@@ -23,7 +31,7 @@ before the installation steps below. Generated `dist/` files are not committed.
 
 1. Use a plugin-enabled CLIProxyAPI build. Validated against **CPA 8.0.23**.
 2. Copy the matching binary into CPA's configured `plugins` directory:
-   `our-free-model-v0.2.0.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
+   `our-free-model-v0.2.1.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
 3. Merge `config.example.yaml` into CPA's configuration and restart CPA:
 
 ```yaml
@@ -85,7 +93,7 @@ CPA_BIN=/path/to/cli-proxy-api CPA_TEST_PROXY=1 npm run smoke
 Build directly if preferred:
 
 ```sh
-CGO_ENABLED=1 go build -trimpath -buildmode=c-shared -o our-free-model-v0.2.0.so .
+CGO_ENABLED=1 go build -trimpath -buildmode=c-shared -o our-free-model-v0.2.1.so .
 ```
 
 Windows needs MinGW-w64 or Zig as `CC`; MSVC alone does not support Go cgo. The
@@ -108,6 +116,9 @@ tests are the portable reference. See `VALIDATION.md` for actual executed checks
   Tests do not validate real personal accounts, EAC authorization or available quota.
 - Requests go to the original upstreams; free pools may log prompts. Do not send
   secrets or sensitive information. Use only channels you are authorized to access.
+- OFM request bodies are limited to 8 MiB, including inline images. For long
+  reasoning pauses, configure CPA's `streaming.keepalive-seconds`; plugin executor
+  chunks must contain JSON, so upstream comment heartbeats are not forwarded as data.
 
 See `NOTICE.md`, `service/vendor/ofm/UPSTREAM.json` and `VALIDATION.md` for
 provenance, exact revisions, tests and known compatibility limits.

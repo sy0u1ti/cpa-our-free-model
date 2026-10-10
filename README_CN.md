@@ -14,6 +14,14 @@
 来源、原始 Git blob、前后 SHA-256、补丁说明均记录在 `service/vendor/ofm/UPSTREAM.json`。
 `scripts/import-upstream.mjs` 和 `scripts/upstream-patches.mjs` 可以重现整个取源过程。
 
+**当前版本 v0.2.1**：修复 v0.2.0 流式输出中的双重 `data:` 前缀与重复 `[DONE]`。
+从源码升级时，执行 `git pull --ff-only`、`npm run build`，停止 CPA 后用新动态库替换
+原安装文件，再启动 CPA。保持插件 ID `our-free-model`、原 `config.yaml` 和数据目录不变，
+无需重新登录。Linux 默认构建产物为 `dist/linux/amd64/our-free-model-v0.2.1.so`；
+若之前安装为 `plugins/linux/amd64/our-free-model.so`，用新文件替换该文件，不要同时放两份。
+本次也补上超大请求保护、内部控制通道退出清理和嵌入文件白名单，并修复 Node 相对路径问题。
+审查范围、已修复项及仍未实测的边界见 `AUDIT.md`。
+
 ## 1. 安装
 
 已使用 **官方 CPA 8.0.23 的 Windows x64 与 Linux x64 发行版**验证。请使用支持插件的 CPA
@@ -24,8 +32,8 @@
 
 | 系统 | 文件 |
 | --- | --- |
-| Windows x64 | `dist/windows/amd64/our-free-model-v0.2.0.dll` |
-| Linux x64 | `dist/linux/amd64/our-free-model-v0.2.0.so` |
+| Windows x64 | `dist/windows/amd64/our-free-model-v0.2.1.dll` |
+| Linux x64 | `dist/linux/amd64/our-free-model-v0.2.1.so` |
 | macOS / ARM64 | 从源码在相应平台构建；不将未实测平台宣称为已验证 |
 
 1. 把对应动态库复制到 CPA 配置的插件目录，例如 `plugins/` 或 `plugins/windows/amd64/`。
@@ -230,6 +238,8 @@ npm run smoke
 - 不支持图片生成、原生 Responses 服务端会话恢复或厂商专有工具语义的完全一致转换。
 - 非流式思考字段、原厂错误码等信息可能在原 OFM 转发层已被折叠；插件不臆造丢失信息。
   接收到的 OFM HTTP 错误状态保留，流开始后的失败用 SSE 错误表达。
+- 请求体（包括内联图片）上限为 8 MiB，超出返回 413。长时间思考时建议在 CPA 的
+  `streaming` 配置下设置 `keepalive-seconds: 15`。SSE 外壳由 CPA 生成，上游注释心跳不会作为 JSON 数据转发。
 - DSH 公告、自更新、热重载、宿主自动续跑、局域网中继没有迁移；通过更新动态库升级。
 - 免费额度、模型清单、地区可用性和登录接口由上游决定。对话、图片及工具信息会发给对应厂商；
   免费池可能记录提示词，不要发送敏感内容。本插件不自动注册账号、不绕过付费或授权限制。

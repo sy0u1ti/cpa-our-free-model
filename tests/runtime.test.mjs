@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fixtureUpstream, privateTestDirectory, removeTestDirectory, startRunner, until } from './helpers.mjs';
+import { request as httpRequest } from 'node:http';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 
@@ -39,6 +40,14 @@ test('real bundled OFM service: discovery, auth fences, key rotation, console, s
   const cookie = opened.headers.get('set-cookie');
   assert.match(cookie, /HttpOnly/i);
   assert.equal((await fetch(ticket, { redirect: 'manual' })).status, 401);
+  const guardedTicket = await runner.call('console');
+  assert.equal((await fetch(guardedTicket, { headers: { origin: 'https://untrusted.invalid' }, redirect: 'manual' })).status, 403);
+  const rebound = await new Promise((resolve, reject) => {
+    const req = httpRequest(guardedTicket, { headers: { host: 'untrusted.invalid' } }, res => { res.resume(); res.once('end', () => resolve(res.statusCode)); });
+    req.once('error', reject); req.end();
+  });
+  assert.equal(rebound, 403);
+  assert.equal((await fetch(guardedTicket, { redirect: 'manual' })).status, 303);
   const headers = { cookie: cookie.split(';')[0], origin: connection.url, 'content-type': 'application/json' };
   const summary = await fetch(connection.url + '/api/management/summary', { headers });
   assert.equal(summary.status, 200);

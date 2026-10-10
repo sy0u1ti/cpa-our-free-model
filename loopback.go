@@ -14,6 +14,7 @@ const executionHeader = "X-Ofm-Cpa-Execution"
 type localCall struct {
 	ctx    context.Context
 	cancel context.CancelFunc
+	model  string
 }
 
 var loopbackTransport = func() *http.Transport {
@@ -102,17 +103,17 @@ func (p *plugin) streamDirect(cfg config, rt controlRuntime, request executorReq
 		defer func() {
 			_ = p.call("host.stream.close", map[string]string{"stream_id": request.StreamID, "error": message}, nil)
 		}()
-		framer := sseFramer{emit: func(frame []byte) error {
-			if err := checkSSEError(frame); err != nil {
-				return err
-			}
-			return p.call("host.stream.emit", map[string]any{"stream_id": request.StreamID, "payload": rewriteSSEModel(frame, prepared.Model)}, nil)
+		framer := sseFramer{emit: func(payload []byte) error {
+			return p.call("host.stream.emit", map[string]any{"stream_id": request.StreamID, "payload": rewriteModel(payload, prepared.Model)}, nil)
 		}}
 		buf := make([]byte, 32*1024)
 		for {
 			n, readErr := response.Body.Read(buf)
 			if err := framer.push(buf[:n]); err != nil {
 				message = "OFM stream delivery failed"
+				return
+			}
+			if framer.done {
 				return
 			}
 			if readErr != nil {

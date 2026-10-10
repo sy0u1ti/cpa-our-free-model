@@ -1,14 +1,91 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 )
+
+type loopbackFixtureRuntime struct {
+	*fixtureRuntime
+	url string
+}
+
+func (r loopbackFixtureRuntime) command(kind string, args map[string]any, result any) error {
+	if kind != "prepare" {
+		return r.fixtureRuntime.command(kind, args, result)
+	}
+	var prepared map[string]any
+	if err := r.fixtureRuntime.command(kind, args, &prepared); err != nil {
+		return err
+	}
+	prepared["url"] = r.url
+	return assign(prepared, result)
+}
+
+func TestDirectStreamEmitsOnlyJSONAndClosesOnDone(t *testing.T) {
+	cancelled := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte(": heartbeat\n\nevent: chunk\ndata: {\"model\":\"fixture\",\"choices\":[{\"delta\":{\"content\":\"direct\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"))
+		w.(http.Flusher).Flush()
+		<-r.Context().Done()
+		close(cancelled)
+	}))
+	defer server.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	emitted := make(chan []byte, 8)
+	closed := make(chan string, 1)
+	p, rt := fixturePlugin(func(method string, request any, result any) error {
+		switch method {
+		case "host.stream.emit":
+			emitted <- bytes.Clone(request.(map[string]any)["payload"].([]byte))
+		case "host.stream.close":
+			closed <- request.(map[string]string)["error"]
+		default:
+			return errors.New("direct loopback must not use a host HTTP callback")
+		}
+		return nil
+	})
+	p.proxy = "http://proxy.invalid:8080"
+	p.runtime = loopbackFixtureRuntime{fixtureRuntime: rt, url: server.URL}
+	p.localCalls["direct-id"] = &localCall{ctx: ctx, cancel: cancel}
+	_, err := p.Handle("executor.execute_stream", wire(t, executorRequest{
+		Model: "ofm/fixture", Payload: []byte(`{"messages":[]}`), StreamID: "down",
+		Headers: http.Header{executionHeader: {"direct-id"}},
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case message := <-closed:
+		if message != "" {
+			t.Fatal(message)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("direct stream waited for EOF after DONE")
+	}
+	select {
+	case <-cancelled:
+	case <-time.After(5 * time.Second):
+		t.Fatal("upstream was not closed on DONE")
+	}
+	p.Close()
+	if len(emitted) != 1 {
+		t.Fatalf("expected only one JSON chunk, got %d", len(emitted))
+	}
+	payload := <-emitted
+	if !json.Valid(payload) || !bytes.Contains(payload, []byte(`"model":"ofm/fixture"`)) {
+		t.Fatalf("executor payload is framed or malformed: %q", payload)
+	}
+}
 
 func TestModelRouterOnlyClaimsItsCatalog(t *testing.T) {
 	p, _ := fixturePlugin(nil)

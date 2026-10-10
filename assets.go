@@ -4,14 +4,37 @@ import (
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
-//go:embed all:service
+// Keep private or ignored files in service/ out of published binaries.
+//
+//go:embed service/package.json service/runner.mjs service/upstream-eac.json
+//go:embed service/src/catalog.mjs service/src/console-tickets.mjs service/src/eac-provider.mjs
+//go:embed service/vendor/CPA_LICENSE service/vendor/YAML_LICENSE service/vendor/WEB_LICENSES.txt service/vendor/WEB_LICENSE_SOURCES.json
+//go:embed service/vendor/ofm/LICENSE service/vendor/ofm/UPSTREAM.json service/vendor/ofm/package.json
+//go:embed service/vendor/ofm/scripts/standalone-third-party.txt
+//go:embed service/vendor/ofm/packages/standalone/README.md service/vendor/ofm/packages/standalone/package.json
+//go:embed service/vendor/ofm/packages/standalone/cli.mjs service/vendor/ofm/packages/standalone/service.mjs
+//go:embed service/vendor/ofm/packages/standalone/management.mjs service/vendor/ofm/packages/standalone/login-terminal.mjs service/vendor/ofm/packages/standalone/eac.mjs
+//go:embed service/vendor/ofm/packages/standalone/channels/business.mjs service/vendor/ofm/packages/standalone/channels/contracts.mjs service/vendor/ofm/packages/standalone/channels/credentials.mjs
+//go:embed service/vendor/ofm/packages/standalone/channels/images.mjs service/vendor/ofm/packages/standalone/channels/runtime.mjs service/vendor/ofm/packages/standalone/channels/worker.mjs
+//go:embed service/vendor/ofm/packages/standalone/web/_ofm-provider-list-D9WP3xjp.js service/vendor/ofm/packages/standalone/web/app.css service/vendor/ofm/packages/standalone/web/app.js
+//go:embed service/vendor/ofm/packages/standalone/web/assets.json service/vendor/ofm/packages/standalone/web/channels-jv6LXryG.js service/vendor/ofm/packages/standalone/web/index.html
+//go:embed service/vendor/ofm/packages/standalone/web/models-dO2Z52ZC.js service/vendor/ofm/packages/standalone/web/search-RZVy3Eoo.js service/vendor/ofm/packages/standalone/web/settings-D20NFL0A.js
+//go:embed service/vendor/ofm/packages/standalone/web/usage-BUbyDRGb.js service/vendor/ofm/packages/standalone/web/x-CzfajR1e.js
+//go:embed service/vendor/ofm/src/adapter.js service/vendor/ofm/src/catalog.js service/vendor/ofm/src/channel.js service/vendor/ofm/src/effort.js
+//go:embed service/vendor/ofm/src/eac.js service/vendor/ofm/src/eac-login.js service/vendor/ofm/src/eac-user.js service/vendor/ofm/src/egress.js
+//go:embed service/vendor/ofm/src/forward.js service/vendor/ofm/src/http.js service/vendor/ofm/src/kilo.js service/vendor/ofm/src/messages.js
+//go:embed service/vendor/ofm/src/probe.js service/vendor/ofm/src/recovery.js service/vendor/ofm/src/store.js service/vendor/ofm/src/stream.js service/vendor/ofm/src/trust.js service/vendor/ofm/src/upstream.js
+//go:embed service/vendor/ofm/src/core/completion.js service/vendor/ofm/src/core/runtime.js service/vendor/ofm/src/core/stats.js
+//go:embed service/vendor/ofm/vendor/channel-pack/LICENSE service/vendor/ofm/vendor/channel-pack/NOTICE.md service/vendor/ofm/vendor/channel-pack/qoder-auth-wasm.wasm
 var serviceAssets embed.FS
 
 //go:embed web/index.html
@@ -55,17 +78,28 @@ func safeRemoveAll(target, parent string) error {
 func verifyAssets(directory string, files []string) bool {
 	for _, name := range files {
 		rel := strings.TrimPrefix(name, "service/")
-		for part := filepath.Join(directory, filepath.FromSlash(rel)); ; part = filepath.Dir(part) {
+		expected, err := serviceAssets.ReadFile(name)
+		if err != nil {
+			return false
+		}
+		file := filepath.Join(directory, filepath.FromSlash(rel))
+		for part := file; ; part = filepath.Dir(part) {
 			info, err := os.Lstat(part)
 			if err != nil || info.Mode()&os.ModeSymlink != 0 {
+				return false
+			}
+			if part == file {
+				if !info.Mode().IsRegular() || info.Size() != int64(len(expected)) {
+					return false
+				}
+			} else if !info.IsDir() {
 				return false
 			}
 			if part == directory {
 				break
 			}
 		}
-		expected, _ := serviceAssets.ReadFile(name)
-		actual, err := os.ReadFile(filepath.Join(directory, filepath.FromSlash(rel)))
+		actual, err := os.ReadFile(file)
 		if err != nil || sha256.Sum256(expected) != sha256.Sum256(actual) {
 			return false
 		}
@@ -109,8 +143,22 @@ func extractService(dataDir string) (string, error) {
 			return "", err
 		}
 	}
-	if err := os.Rename(stage, destination); err != nil && !verifyAssets(destination, files) {
+	if err := renameAssetDirectory(stage, destination, os.Rename, time.Sleep); err != nil && !verifyAssets(destination, files) {
 		return "", fmt.Errorf("install embedded service: %w", err)
 	}
 	return destination, nil
+}
+
+func renameAssetDirectory(stage, destination string, rename func(string, string) error, wait func(time.Duration)) error {
+	var err error
+	for attempt := 0; attempt < 6; attempt++ {
+		err = rename(stage, destination)
+		if err == nil || !errors.Is(err, os.ErrPermission) || attempt == 5 {
+			return err
+		}
+		// Windows scanners can briefly hold extracted files open. Retry only a
+		// permission/share denial, never remove or overwrite another cache.
+		wait(50 * time.Millisecond * time.Duration(1<<attempt))
+	}
+	return err
 }

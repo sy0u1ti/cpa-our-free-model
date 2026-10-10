@@ -170,10 +170,10 @@ func TestNonstreamHeadersModelAndErrors(t *testing.T) {
 }
 
 func TestSSEFramingAllSplits(t *testing.T) {
-	raw := []byte("data: {\"model\":\"fixture\",\"choices\":[]}\r\n\r\n: ping\n\ndata: [DONE]\n\n")
+	raw := []byte("event: chunk\r\nid: 1\r\ndata: {\"model\":\"fixture\",\r\ndata:\"choices\":[]}\r\n\r\n: ping\n\ndata:\n\nretry: 1000\n\ndata: [DONE]\n\n\n\ndata: [DONE]\n\n")
 	for split := 0; split <= len(raw); split++ {
-		var frames [][]byte
-		framer := sseFramer{emit: func(frame []byte) error { frames = append(frames, frame); return nil }}
+		var payloads [][]byte
+		framer := sseFramer{emit: func(payload []byte) error { payloads = append(payloads, payload); return nil }}
 		if err := framer.push(raw[:split]); err != nil {
 			t.Fatal(err)
 		}
@@ -183,8 +183,8 @@ func TestSSEFramingAllSplits(t *testing.T) {
 		if err := framer.finish(); err != nil {
 			t.Fatal(err)
 		}
-		if len(frames) != 3 || !bytes.Contains(rewriteSSEModel(frames[0], "ofm/fixture"), []byte(`"model":"ofm/fixture"`)) {
-			t.Fatalf("split %d, frames=%q", split, frames)
+		if !framer.done || len(payloads) != 1 || string(payloads[0]) != `{"model":"fixture","choices":[]}` {
+			t.Fatalf("split %d, payloads=%q, done=%v", split, payloads, framer.done)
 		}
 	}
 	framer := sseFramer{emit: func([]byte) error { return nil }}
@@ -192,8 +192,31 @@ func TestSSEFramingAllSplits(t *testing.T) {
 	if framer.finish() == nil {
 		t.Fatal("incomplete stream accepted")
 	}
-	if checkSSEError([]byte("data: {\"error\":{\"message\":\"private upstream detail\"}}\n\n")) == nil {
-		t.Fatal("upstream SSE error must become a host stream error for protocol converters")
+	for _, raw := range []string{
+		"data: {\"error\":{\"message\":\"private upstream detail\"}}\n\n",
+		"event: error\ndata: {}\n\n", "event: error\n\n",
+		"data: not-json\n\n", "data: []\n\n", "data: null\n\n", "data: data: {}\n\n",
+	} {
+		t.Run(raw, func(t *testing.T) {
+			framer := sseFramer{emit: func([]byte) error { t.Error("invalid event was emitted"); return nil }}
+			if err := framer.push([]byte(raw)); err == nil || strings.Contains(err.Error(), "private upstream detail") {
+				t.Fatalf("invalid SSE event must fail without leaking upstream text: %v", err)
+			}
+		})
+	}
+}
+
+func TestSSEFramerStopsOnDoneWithoutWaitingForEOF(t *testing.T) {
+	var payloads [][]byte
+	framer := sseFramer{emit: func(payload []byte) error { payloads = append(payloads, payload); return nil }}
+	raw := []byte(": heartbeat\r\n\r\ndata: {\"choices\":[{\"delta\":{\"content\":\"\\u4e2d\"}}]}\n\ndata: [DONE]\n\ntrailing ignored bytes")
+	for _, value := range raw {
+		if err := framer.push([]byte{value}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if !framer.done || framer.finish() != nil || len(payloads) != 1 || !json.Valid(payloads[0]) {
+		t.Fatalf("invalid terminal or byte-wise framing: %+v, payloads=%q", framer, payloads)
 	}
 }
 
@@ -230,19 +253,99 @@ func TestAsyncStreamingDoesNotBufferUntilEnd(t *testing.T) {
 	chunks <- httpStreamChunk{Payload: []byte("data: {\"model\":\"fixture\",\"choices\":[{\"delta\":{\"content\":\"first\"}}]}\n\n")}
 	select {
 	case frame := <-emitted:
-		if !bytes.Contains(frame, []byte("first")) {
+		if !json.Valid(frame) || !bytes.Contains(frame, []byte(`"model":"ofm/fixture"`)) || !bytes.Contains(frame, []byte("first")) {
 			t.Fatal(string(frame))
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("first token buffered")
 	}
-	chunks <- httpStreamChunk{Payload: []byte("data: [DONE]\n\n"), Done: true}
+	chunks <- httpStreamChunk{Payload: []byte(": ping\n\ndata: [DONE]\n\n")}
 	select {
 	case <-closed:
 	case <-time.After(5 * time.Second):
 		t.Fatal("stream never closed")
 	}
 	p.Close()
+	select {
+	case extra := <-emitted:
+		t.Fatalf("SSE controls must not reach the executor: %q", extra)
+	default:
+	}
+}
+
+func TestClaudeNormalizerOnlyFramesOwnedStreamingJSON(t *testing.T) {
+	p, _ := fixturePlugin(nil)
+	if _, err := p.Handle("model.static", nil); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name, from, to, model, input, want string
+		stream                             bool
+	}{
+		{"claude", "openai", "claude", "ofm/fixture", `{"choices":[]}`, `data: {"choices":[]}`, true},
+		{"suffix", "openai", "claude", "ofm/fixture(high)", `{"choices":[]}`, `data: {"choices":[]}`, true},
+		{"framed", "openai", "claude", "ofm/fixture", `data: {"choices":[]}`, `data: {"choices":[]}`, true},
+		{"done", "openai", "claude", "ofm/fixture", "data: [DONE]", "data: [DONE]", true},
+		{"bare done", "openai", "claude", "ofm/fixture", "[DONE]", "data: [DONE]", true},
+		{"chat", "openai", "openai", "ofm/fixture", `{"choices":[]}`, `{"choices":[]}`, true},
+		{"responses", "openai", "openai-response", "ofm/fixture", `{"choices":[]}`, `{"choices":[]}`, true},
+		{"other provider", "openai", "claude", "another-model", `{"choices":[]}`, `{"choices":[]}`, true},
+		{"nonstream", "openai", "claude", "ofm/fixture", `{"choices":[]}`, `{"choices":[]}`, false},
+		{"other protocol", "gemini", "claude", "ofm/fixture", `{"choices":[]}`, `{"choices":[]}`, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			value, err := p.Handle("response.normalize_before", wire(t, map[string]any{
+				"FromFormat": tc.from, "ToFormat": tc.to, "Model": tc.model, "Stream": tc.stream, "Body": []byte(tc.input),
+			}))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var result struct{ Body []byte }
+			if err := assign(value, &result); err != nil {
+				t.Fatal(err)
+			}
+			if string(result.Body) != tc.want {
+				t.Fatalf("want %q, got %q", tc.want, result.Body)
+			}
+		})
+	}
+}
+
+func TestCatalogRefreshDoesNotInterruptActiveClaudeTranslation(t *testing.T) {
+	p, rt := fixturePlugin(nil)
+	if _, err := p.Handle("model.static", nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.Handle("request.intercept_after", wire(t, map[string]string{"RequestID": "stream", "Model": "ofm/fixture"})); err != nil {
+		t.Fatal(err)
+	}
+	rt.rows = nil
+	if _, err := p.Handle("model.static", nil); err != nil {
+		t.Fatal(err)
+	}
+	request := wire(t, map[string]any{"Model": "ofm/fixture", "FromFormat": "openai", "ToFormat": "claude", "Stream": true, "Body": []byte(`{"choices":[]}`)})
+	value, err := p.Handle("response.normalize_before", request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result struct{ Body []byte }
+	if err := assign(value, &result); err != nil {
+		t.Fatal(err)
+	}
+	if string(result.Body) != `data: {"choices":[]}` {
+		t.Fatalf("in-flight translation lost ownership after refresh: %q", result.Body)
+	}
+	_, _ = p.Handle("request.complete", wire(t, map[string]string{"RequestID": "stream"}))
+	value, err = p.Handle("response.normalize_before", request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := assign(value, &result); err != nil {
+		t.Fatal(err)
+	}
+	if string(result.Body) != `{"choices":[]}` {
+		t.Fatal("completed request retained stale ownership")
+	}
 }
 
 func TestPublicMenuNeverCreatesCredentials(t *testing.T) {

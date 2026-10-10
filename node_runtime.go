@@ -78,12 +78,16 @@ func nodeTarget() string {
 func resolveNode(ctx context.Context, cfg config) (string, error) {
 	if cfg.NodePath != "" {
 		if probeNode(ctx, cfg.NodePath) {
-			return cfg.NodePath, nil
+			located, err := exec.LookPath(cfg.NodePath)
+			if err != nil {
+				return "", err
+			}
+			return filepath.Abs(located)
 		}
 		return "", fmt.Errorf("node-path is not a working Node.js 22.19+ or 24+ executable")
 	}
 	if binary, err := exec.LookPath("node"); err == nil && probeNode(ctx, binary) {
-		return binary, nil
+		return filepath.Abs(binary)
 	}
 	target := nodeTarget()
 	root := filepath.Join(cfg.DataDir, "runtime")

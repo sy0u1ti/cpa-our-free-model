@@ -17,7 +17,12 @@ type preparedCall struct {
 	Model   string
 }
 
+const maxInferenceBodyBytes = 8 * 1024 * 1024
+
 func (p *plugin) prepare(cfg config, rt controlRuntime, request executorRequest, stream bool) (preparedCall, error) {
+	if len(request.Payload) > maxInferenceBodyBytes {
+		return preparedCall{}, problem(413, "request_too_large", "OFM supports request bodies up to 8 MiB")
+	}
 	if request.Format != "" && request.Format != "openai" && request.Format != "chat-completions" {
 		return preparedCall{}, problem(400, "unsupported_format", "CPA must translate this request to Chat Completions")
 	}
@@ -41,6 +46,13 @@ func (p *plugin) prepare(cfg config, rt controlRuntime, request executorRequest,
 			digest := sha256.Sum256([]byte(scope + "\x00" + session))
 			body["user"], _ = json.Marshal("cpa-" + hex.EncodeToString(digest[:16]))
 		}
+	}
+	encodedBody, err := json.Marshal(body)
+	if err != nil {
+		return preparedCall{}, err
+	}
+	if len(encodedBody) > maxInferenceBodyBytes {
+		return preparedCall{}, problem(413, "request_too_large", "Normalized OFM request exceeds 8 MiB")
 	}
 	args := map[string]any{"model": strings.TrimPrefix(model, cfg.ModelPrefix), "body": body}
 	if effort != "" {
@@ -84,6 +96,9 @@ func (p *plugin) prepare(cfg config, rt controlRuntime, request executorRequest,
 	payload, err := json.Marshal(body)
 	if err != nil {
 		return preparedCall{}, err
+	}
+	if len(payload) > maxInferenceBodyBytes {
+		return preparedCall{}, problem(413, "request_too_large", "Normalized OFM request exceeds 8 MiB")
 	}
 	accept := "application/json"
 	if stream {
@@ -234,11 +249,8 @@ func (p *plugin) executeStream(cfg config, rt controlRuntime, request executorRe
 		defer func() {
 			_ = p.call("host.stream.close", map[string]string{"stream_id": request.StreamID, "error": streamError}, nil)
 		}()
-		emit := func(frame []byte) error {
-			if err := checkSSEError(frame); err != nil {
-				return err
-			}
-			return p.call("host.stream.emit", map[string]any{"stream_id": request.StreamID, "payload": rewriteSSEModel(frame, prepared.Model)}, nil)
+		emit := func(payload []byte) error {
+			return p.call("host.stream.emit", map[string]any{"stream_id": request.StreamID, "payload": rewriteModel(payload, prepared.Model)}, nil)
 		}
 		framer := sseFramer{emit: emit}
 		for {
@@ -249,6 +261,9 @@ func (p *plugin) executeStream(cfg config, rt controlRuntime, request executorRe
 			}
 			if err := framer.push(chunk.Payload); err != nil {
 				streamError = "OFM stream delivery failed"
+				return
+			}
+			if framer.done {
 				return
 			}
 			if chunk.Error != "" {
@@ -269,9 +284,13 @@ func (p *plugin) executeStream(cfg config, rt controlRuntime, request executorRe
 type sseFramer struct {
 	pending []byte
 	emit    func([]byte) error
+	done    bool
 }
 
 func (s *sseFramer) push(chunk []byte) error {
+	if s.done {
+		return nil
+	}
 	s.pending = append(s.pending, chunk...)
 	for {
 		index, width := bytes.Index(s.pending, []byte("\n\n")), 2
@@ -287,8 +306,12 @@ func (s *sseFramer) push(chunk []byte) error {
 		}
 		frame := bytes.Clone(s.pending[:index+width])
 		s.pending = s.pending[index+width:]
-		if err := s.emit(frame); err != nil {
+		if err := s.dispatch(frame); err != nil {
 			return err
+		}
+		if s.done {
+			s.pending = nil
+			return nil
 		}
 	}
 	if len(s.pending) > 8*1024*1024 {
@@ -297,35 +320,49 @@ func (s *sseFramer) push(chunk []byte) error {
 	return nil
 }
 
+func (s *sseFramer) dispatch(frame []byte) error {
+	var data [][]byte
+	var event string
+	for _, line := range bytes.Split(bytes.ReplaceAll(frame, []byte("\r\n"), []byte("\n")), []byte("\n")) {
+		field, value, _ := bytes.Cut(line, []byte(":"))
+		value = bytes.TrimPrefix(value, []byte(" "))
+		switch string(field) {
+		case "data":
+			data = append(data, value)
+		case "event":
+			event = string(value)
+		}
+	}
+	if event == "error" {
+		return problem(502, "upstream_stream_error", "OFM reported an upstream stream error")
+	}
+	payload := bytes.TrimSpace(bytes.Join(data, []byte("\n")))
+	if len(payload) == 0 {
+		return nil
+	}
+	if bytes.Equal(payload, []byte("[DONE]")) {
+		// CPA owns downstream SSE framing and emits its terminal marker on close.
+		s.done = true
+		return nil
+	}
+	var object map[string]json.RawMessage
+	if json.Unmarshal(payload, &object) != nil || object == nil {
+		return problem(502, "invalid_stream", "OFM returned invalid SSE JSON")
+	}
+	if failure := object["error"]; len(failure) != 0 && string(failure) != "null" {
+		return problem(502, "upstream_stream_error", "OFM reported an upstream stream error")
+	}
+	// Multi-line SSE data is one event; compact it before CPA adds one data line.
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, payload); err != nil {
+		return err
+	}
+	return s.emit(compact.Bytes())
+}
+
 func (s *sseFramer) finish() error {
 	if len(bytes.TrimSpace(s.pending)) == 0 {
 		return nil
 	}
 	return fmt.Errorf("incomplete SSE event")
-}
-
-func rewriteSSEModel(frame []byte, model string) []byte {
-	lines := bytes.Split(bytes.ReplaceAll(frame, []byte("\r\n"), []byte("\n")), []byte("\n"))
-	for i, line := range lines {
-		if bytes.HasPrefix(line, []byte("data:")) {
-			data := bytes.TrimSpace(line[5:])
-			if json.Valid(data) {
-				lines[i] = append([]byte("data: "), rewriteModel(data, model)...)
-			}
-		}
-	}
-	return bytes.Join(lines, []byte("\n"))
-}
-
-func checkSSEError(frame []byte) error {
-	for _, line := range bytes.Split(frame, []byte("\n")) {
-		if !bytes.HasPrefix(line, []byte("data:")) {
-			continue
-		}
-		var event map[string]json.RawMessage
-		if json.Unmarshal(bytes.TrimSpace(line[5:]), &event) == nil && event["error"] != nil && string(event["error"]) != "null" {
-			return problem(502, "upstream_stream_error", "OFM reported an upstream stream error")
-		}
-	}
-	return nil
 }
