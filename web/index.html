@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Our Free Model / CPA</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root { color-scheme: light dark; --paper: #f0eddf; --ink: #1e3934; --muted: #65756a; --line: #c9d0bf; --accent: #bcef55; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: radial-gradient(ellipse at 100% 0%, #dbe6b4, transparent 55%), var(--paper); font-family: "Palatino Linotype", Palatino, Georgia, serif; }
+    main { max-width: 880px; margin: 7vh auto; padding: 32px; }
+    .eyebrow, label, button, input, output, pre, .note { font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace; }
+    .eyebrow { letter-spacing: .16em; font-size: 12px; border-bottom: 1px solid var(--line); padding-bottom: 18px; }
+    h1 { font-size: clamp(48px, 8vw, 82px); font-weight: 400; letter-spacing: -.045em; line-height: .98; margin: 36px 0 24px; }
+    .intro { max-width: 610px; font-size: 21px; line-height: 1.55; }
+    section { border-top: 1px solid var(--line); margin-top: 34px; padding-top: 24px; }
+    label { display: block; font-size: 12px; text-transform: uppercase; margin-bottom: 10px; }
+    input { width: 100%; background: #ffffff66; border: 1px solid var(--line); color: var(--ink); padding: 16px; border-radius: 3px; font-size: 16px; }
+    input:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid #578330; outline-offset: 3px; }
+    .actions { display: flex; gap: 10px; margin: 16px 0; flex-wrap: wrap; }
+    button { padding: 13px 16px; border: 1px solid var(--ink); border-radius: 3px; background: transparent; color: var(--ink); font-size: 13px; cursor: pointer; }
+    button.primary { background: var(--ink); color: var(--accent); }
+    button:disabled { opacity: .55; cursor: wait; }
+    .note { color: var(--muted); font-size: 12px; line-height: 1.7; }
+    pre { background: #ffffff55; border-left: 3px solid var(--ink); padding: 18px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; line-height: 1.7; }
+    a { color: inherit; text-underline-offset: 4px; }
+    #link { display: inline-block; margin: 14px 0; font-size: 21px; }
+    #link[hidden] { display: none; }
+    output { display: block; font-size: 13px; line-height: 1.6; }
+    footer { margin-top: 44px; font-size: 14px; color: var(--muted); }
+    @media (max-width: 540px) { main { margin: 2vh auto; padding: 24px; } .actions { flex-direction: column; } h1 { margin-top: 30px; } }
+    @media (prefers-color-scheme: dark) { :root { --paper: #17241e; --ink: #e5ebd8; --muted: #a8b59e; --line: #4b5c45; } body { background: radial-gradient(ellipse at 100% 0%, #304924, transparent 55%), var(--paper); } input, pre { background: #0002; } button.primary { color: #1e3934; background: var(--accent); } }
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">OUR FREE MODEL &nbsp; / &nbsp; CLI PROXY API</div>
+  <h1>Your models.<br>One local home.</h1>
+  <p class="intro">The original OFM model pools, account channels and console, connected to CPA. Your account data stays in a separate local directory.</p>
+  <section aria-labelledby="access-label">
+    <label id="access-label" for="key">CPA management key</label>
+    <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="Not a client API key or an OFM key">
+    <p class="note">This public menu page contains no credentials. Your management key is sent only to this CPA origin and is never saved by this page.</p>
+    <div class="actions">
+      <button id="open" class="primary" type="button">Open OFM console &rarr;</button>
+      <button id="status" type="button">Service status</button>
+      <button id="refresh" type="button">Sync models to CPA</button>
+      <button id="forget" type="button">Clear key</button>
+    </div>
+    <output id="result" aria-live="polite">Ready. Authenticate to manage the private service.</output>
+    <a id="link" href="#" target="_blank" rel="noopener noreferrer" hidden>Continue to your local console &rarr;</a>
+    <pre id="details" hidden></pre>
+  </section>
+  <section>
+    <label for="steps">Connection notes</label>
+    <div id="steps" class="note">Models appear in CPA with the <strong>ofm/</strong> prefix. After logging in to a channel or changing model switches, sync the catalog here. Disabled models are rejected immediately, even before CPA refreshes its list.<br><br>The console URL belongs to the CPA machine. For a remote server, configure fixed <code>port</code> and <code>console-port</code> values and forward both ports over SSH. This plugin does not expose the OFM console to the public internet.</div>
+  </section>
+  <footer>Built directly from <a href="https://github.com/Ebony-Vinyl/dsh-our-free-model" target="_blank" rel="noopener noreferrer">the original Our Free Model</a> with an independent CPA adapter. The reference port is not a source or runtime dependency. Original authorizations and upstream service limits still apply.</footer>
+</main>
+<script>
+  const key = document.querySelector('#key');
+  const output = document.querySelector('#result');
+  const details = document.querySelector('#details');
+  const link = document.querySelector('#link');
+  const buttons = [...document.querySelectorAll('button')];
+  async function api(path, method = 'GET', body) {
+    if (!key.value.trim()) throw new Error('Enter your CPA management key first.');
+    if (location.protocol !== 'https:' && !['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)) {
+      throw new Error('Use HTTPS or an SSH-forwarded localhost page before entering a management key.');
+    }
+    const response = await fetch('/v0/management/' + path, {
+      method, credentials: 'omit', redirect: 'error', cache: 'no-store',
+      headers: { Authorization: 'Bearer ' + key.value.trim(), 'Content-Type': 'application/json' },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+    if (!response.ok) throw new Error('CPA returned HTTP ' + response.status + '. Check the management key, plugin status and remote-management policy.');
+    return response.json();
+  }
+  async function run(work) {
+    buttons.forEach(button => { button.disabled = true; });
+    output.textContent = 'Working...'; link.hidden = true; details.hidden = true;
+    try { await work(); } catch (error) { output.textContent = error.message; }
+    finally { buttons.forEach(button => { button.disabled = false; }); }
+  }
+  document.querySelector('#status').onclick = () => run(async () => {
+    const state = await api('ofm/status');
+    details.textContent = JSON.stringify(state, null, 2); details.hidden = false;
+    output.textContent = 'Private OFM service is running.';
+  });
+  document.querySelector('#open').onclick = () => run(async () => {
+    const value = await api('ofm/console', 'POST', {});
+    const url = new URL(value.url);
+    if (url.protocol !== 'http:' || url.hostname !== '127.0.0.1' || !url.pathname.startsWith('/open/')) throw new Error('Unexpected console URL.');
+    link.href = url.href; link.hidden = false;
+    output.textContent = 'One-use link ready (10 minutes). Open it on this machine, or forward the configured ports over SSH.';
+  });
+  document.querySelector('#refresh').onclick = () => run(async () => {
+    const models = await api('ofm/models');
+    await api('plugins/our-free-model/config', 'PATCH', { 'catalog-revision': Date.now() });
+    output.textContent = 'Requested CPA catalog refresh: ' + models.Models.length + ' current models. Allow a few seconds for configuration reload.';
+  });
+  document.querySelector('#forget').onclick = () => {
+    key.value = ''; link.hidden = true; link.href = '#'; details.hidden = true; details.textContent = '';
+    output.textContent = 'Key cleared from this page.';
+  };
+</script>
+</body>
+</html>

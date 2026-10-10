@@ -1,0 +1,5 @@
+* text=auto eol=lf
+service/vendor/ofm/** -text
+*.png binary
+*.webp binary
+*.wasm binary

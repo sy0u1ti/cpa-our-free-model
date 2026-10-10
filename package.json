@@ -1,0 +1,23 @@
+{
+  "name": "cpa-our-free-model",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Native CLIProxyAPI integration for Our Free Model",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sy0u1ti/cpa-our-free-model.git"
+  },
+  "homepage": "https://github.com/sy0u1ti/cpa-our-free-model#readme",
+  "bugs": { "url": "https://github.com/sy0u1ti/cpa-our-free-model/issues" },
+  "engines": { "node": "^22.19.0 || >=24.0.0" },
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "build": "node scripts/build.mjs",
+    "smoke": "node scripts/cpa-smoke.mjs",
+    "package": "node scripts/package.mjs",
+    "vendor:original": "node scripts/import-upstream.mjs"
+  }
+}

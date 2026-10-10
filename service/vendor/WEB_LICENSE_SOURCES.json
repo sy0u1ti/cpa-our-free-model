@@ -1,0 +1,71 @@
+{
+  "originalCommit": "f8974369c5904858c696b520d8b9b82ad4425f78",
+  "sources": [
+    {
+      "package": "react",
+      "version": "19.1.1",
+      "url": "https://cdn.jsdelivr.net/npm/react@19.1.1/LICENSE",
+      "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+    },
+    {
+      "package": "react-dom",
+      "version": "19.1.1",
+      "url": "https://cdn.jsdelivr.net/npm/react-dom@19.1.1/LICENSE",
+      "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+    },
+    {
+      "package": "scheduler",
+      "version": "0.26.0",
+      "url": "https://cdn.jsdelivr.net/npm/scheduler@0.26.0/LICENSE",
+      "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+    },
+    {
+      "package": "@radix-ui/react-slot",
+      "version": "1.4.0",
+      "url": "https://cdn.jsdelivr.net/npm/@radix-ui/react-slot@1.4.0/LICENSE",
+      "sha256": "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138"
+    },
+    {
+      "package": "@radix-ui/react-compose-refs",
+      "version": "1.1.5",
+      "url": "https://cdn.jsdelivr.net/npm/@radix-ui/react-compose-refs@1.1.5/LICENSE",
+      "sha256": "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138"
+    },
+    {
+      "package": "@tanstack/react-virtual",
+      "version": "3.14.13",
+      "url": "https://cdn.jsdelivr.net/npm/@tanstack/react-virtual@3.14.13/LICENSE",
+      "sha256": "a405ee70c632bb938acb7ac5f210e814409b3760ea9d2329d8ed8ffcfd11a0e7"
+    },
+    {
+      "package": "@tanstack/virtual-core",
+      "version": "3.17.11",
+      "url": "https://cdn.jsdelivr.net/npm/@tanstack/virtual-core@3.17.11/LICENSE",
+      "sha256": "a405ee70c632bb938acb7ac5f210e814409b3760ea9d2329d8ed8ffcfd11a0e7"
+    },
+    {
+      "package": "lucide-react",
+      "version": "1.53.0",
+      "url": "https://cdn.jsdelivr.net/npm/lucide-react@1.53.0/LICENSE",
+      "sha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
+    },
+    {
+      "package": "clsx",
+      "version": "2.1.1",
+      "url": "https://cdn.jsdelivr.net/npm/clsx@2.1.1/license",
+      "sha256": "9a9edad7baae52622bddf3c15b2ef8a33d2c89f2d25408ad13e8a7481c6b0c97"
+    },
+    {
+      "package": "tailwind-merge",
+      "version": "3.3.1",
+      "url": "https://cdn.jsdelivr.net/npm/tailwind-merge@3.3.1/LICENSE.md",
+      "sha256": "d4c70c7ce38cea8778f0aed3fc0bef0a9dbd27f13bd8b6773cbd6d37941971e5"
+    },
+    {
+      "package": "tailwindcss",
+      "version": "4.3.3",
+      "url": "https://cdn.jsdelivr.net/npm/tailwindcss@4.3.3/LICENSE",
+      "sha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985"
+    }
+  ]
+}
