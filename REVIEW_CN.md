@@ -5,6 +5,11 @@
 （Windows/Linux amd64 安装包与 `checksums.txt`）；尚未部署到用户服务器。
 上游同步：OFM `f9cdb664` → `7e3a1da`（v2.1.0），控制台随上游换成新面板。
 
+后续：v0.5.1（2026-10-13）把上游再同步到 `ddb451c`（上游 v2.1.0 + v5.1 UI 精修）。
+本次上游改动只有 `packages/standalone/web/app.css` 落在 vendored 范围内，是暗色主题
+圆角覆盖的样式微调；`src/`、控制台 JS、渠道代码与 `assets.json` 均未变化。
+新增的 Tauri 桌面版与未被引用的 `splash.html` 不进入本插件包。
+
 ## 本轮已修复
 
 下列条目在 v0.5.0 中已处理，保留原始记录以便对照。

@@ -9,7 +9,7 @@ plugin directories and data directories inside `.test-output/`.
 
 | Component | Revision |
 | --- | --- |
-| OFM | `7e3a1da5407a4206b2c672f6845ada3244fb300e` (v2.1.0) |
+| OFM | `ddb451c2f24bac0b0f8b03b2473efbb1f0aefb68` (upstream v2.1.0, v5.1 UI pass) |
 | Official CPA | v8.0.23 / `d318bcc3afb9ea8782862f5e8cdb541afdc9dfa5` |
 | Native contract | C ABI 1, negotiated RPC schema up to 6 |
 

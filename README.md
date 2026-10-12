@@ -10,11 +10,15 @@ repository**. The [Magpie adaptation](https://github.com/mu-zi-lee/magpie-our-fr
 is an architectural reference only, not a code source or dependency. The CPA
 C ABI integration is separate. Original authorship and MIT licenses are retained.
 
-Version **0.5.0** vendors OFM `7e3a1da` (upstream v2.1.0). Only the files the
+Version **0.5.1** vendors OFM `ddb451c` (upstream v2.1.0, v5.1 UI pass). Only the files the
 served UI actually references are kept, and the private EAC seal is never
 vendored. `npm run vendor:original -- /path/to/original-checkout` regenerates the
 snapshot from pinned Git blobs. See `scripts/upstream-patches.mjs` and
 `service/vendor/ofm/UPSTREAM.json` for exact provenance.
+
+**New in 0.5.1:** a small upstream sync of the v5.1 UI pass (dark-theme radius
+polish in the console stylesheet); no runtime or provider logic changed. The
+0.5.0 work below is retained.
 
 **New in 0.5.0:** the upstream sync brings v2.1.0's rebuilt six-page console plus
 the aggregate lane, token savers, fallback chains and a native Anthropic
@@ -42,14 +46,14 @@ runtime fixes remain in place. The plugin ID remains `our-free-model`.
 ## Quick start
 
 Since v0.5.0, prebuilt GitHub Releases are published for Windows x64 and Linux
-x64. Download `our-free-model_0.5.0_<os>_amd64.zip` from
+x64. Download `our-free-model_0.5.1_<os>_amd64.zip` from
 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases) and verify it
 against `checksums.txt`, or clone this repository and follow **Development** to
 build the native library yourself. Generated `dist/` files are not committed.
 
 1. Use a plugin-enabled CLIProxyAPI build. Validated against **CPA 8.0.23**.
 2. Copy the matching binary into CPA's configured `plugins` directory:
-   `our-free-model-v0.5.0.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
+   `our-free-model-v0.5.1.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
 3. Merge `config.example.yaml` into CPA's configuration and restart CPA:
 
 ```yaml
