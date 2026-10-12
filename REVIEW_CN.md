@@ -10,6 +10,25 @@
 圆角覆盖的样式微调；`src/`、控制台 JS、渠道代码与 `assets.json` 均未变化。
 新增的 Tauri 桌面版与未被引用的 `splash.html` 不进入本插件包。
 
+## v0.5.2：主题按钮只能切换一次
+
+用户报告：暗色模式点击一次切到浅色后，再点击无法切回暗色。
+
+**已复现**。在真实 CPA 隔离实例中量到：初始 `theme=dark`，第一次点击后
+DOM 变为 `light` 但按钮标签仍是「切换到浅色主题」，第二次点击后主题仍是 `light`；
+控制台报 `SecurityError: ... document is sandboxed and lacks the 'allow-same-origin' flag`，
+位置正是 `localStorage.setItem`。
+
+- 根因：v0.5.0 的安全加固移除了控制台 iframe 的 `allow-same-origin`，其源变为
+  不透明，读写 `localStorage` 会抛 `SecurityError`。上游读取处包了 `try/catch`，
+  写入处没有；而主题切换的写入在 React `setState` 之前，异常中断后状态停在初值，
+  按钮永远算出同一个目标主题。
+- 修复：`web/console-bridge.js` 在不透明来源的帧里安装内存版 `Storage`，
+  不削弱 sandbox、不写入任何凭据。同一处理覆盖渠道页签与重载提示这两处
+  同样直接写存储的代码。
+- 验证：真实浏览器中连续 8 次往返切换全部正确（主题与按钮标签同步），零页面错误；
+  新增 JS 回归测试直接执行桥接脚本的垫片并断言写入不再抛错。
+
 ## 本轮已修复
 
 下列条目在 v0.5.0 中已处理，保留原始记录以便对照。

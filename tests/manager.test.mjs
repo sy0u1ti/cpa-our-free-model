@@ -120,6 +120,39 @@ test('the console frame is sandboxed so it cannot read the parent page or its ke
   assert.doesNotMatch(bridge, /postMessage\(\{[^}]*\},\s*location\.origin\)/);
 });
 
+test('regression: a sandboxed opaque-origin console can still write theme storage', () => {
+  // The console iframe is sandboxed without allow-same-origin, so touching the
+  // real localStorage throws SecurityError. Upstream's theme toggle writes
+  // before it updates React state, so that throw froze the button after one
+  // click (dark -> light, then stuck). The bridge must install an in-memory
+  // Storage before the console bundle runs, and must not seed it with secrets.
+  const bridge = fs.readFileSync(new URL('../web/console-bridge.js', import.meta.url), 'utf8');
+  assert.match(bridge, /if \(sandboxed\) \{/, 'the shim must be scoped to opaque-origin frames');
+  assert.match(bridge, /Object\.defineProperty\(window, 'localStorage'/);
+  assert.match(bridge, /Object\.defineProperty\(window, 'sessionStorage'/);
+  assert.doesNotMatch(bridge, /Bearer|Authorization|management[-_ ]?key/i, 'the shim must never carry credentials');
+
+  // Execute just the shim in a sandboxed-like window and prove the upstream
+  // write/read/state sequence now completes instead of throwing.
+  const start = bridge.indexOf('const entries = new Map();');
+  const end = bridge.indexOf('  }\n', bridge.indexOf('a host that forbids redefining it'));
+  assert.ok(start > 0 && end > start, 'the shim block must be locatable');
+  const shimSource = bridge.slice(start, end);
+  // Model the frame's global object: `window` and `self` are the same object and
+  // its origin is the opaque "null", exactly as the sandbox produces.
+  const frame = { top: {} };
+  frame.window = frame;
+  frame.self = frame;
+  frame.origin = 'null';
+  vm.createContext(frame);
+  vm.runInContext(`const sandboxed = true;\n${shimSource}`, frame);
+  // The upstream toggle sequence: write the preference, then read it back.
+  vm.runInContext(`localStorage.setItem('ofm-theme', 'light'); result = localStorage.getItem('ofm-theme');`, frame);
+  assert.equal(frame.result, 'light');
+  vm.runInContext(`sessionStorage.setItem('tab', 'channels'); result = sessionStorage.getItem('tab');`, frame);
+  assert.equal(frame.result, 'channels');
+});
+
 test('leaving the page cancels management work instead of only dropping the wait', async () => {
   const p = page(); await p.element('#open').onclick();
   const handler = p.events.get('message');

@@ -28,6 +28,23 @@ func (r *consoleFixture) command(kind string, payload map[string]any, out any) e
 
 const testConsoleID = "0123456789abcdef0123456789abcdef"
 
+// memoryStorageBlock returns the bridge's in-memory Storage shim, so tests can
+// assert what may and may not be kept there.
+func memoryStorageBlock(script []byte) string {
+	const start = "const entries = new Map();"
+	const end = "document.documentElement.dataset.cpaEmbedded"
+	text := string(script)
+	from := strings.Index(text, start)
+	if from < 0 {
+		return ""
+	}
+	to := strings.Index(text[from:], end)
+	if to < 0 {
+		return text[from:]
+	}
+	return text[from : from+to]
+}
+
 func TestSameOriginConsoleAssetsArePublicCodeOnly(t *testing.T) {
 	p := newPlugin(nil)
 	for _, resource := range append(consoleResourcePaths(), "/console") {
@@ -56,8 +73,20 @@ func TestSameOriginConsoleAssetsArePublicCodeOnly(t *testing.T) {
 			t.Fatalf("unlisted asset served: %s", path)
 		}
 	}
-	if strings.Contains(string(consoleBridgeScript), "Bearer ") || strings.Contains(string(consoleBridgeScript), "localStorage") {
-		t.Fatal("child should not receive or persist the CPA key")
+	if strings.Contains(string(consoleBridgeScript), "Bearer ") || strings.Contains(string(consoleBridgeScript), "managementFixture") {
+		t.Fatal("child should not receive the CPA key")
+	}
+	// The bridge may shadow localStorage with an in-memory Storage, but the shim
+	// must stay a dumb key/value store: no credential is seeded into it, and the
+	// management key still lives only on the parent page behind postMessage.
+	shim := memoryStorageBlock(consoleBridgeScript)
+	if shim == "" {
+		t.Fatal("in-memory storage shim is missing from the bridge")
+	}
+	for _, forbidden := range []string{"Bearer", "Authorization", "management"} {
+		if strings.Contains(shim, forbidden) {
+			t.Fatalf("in-memory storage must not touch credentials (%s)", forbidden)
+		}
 	}
 }
 

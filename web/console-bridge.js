@@ -8,6 +8,30 @@
   const sandboxed = window.self !== window.top && window.self.origin === 'null';
   const parentTarget = sandboxed ? '*' : location.origin;
   const fromParent = event => sandboxed ? event.source === parent : event.origin === location.origin && event.source === parent;
+
+  // A sandboxed frame without `allow-same-origin` has an opaque origin, so
+  // reading `localStorage` throws SecurityError. Upstream guards its reads but
+  // not its writes: the console's theme toggle writes first and calls setState
+  // second, so the throw left React's state on its initial value and the button
+  // stopped toggling after the first click. Same for the channel-page tab and
+  // the reload badge. Give the console a working in-memory Storage instead of
+  // weakening the sandbox: the preference is per-open anyway, and the theme
+  // itself still round-trips to the parent page, which owns the real storage.
+  if (sandboxed) {
+    const entries = new Map();
+    const memoryStorage = {
+      getItem: key => entries.has(String(key)) ? entries.get(String(key)) : null,
+      setItem: (key, value) => { entries.set(String(key), String(value)); },
+      removeItem: key => { entries.delete(String(key)); },
+      clear: () => entries.clear(),
+      key: index => [...entries.keys()][index] ?? null,
+      get length() { return entries.size; },
+    };
+    try {
+      Object.defineProperty(window, 'localStorage', { configurable: true, value: memoryStorage });
+      Object.defineProperty(window, 'sessionStorage', { configurable: true, value: memoryStorage });
+    } catch { /* a host that forbids redefining it keeps the upstream try/catch */ }
+  }
   document.documentElement.dataset.cpaEmbedded = String(new URLSearchParams(location.search).get('layout') === 'embedded');
   const shareTheme = () => {
     const theme = document.documentElement.dataset.theme;
