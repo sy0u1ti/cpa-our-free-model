@@ -59,6 +59,23 @@ test('real bundled OFM service: discovery, auth fences, key rotation, console, s
   const status = await runner.call('status');
   assert.equal(status.pid, runner.child.pid);
   assert.ok(fs.existsSync(path.join(directory, 'service.lock')));
+  assert.equal((await runner.call('eac-warmup')).state, 'disabled');
   await runner.close();
   await until(() => !fs.existsSync(path.join(directory, 'service.lock')));
+});
+
+test('first runner status waits for configured EAC source before opening the console, without OAuth', { timeout: 60000 }, async t => {
+  const directory = privateTestDirectory(root, 'eac-first-open');
+  const source = path.join(directory, 'source'), data = path.join(directory, 'data');
+  fs.mkdirSync(path.join(source, 'src'), { recursive: true });
+  fs.writeFileSync(path.join(source, 'package.json'), '{"type":"module"}');
+  fs.writeFileSync(path.join(source, 'src/vault.js'),
+    `export const openSeal=()=>({base:'https://eac-fixture.invalid/v1',mode:'worker',signingSecret:'fixture-only-not-a-secret-000000000000'});`);
+  const runner = startRunner(root, { dataDir: data, eacSourceDir: source, autoInstallEac: true, refresh: false, port: 0 });
+  t.after(async () => { await runner.close(); removeTestDirectory(directory, root); });
+  const status = await runner.call('status');
+  assert.equal(status.eacSource.state, 'ready');
+  assert.equal((await runner.call('eac-warmup')).state, 'ready');
+  assert.equal(fs.existsSync(path.join(data, 'eac-user.json')), false);
+  assert.equal(fs.existsSync(path.join(root, 'eac-user.json')), false);
 });

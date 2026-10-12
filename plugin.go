@@ -28,6 +28,7 @@ type plugin struct {
 	call         hostCaller
 	consoleCalls map[string]context.CancelFunc
 	updates      updateCache
+	releases     releaseCache
 }
 
 func newPlugin(caller hostCaller) *plugin {
@@ -284,7 +285,7 @@ func (p *plugin) discover(cfg config, rt controlRuntime) (modelResponse, error) 
 
 func managementRegistration() any {
 	routes := []map[string]string{}
-	for _, item := range [][2]string{{"GET", "status"}, {"POST", "console"}, {"POST", "console-local"}, {"POST", "console-api"}, {"POST", "console-cancel"}, {"GET", "updates"}, {"GET", "models"}} {
+	for _, item := range [][2]string{{"GET", "status"}, {"POST", "console"}, {"POST", "console-local"}, {"POST", "console-api"}, {"POST", "console-cancel"}, {"GET", "updates"}, {"GET", "releases"}, {"GET", "models"}} {
 		routes = append(routes, map[string]string{"Method": item[0], "Path": "/ofm/" + item[1]})
 	}
 	resources := []map[string]string{{"Path": "/console", "Menu": "免费模型管理", "Description": "通过当前 CPA 域名管理 OFM，需要 CPA 管理密钥"}}
@@ -306,12 +307,16 @@ func (p *plugin) management(request managementRequest) (any, error) {
 	key := request.Method + " " + request.Path
 	allowed := map[string]bool{"GET /v0/management/ofm/status": true, "GET /v0/management/ofm/models": true,
 		"POST /v0/management/ofm/console": true, "POST /v0/management/ofm/console-local": true,
-		"POST /v0/management/ofm/console-api": true, "POST /v0/management/ofm/console-cancel": true, "GET /v0/management/ofm/updates": true}
+		"POST /v0/management/ofm/console-api": true, "POST /v0/management/ofm/console-cancel": true,
+		"GET /v0/management/ofm/updates": true, "GET /v0/management/ofm/releases": true}
 	if !allowed[key] {
 		return httpResponse{StatusCode: 404, Body: []byte("Not found")}, nil
 	}
 	if key == "GET /v0/management/ofm/updates" {
 		return jsonHTTP(200, p.checkUpdates()), nil
+	}
+	if key == "GET /v0/management/ofm/releases" {
+		return jsonHTTP(200, p.checkRelease()), nil
 	}
 	if key == "POST /v0/management/ofm/console-cancel" {
 		var body struct {
@@ -344,8 +349,8 @@ func (p *plugin) management(request managementRequest) (any, error) {
 			status["modelPrefix"] = cfg.ModelPrefix
 		}
 	case "POST /v0/management/ofm/console":
-		err = rt.command("status", nil, &value)
-		value = map[string]string{"url": consoleResourceBase + "/app", "mode": "same-origin"}
+		err = rt.command("eac-warmup", nil, &value)
+		value = map[string]any{"url": consoleResourceBase + "/app", "mode": "same-origin", "eacSource": value}
 	case "POST /v0/management/ofm/console-api":
 		return p.proxyConsole(rt, request.Body), nil
 	case "POST /v0/management/ofm/console-local":

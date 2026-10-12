@@ -35021,6 +35021,9 @@ var BuddyAdapter = class _BuddyAdapter extends LlmAdapter2 {
     if (options.system !== void 0 && options.system.length > 0) {
       messages.unshift({ role: "system", content: options.system });
     }
+    if (messages[0]?.role !== "system") {
+      messages.unshift({ role: "system", content: PROBE_SYSTEM });
+    }
     const tools = options.tools?.map((tool) => ({
       type: "function",
       function: {

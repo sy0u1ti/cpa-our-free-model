@@ -181,7 +181,7 @@ func (r *serviceRuntime) command(kind string, payload map[string]any, result any
 		return fmt.Errorf("OFM service control pipe closed")
 	}
 	timer := time.NewTimer(15 * time.Second)
-	if kind == "models" {
+	if kind == "models" || kind == "eac-warmup" {
 		timer.Reset(45 * time.Second)
 	}
 	defer timer.Stop()

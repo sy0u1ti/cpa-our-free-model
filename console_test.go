@@ -46,6 +46,9 @@ func TestSameOriginConsoleAssetsArePublicCodeOnly(t *testing.T) {
 			if !strings.Contains(string(response.Body), `src="./console-bridge.js"`) || !strings.Contains(string(response.Body), `src="./app-assets/app.js"`) {
 				t.Fatal("app paths do not stay on the CPA origin")
 			}
+			if !bytes.Contains(response.Body, []byte(`href="./console-layout.css"`)) {
+				t.Fatal("embedded layout stylesheet is missing")
+			}
 		}
 	}
 	for _, path := range []string{"/app-assets/../service/runner.mjs", "/app-assets/assets.json", "/app/unknown", "/app-assets/settings.json"} {
@@ -58,6 +61,21 @@ func TestSameOriginConsoleAssetsArePublicCodeOnly(t *testing.T) {
 	}
 }
 
+func TestEmbeddedConsoleLayoutStaysScopedAndKeepsNavigation(t *testing.T) {
+	for _, selector := range []string{".sidebar", ".console-nav", ".console-sidebar-footer", ".page", ".topbar"} {
+		if !bytes.Contains(consoleLayoutStyle, []byte(`:root[data-cpa-embedded="true"] `+selector)) {
+			t.Fatalf("missing scoped layout rule for %s", selector)
+		}
+	}
+	if bytes.Contains(managementPage, []byte("100dvh - 104px")) || bytes.Contains(managementPage, []byte("min-height: 560px")) {
+		t.Fatal("nested iframe still assumes a fixed toolbar height")
+	}
+	if !bytes.Contains(managementPage, []byte(`aria-controls="connection-panel"`)) ||
+		!bytes.Contains(managementPage, []byte(`rel="noopener noreferrer" hidden>独立打开`)) {
+		t.Fatal("missing accessible connection disclosure or isolated external opening")
+	}
+}
+
 func TestRemoteConsoleLinkIsRelativeWithoutPublicPort(t *testing.T) {
 	p := newPlugin(nil)
 	p.accepting = true
@@ -66,10 +84,71 @@ func TestRemoteConsoleLinkIsRelativeWithoutPublicPort(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var body map[string]string
+	var body map[string]any
 	_ = json.Unmarshal(result.(httpResponse).Body, &body)
 	if body["url"] != consoleResourceBase+"/app" || body["mode"] != "same-origin" {
 		t.Fatalf("remote URL is not CPA-relative: %+v", body)
+	}
+}
+
+func TestEACUIHooksMatchOnlyThePinnedBundle(t *testing.T) {
+	original, err := serviceAssets.ReadFile("service/vendor/ofm/packages/standalone/web/channels-CQJ5sFg_.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/app-assets/channels-CQJ5sFg_.js"})
+	if !ok {
+		t.Fatal("missing adapted EAC module")
+	}
+	for _, patch := range eacConsolePatches {
+		if count := bytes.Count(original, []byte(patch[0])); count != 1 {
+			t.Fatalf("EAC hook must match exactly once, got %d for %s", count, patch[0])
+		}
+		if !bytes.Contains(response.Body, []byte(patch[1])) ||
+			!strings.Contains(patch[1], patch[0]) && bytes.Contains(response.Body, []byte(patch[0])) {
+			t.Fatalf("EAC hook was not applied: %s", patch[0])
+		}
+	}
+}
+
+type eacConsoleFixture struct {
+	consoleFixture
+	state      string
+	connection bool
+}
+
+func (r *eacConsoleFixture) command(kind string, payload map[string]any, out any) error {
+	if kind == "status" {
+		return assign(map[string]any{"eacSource": map[string]string{"state": r.state}}, out)
+	}
+	if kind == "connection" {
+		r.connection = true
+	}
+	return r.consoleFixture.command(kind, payload, out)
+}
+
+func TestEACSourceFailuresRemainDistinctFromGatewayFailures(t *testing.T) {
+	p := newPlugin(nil)
+	p.accepting = true
+	for _, tc := range [][2]string{{"disabled", "eac-disabled"}, {"loading", "eac-loading"}, {"failed", "eac-source-failed"}, {"unavailable", "eac-unavailable"}} {
+		for _, route := range []string{"status", "pool", "login/start"} {
+			rt := &eacConsoleFixture{state: tc[0]}
+			request := consoleProxyRequest{ID: testConsoleID, Path: "/api/management/eac/" + route, Method: "GET"}
+			if route == "login/start" {
+				request.Method, request.Body = "POST", json.RawMessage(`{}`)
+			}
+			response := p.proxyConsole(rt, wire(t, request))
+			if rt.connection || !bytes.Contains(response.Body, []byte(tc[1])) || bytes.Contains(response.Body, []byte("unreachable")) {
+				t.Fatalf("%s %s misclassified or forwarded: %s", tc[0], route, response.Body)
+			}
+			want := 503
+			if route == "status" {
+				want = 200
+			}
+			if response.StatusCode != want {
+				t.Fatalf("unexpected status: %d", response.StatusCode)
+			}
+		}
 	}
 }
 

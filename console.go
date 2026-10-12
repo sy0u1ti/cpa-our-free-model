@@ -35,7 +35,7 @@ func consoleAssetNames() []string {
 }
 
 func consoleResourcePaths() []string {
-	paths := []string{"/manager.js", "/console-bridge.js", "/app"}
+	paths := []string{"/manager.js", "/updater.js", "/eac-feedback.js", "/console-layout.css", "/console-bridge.js", "/app"}
 	for _, name := range consoleAssetNames() {
 		paths = append(paths, "/app-assets/"+name)
 	}
@@ -54,6 +54,15 @@ func consoleResource(request managementRequest) (httpResponse, bool) {
 	case consoleResourceBase + "/manager.js":
 		body = managementScript
 		headers.Set("Content-Type", "text/javascript; charset=utf-8")
+	case consoleResourceBase + "/updater.js":
+		body = updaterScript
+		headers.Set("Content-Type", "text/javascript; charset=utf-8")
+	case consoleResourceBase + "/eac-feedback.js":
+		body = eacFeedbackScript
+		headers.Set("Content-Type", "text/javascript; charset=utf-8")
+	case consoleResourceBase + "/console-layout.css":
+		body = consoleLayoutStyle
+		headers.Set("Content-Type", "text/css; charset=utf-8")
 	case consoleResourceBase + "/console-bridge.js":
 		body = consoleBridgeScript
 		headers.Set("Content-Type", "text/javascript; charset=utf-8")
@@ -63,7 +72,8 @@ func consoleResource(request managementRequest) (httpResponse, bool) {
 			return jsonHTTP(500, map[string]string{"error": "控制台资源不可用"}), true
 		}
 		body = bytes.ReplaceAll(original, []byte(`="/assets/`), []byte(`="./app-assets/`))
-		body = bytes.Replace(body, []byte("<head>"), []byte("<head>\n<script src=\"./console-bridge.js\"></script>"), 1)
+		body = bytes.Replace(body, []byte("<head>"), []byte("<head>\n<script src=\"./eac-feedback.js\"></script>\n<script src=\"./console-bridge.js\"></script>"), 1)
+		body = bytes.Replace(body, []byte("</head>"), []byte("<link rel=\"stylesheet\" href=\"./console-layout.css\">\n</head>"), 1)
 		body = bytes.ReplaceAll(body, []byte("本地控制台"), []byte("CPA 管理控制台"))
 		headers.Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: https:; font-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'self'")
 	default:
@@ -94,6 +104,9 @@ func consoleResource(request managementRequest) (httpResponse, bool) {
 				from, _ := json.Marshal(label[0])
 				to, _ := json.Marshal(label[1])
 				body = bytes.ReplaceAll(body, from, to)
+			}
+			for _, patch := range eacConsolePatches {
+				body = bytes.ReplaceAll(body, []byte(patch[0]), []byte(patch[1]))
 			}
 			headers.Set("Content-Type", "text/javascript; charset=utf-8")
 		} else {
@@ -135,6 +148,57 @@ var consoleLabels = [][2]string{
 	{"本机运行 / 仅监听回环地址", "当前 CPA 域名访问 / 内部回环运行"}, {"本地服务在线", "OFM 服务在线"},
 	{"管理会话：本机独立会话", "管理鉴权：CPA 管理密钥"}, {"推理鉴权：Bearer API Key", "推理鉴权：CPA 客户端密钥"},
 	{"监听范围：仅回环地址", "访问方式：当前 CPA 域名"}, {" 本地运行 · 由你掌控", " · 数据保存在 CPA 服务器 · 由你掌控"},
+}
+
+// These patches target the pinned upstream UI only at the served-byte boundary.
+// Keep the original source hashes intact and fail tests if upstream hooks change.
+var eacConsolePatches = [][2]string{
+	// Login start: the pinned UI discards the cause and prints "unreachable".
+	{`catch{_===w.current&&r(n("eac.startFailed").replace("{reason}","unreachable"))}finally{k.current=!1,o(!1)}}`,
+		`catch(error){_===w.current&&r(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}finally{k.current=!1,o(!1)}}`},
+	// Logout: same blanket catch, same fix.
+	{`catch{r(n("eac.startFailed").replace("{reason}","unreachable"))}finally{o(!1)}},cancel:async()=>{`,
+		`catch(error){r(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}finally{o(!1)}},cancel:async()=>{`},
+	// Login start with a structured error object from the gateway.
+	{`r(n("eac.startFailed").replace("{reason}",T.error))`,
+		`r(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(T.error)))`},
+	// Polling: the pinned UI narrows every failure to a fixed vocabulary and
+	// labels anything unrecognised as a network fault.
+	{`const c=/\(([^)]+)\)\s*$/.exec(String(d?.message??""))?.[1]??"";s(c)`,
+		`s(window.ofmEacFeedback.reason(d))`},
+	// Login polling builds the same "unreachable" fallback, which is why a
+	// source-preparation failure during polling used to read as a gateway
+	// network fault. `not-writable` keeps its dedicated message.
+	{`r(S==="not-writable"?R("eac.saveFailed"):R("eac.pollFailed").replace("{reason}",G))`,
+		`r(S==="not-writable"?R("eac.saveFailed"):R("eac.pollFailed").replace("{reason}",window.ofmEacFeedback.reason(E)))`},
+	// The pool hook already stores a human-readable reason (the poll hook above
+	// maps it at the source), so the badge needs no further translation.
+	// The EAC page, however, discarded that reason and printed its own hardcoded
+	// "cannot query right now", which made a disabled source look like a
+	// transient gateway problem. Surface the hook's reason there too.
+	{`{pool:e}=kn(),B=e==null?null:Nn(e)`, `{pool:e,poolError:eacPoolError}=kn(),B=e==null?null:Nn(e)`},
+	{`e==null?M("p",null,e===void 0?"正在查询资源池…":"资源池暂时无法查询，请稍后刷新。")`,
+		`e==null?M("p",null,e===void 0?"正在查询资源池…":eacPoolError||"资源池暂时无法查询，请稍后刷新。")`},
+	// "No lane" is a composition state, not a network failure.
+	{`if(t.available!==!0)return e("p",{className:"ofm_note"},a("eac.noLane"))`,
+		`if(t.available!==!0)return e("p",{className:"ofm_note"},window.ofmEacFeedback.reason(t.reason||"no-lane"))`},
+	// The EAC page must not paint the summary's stale authorization state before
+	// its own query answers.
+	{`function Rn({summary:Q}){const[$,Z]=W.useState(Q.eacAuth)`,
+		`function Rn({summary:Q}){const[$,Z]=W.useState(void 0)`},
+	// The pinned UI says importing "merges", but the service replaces the whole
+	// account pool, model blacklist and permanent-lock table. Say what happens and
+	// report how much was written, so an old backup cannot silently drop newer
+	// accounts or lock settings.
+	{`window.confirm("导入会合并备份中的账号凭据、模型开关和积分锁定设置，确认继续吗？")`,
+		`window.confirm("导入会【整体替换】当前账号列表、模型开关和积分锁定设置（不是合并）。备份中缺少的账号与设置会被移除，建议先导出当前备份。确认继续吗？")`},
+	// The shared action wrapper appends "已保存。" after every action, which
+	// immediately overwrote the import summary. Let an action that reports its
+	// own result (by resolving `true`) suppress that generic line.
+	{`const ae=async D=>{pe(!0),ee("");try{await D(),await ce(),window.dispatchEvent(new CustomEvent("ofm:channels")),Q.reload?.(),ee("已保存。")}catch(te){ee(te.message)}finally{pe(!1)}}`,
+		`const ae=async D=>{pe(!0),ee("");try{const dt=await D();await ce(),window.dispatchEvent(new CustomEvent("ofm:channels")),Q.reload?.(),dt!==!0&&ee("已保存。")}catch(te){ee(te.message)}finally{pe(!1)}}`},
+	{`&&await ae(async()=>{await xe("backup.import",{payload:JSON.parse(await te.text())})})}};`,
+		`&&await ae(async()=>{const dt=await xe("backup.import",{payload:JSON.parse(await te.text())});const gt=Number(dt?.accountsImported??0),Rt=Number(dt?.credentialsImported??0),wt=Number(dt?.missingCredentials??0),Re=Number(dt?.expiredAccounts??0),Te=["已整体替换：写入 "+gt+" 个账号、"+Rt+" 条凭据。"];wt>0&&Te.push(wt+" 个账号缺少凭据，需重新登录。");Re>0&&Te.push(Re+" 个账号的凭据已过期，使用时可能自动续期。");dt?.skipped?.length>0&&Te.push("跳过 "+dt.skipped.length+" 条无效凭据。");ee(Te.join(""));return!0})}};`},
 }
 
 func validateConsoleRequest(request consoleProxyRequest) bool {
@@ -186,6 +250,29 @@ func (p *plugin) proxyConsole(rt controlRuntime, raw []byte) httpResponse {
 	}
 	if !validateConsoleRequest(request) {
 		return bad(400, "不支持的控制台操作或路径")
+	}
+	eacPath := strings.HasPrefix(request.Path, "/api/management/eac/")
+	if eacPath {
+		var state struct {
+			Source struct {
+				State string `json:"state"`
+			} `json:"eacSource"`
+		}
+		if err := rt.command("status", nil, &state); err != nil {
+			return bad(503, "eac-loading")
+		}
+		reason := map[string]string{
+			"disabled": "eac-disabled", "loading": "eac-loading",
+			"failed": "eac-source-failed", "unavailable": "eac-unavailable",
+		}[state.Source.State]
+		// Logout/cancel must remain usable for existing local authorization.
+		if reason != "" && request.Path != "/api/management/eac/logout" &&
+			!strings.HasPrefix(request.Path, "/api/management/eac/login/cancel") {
+			if request.Path == "/api/management/eac/status" {
+				return jsonHTTP(200, map[string]any{"available": false, "authorized": false, "login": "", "reason": reason, "sourceState": state.Source.State})
+			}
+			return bad(503, reason)
+		}
 	}
 	if request.Path == "/api/management/models/test" {
 		var body map[string]json.RawMessage

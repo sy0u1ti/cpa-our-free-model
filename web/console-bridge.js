@@ -1,5 +1,20 @@
 (() => {
   'use strict';
+  // The console runs in a sandboxed frame with an opaque origin: `location.origin`
+  // is the literal string "null" and cannot address the parent. Messages are
+  // still origin-checked on the parent side, which is the side that owns the key.
+  // In a sandboxed frame `location.origin` still reflects the URL, but the
+  // document's own origin is opaque and `self.origin` is the string "null".
+  const sandboxed = window.self !== window.top && window.self.origin === 'null';
+  const parentTarget = sandboxed ? '*' : location.origin;
+  const fromParent = event => sandboxed ? event.source === parent : event.origin === location.origin && event.source === parent;
+  document.documentElement.dataset.cpaEmbedded = String(new URLSearchParams(location.search).get('layout') === 'embedded');
+  const shareTheme = () => {
+    const theme = document.documentElement.dataset.theme;
+    if (parent !== window && ['light', 'dark'].includes(theme)) parent.postMessage({ kind: 'ofm-theme', theme }, parentTarget);
+  };
+  new MutationObserver(shareTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  shareTheme();
   const nativeFetch = window.fetch.bind(window);
   const pending = new Map();
   const makeID = () => [...crypto.getRandomValues(new Uint8Array(16))].map(value => value.toString(16).padStart(2, '0')).join('');
@@ -7,7 +22,7 @@
   const messageJSON = (status, error) => new Response(JSON.stringify({ error }), { status, headers: { 'content-type': 'application/json' } });
 
   window.addEventListener('message', event => {
-    if (event.origin !== location.origin || event.source !== parent || event.data?.kind !== 'ofm-response') return;
+    if (!fromParent(event) || event.data?.kind !== 'ofm-response') return;
     const entry = pending.get(event.data.id);
     if (!entry) return;
     pending.delete(event.data.id); clearTimeout(entry.timer); entry.signal?.removeEventListener('abort', entry.abort);
@@ -32,7 +47,7 @@
     if (url.origin !== location.origin || !url.pathname.startsWith(prefix + '/')) return nativeFetch(request);
     if (parent === window) return messageJSON(401, '请从 CPA 侧栏的“免费模型管理”进入控制台。');
     if (url.pathname === prefix + '/logout') {
-      parent.postMessage({ kind: 'ofm-logout' }, location.origin);
+      parent.postMessage({ kind: 'ofm-logout' }, parentTarget);
       return new Response('{"ok":true}', { headers: { 'content-type': 'application/json' } });
     }
     if (!['GET', 'POST'].includes(request.method)) return messageJSON(405, '不支持此操作。');
@@ -46,7 +61,7 @@
       const abort = () => {
         const entry = pending.get(id); if (!entry) return;
         clearTimeout(entry.timer); pending.delete(id);
-        parent.postMessage({ kind: 'ofm-cancel', id }, location.origin);
+        parent.postMessage({ kind: 'ofm-cancel', id }, parentTarget);
         reject(new DOMException('请求已取消', 'AbortError'));
       };
       const timer = setTimeout(() => {
@@ -54,7 +69,7 @@
       }, 125000);
       pending.set(id, { resolve, reject, timer, signal: request.signal, abort, path: url.pathname });
       request.signal.addEventListener('abort', abort, { once: true });
-      parent.postMessage({ kind: 'ofm-request', id, path: url.pathname + url.search, method: request.method, body }, location.origin);
+      parent.postMessage({ kind: 'ofm-request', id, path: url.pathname + url.search, method: request.method, body }, parentTarget);
     });
   };
 })();

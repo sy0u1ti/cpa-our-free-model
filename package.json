@@ -1,6 +1,6 @@
 {
   "name": "cpa-our-free-model",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "description": "Native CLIProxyAPI integration for Our Free Model",
@@ -17,7 +17,9 @@
     "test": "node --test tests/*.test.mjs",
     "build": "node scripts/build.mjs",
     "smoke": "node scripts/cpa-smoke.mjs",
+    "smoke:update": "node scripts/cpa-update-smoke.mjs",
     "package": "node scripts/package.mjs",
+    "release:checksums": "node scripts/release-checksums.mjs",
     "vendor:original": "node scripts/import-upstream.mjs",
     "update:check": "node scripts/update.mjs --check",
     "update:apply": "node scripts/update.mjs --apply"

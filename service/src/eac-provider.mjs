@@ -6,6 +6,10 @@ import { pathToFileURL } from 'node:url';
 const definition = JSON.parse(await fs.readFile(new URL('../upstream-eac.json', import.meta.url), 'utf8'));
 let credential = () => null;
 let diagnostic = { state: 'disabled', message: 'Optional EAC source is disabled.' };
+let settingsInUse;
+let dependenciesInUse;
+let preparation;
+let retriedOnOpen = false;
 export const originalCredential = () => credential();
 export const eacDiagnostic = () => ({ ...diagnostic });
 const digest = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
@@ -66,11 +70,12 @@ async function downloadSource(cache, fetcher) {
   }
 }
 
-export async function configureEac(settings, dependencies = {}) {
+async function prepareSource(settings, dependencies) {
   credential = () => null;
   diagnostic = { state: 'disabled', message: 'Enable auto-install-eac or set a trusted eac-source-dir to use the original EAC authorization flow.' };
   if (!settings.eacSourceDir && settings.autoInstallEac !== true) return;
   const source = settings.eacSourceDir ? 'local' : 'original-download';
+  diagnostic = { state: 'loading', source, message: 'Preparing the configured EAC source.' };
   try {
     const directory = settings.eacSourceDir || await downloadSource(path.join(settings.dataDir, 'runtime'), dependencies.fetch || fetch);
     const module = await import(pathToFileURL(path.join(directory, 'src/vault.js')).href);
@@ -88,4 +93,29 @@ export async function configureEac(settings, dependencies = {}) {
     // fixed diagnostics; original server login and authorization stay upstream.
     diagnostic = { state: 'failed', source, message: 'Could not load verified original EAC source. Check the selected path, cache integrity or access to raw.githubusercontent.com, then restart the plugin.' };
   }
+}
+
+function prepare() {
+  preparation = prepareSource(settingsInUse, dependenciesInUse).finally(() => { preparation = undefined; });
+  return preparation;
+}
+
+export async function configureEac(settings, dependencies = {}) {
+  if (preparation) await preparation;
+  settingsInUse = { ...settings };
+  dependenciesInUse = dependencies;
+  retriedOnOpen = false;
+  await prepare();
+}
+
+export async function warmupEac() {
+  if (preparation) await preparation;
+  // Initialization normally finishes before the service opens. Only a failed,
+  // explicitly enabled source gets one additional attempt on first console use.
+  if (settingsInUse && diagnostic.state === 'failed' && !retriedOnOpen &&
+      (settingsInUse.autoInstallEac === true || settingsInUse.eacSourceDir)) {
+    retriedOnOpen = true;
+    await prepare();
+  }
+  return eacDiagnostic();
 }

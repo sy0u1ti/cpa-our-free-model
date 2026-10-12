@@ -1,0 +1,96 @@
+name: Native Plugin Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    env:
+      CGO_ENABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Prepare Windows C compiler
+        id: msys2
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: mingw-w64-ucrt-x86_64-gcc
+      - name: Configure Windows C compiler
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
+        run: |
+          $bin = Join-Path $env:MSYS2_ROOT 'ucrt64\bin'
+          $bin | Out-File -FilePath $env:GITHUB_PATH -Append
+          ('CC=' + (Join-Path $bin 'gcc.exe').Replace('\', '/')) | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Check release tag
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = require('./package.json');
+            const go = /var version = \"([^\"]+)\"/.exec(fs.readFileSync('types.go', 'utf8'))?.[1];
+            if (process.env.GITHUB_REF_NAME !== 'v' + pkg.version) throw Error('Tag must match package.json');
+            if (go !== pkg.version) throw Error('types.go version ' + go + ' must match package.json ' + pkg.version);
+          "
+      - run: npm run check
+      - run: npm test
+      - run: go test ./...
+      - run: go vet ./...
+      - name: Race tests
+        if: runner.os == 'Linux'
+        run: go test -race ./...
+      - run: npm run build
+      - run: npm run package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ runner.os }}
+          path: dist/our-free-model_*.zip
+          if-no-files-found: error
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          path: dist
+          merge-multiple: true
+      - run: npm run release:checksums
+      - name: Publish complete, checksummed release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          gh release create "$RELEASE_TAG" dist/our-free-model_*.zip dist/checksums.txt \
+            --verify-tag --draft --title "Our Free Model $RELEASE_TAG" \
+            --notes "Native CPA plugins for Windows amd64 and Linux amd64. See README_CN.md for installation, one-click updates and provider authorization boundaries."
+          gh release edit "$RELEASE_TAG" --draft=false --latest

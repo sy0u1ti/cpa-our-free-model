@@ -26,21 +26,46 @@
     pre { background: #ffffff55; border-left: 3px solid var(--ink); padding: 18px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; line-height: 1.7; }
     a { color: inherit; text-underline-offset: 4px; }
     [hidden] { display: none !important; }
-    .toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--paper); font-size: 13px; }
-    .toolbar p { flex: 1; margin: 0; min-width: 200px; line-height: 1.6; }
-    #console-frame { display: block; width: 100%; height: calc(100dvh - 104px); min-height: 560px; border: 0; background: #f8f9fc; }
+    html[data-console-open="true"], html[data-console-open="true"] body { height: 100%; overflow: hidden; }
+    #workspace { --shell-bg: #fafaf7; --shell-ink: #29352d; --shell-line: #e0e4dc; --shell-muted: #6b756e; display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; background: var(--shell-bg); color: var(--shell-ink); }
+    #workspace[data-theme="dark"] { --shell-bg: #10151d; --shell-ink: #e2e8f0; --shell-line: #252e3c; --shell-muted: #9aa8bb; }
+    .toolbar { display: flex; align-items: center; flex-wrap: wrap; flex: 0 0 auto; gap: 6px; padding: 9px 18px; border-bottom: 1px solid var(--shell-line); background: var(--shell-bg); font-size: 12px; }
+    .workspace-name { margin-right: 10px; font-size: 12px; letter-spacing: .08em; }
+    .toolbar button, .toolbar a, #connection-panel button { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 6px 10px; border: 1px solid var(--shell-line); border-radius: 5px; color: var(--shell-ink); background: transparent; font-size: 12px; text-decoration: none; white-space: nowrap; }
+    .toolbar button:hover, .toolbar a:hover { background: #80808012; }
+    .toolbar #logout { border-color: transparent; color: var(--shell-muted); }
+    #workspace-feedback { color: var(--shell-muted); font-size: 11px; padding-left: 6px; }
+    #connection-panel { flex: 0 0 auto; padding: 12px 20px; max-height: 35vh; overflow: auto; border-bottom: 1px solid var(--shell-line); font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; }
+    #connection-note { margin: 0 0 10px; color: var(--shell-muted); font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+    #console-frame { display: block; flex: 1 1 0; width: 100%; height: 0; min-height: 0; border: 0; background: var(--shell-bg); }
+    .embedded-copy { display: none; }
+    html[data-cpa-embedded="true"] #landing { max-width: 1080px; margin: 0 auto; padding: 26px 32px; }
+    html[data-cpa-embedded="true"] #landing h1 { font-size: 30px; margin: 22px 0 12px; }
+    html[data-cpa-embedded="true"] .standalone-copy { display: none; }
+    html[data-cpa-embedded="true"] .embedded-copy { display: block; }
+    html[data-cpa-embedded="true"] #landing .intro { max-width: 760px; font-size: 15px; }
+    html[data-cpa-embedded="true"] #landing section { margin-top: 24px; padding-top: 20px; }
+    html[data-cpa-embedded="true"] .toolbar { padding-right: 156px; }
     code, pre { font-family: "Cascadia Code", Consolas, "Microsoft YaHei", monospace; }
     #update-command { font-size: 12px; }
+    .update-card { margin-top: 18px; padding: 20px; border: 1px solid var(--line); background: #ffffff08; }
+    #release-version { margin: 0 0 10px; font-family: "Cascadia Code", Consolas, "Microsoft YaHei", monospace; font-size: 13px; overflow-wrap: anywhere; }
+    #update-progress { display: block; width: 100%; height: 4px; margin: 16px 0; accent-color: var(--ink); }
+    details { margin-top: 22px; font-size: 13px; }
+    summary { cursor: pointer; color: var(--muted); font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; }
     output { display: block; font-size: 13px; line-height: 1.6; }
     footer { margin-top: 44px; font-size: 14px; color: var(--muted); }
     @media (max-width: 540px) { main { margin: 2vh auto; padding: 24px; } .actions { flex-direction: column; } h1 { margin-top: 30px; } }
+    @media (max-width: 700px) { .toolbar { padding: 8px 12px; } .workspace-name { display: none; } html[data-cpa-embedded="true"] .toolbar { padding-right: 12px; padding-top: 36px; } html[data-cpa-embedded="true"] #landing { padding: 22px 18px; } #connection-panel { padding: 10px 16px; } }
+    @media (prefers-color-scheme: dark) { #workspace:not([data-theme="light"]) { --shell-bg: #10151d; --shell-ink: #e2e8f0; --shell-line: #252e3c; --shell-muted: #9aa8bb; } }
     @media (prefers-color-scheme: dark) { :root { --paper: #17241e; --ink: #e5ebd8; --muted: #a8b59e; --line: #4b5c45; } body { background: radial-gradient(ellipse at 100% 0%, #304924, transparent 55%), var(--paper); } input, pre { background: #0002; } button.primary { color: #1e3934; background: var(--accent); } }
   </style>
 </head>
 <body>
 <main id="landing">
   <div class="eyebrow">OUR FREE MODEL &nbsp; / &nbsp; CPA 适配插件</div>
-  <h1>模型在此汇聚。<br>远程也能直达。</h1>
+  <h1 class="standalone-copy">模型在此汇聚。<br>远程也能直达。</h1>
+  <h1 class="embedded-copy">免费模型管理</h1>
   <p class="intro">通过当前 CPA 域名管理免费模型、账号渠道与用量。无需打开 VPS 的本机地址，也不用额外开放端口。</p>
   <section aria-labelledby="access-label">
     <label id="access-label" for="key">CPA 管理密钥</label>
@@ -57,19 +82,53 @@
   </section>
   <section>
     <h2>更新插件</h2>
-    <p class="note">检查仓库版本与最新提交，不会自动下载或执行代码。更新工具可一条命令完成拉取、验证、构建、备份和安装，最后由你重启 CPA。</p>
-    <div class="actions"><button id="updates" type="button">检查仓库更新</button><button id="copy-command" type="button">复制更新命令</button></div>
-    <output id="update-result" aria-live="polite">尚未检查更新。</output>
-    <pre id="update-command">node scripts/update.mjs --apply --plugin-dir /你的/CPA/plugins</pre>
-    <p class="note">在 CPA 服务器的插件源码目录执行。将路径改为实际插件目录；不会覆盖本地未提交修改，也不会更改账号数据或 CPA 配置。</p>
+    <p class="note">直接在这里更新，不必登录服务器敲命令。CPA 从正式 Release 下载对应平台安装包、校验 SHA-256 并尝试热加载；只有确认新版正在运行，才会显示更新成功。</p>
+    <div class="update-card">
+      <p id="release-version">正式发布通道 · 由 CPA 原生安装器执行</p>
+      <output id="update-result" aria-live="polite">点击检查更新，确认当前平台是否有可安装的新版本。</output>
+      <progress id="update-progress" aria-label="插件更新进行中" hidden></progress>
+      <div class="actions">
+        <button id="updates" type="button">检查更新</button>
+        <button id="install-update" class="primary" type="button" disabled>一键更新 &rarr;</button>
+        <button id="verify-update" type="button" hidden>确认运行版本</button>
+        <button id="reload-update" type="button" hidden>刷新管理页</button>
+      </div>
+      <p class="note">安装前会再次确认。首次可能需要添加本插件更新源；保留账号数据和其他更新源。热加载可能中断当前请求，若宿主要求重启会明确提示，不会自动重启 CPA。</p>
+    </div>
+    <details>
+      <summary>源码更新（开发者备用）</summary>
+      <p class="note">仓库提交不等于正式安装包。没有 Release 或需要自行编译时，仍可在服务器的干净源码仓库执行更新命令。</p>
+      <div class="actions"><button id="source-updates" type="button">检查源码提交</button><button id="copy-command" type="button">复制源码更新命令</button></div>
+      <output id="source-update-result" aria-live="polite">尚未检查源码。</output>
+      <pre id="update-command">node scripts/update.mjs --apply --plugin-dir /你的/CPA/plugins</pre>
+      <p class="note">将路径改为实际插件目录，需要 Git、Go、Node 和 C 编译器。此备用命令会备份旧动态库，不自动重启 CPA。</p>
+    </details>
   </section>
   <section><h2>连接说明</h2><p class="note">客户端仍连接 CPA，默认模型 ID 带 <code>ofm/</code> 前缀。渠道登录或模型开关变更后，点击“同步模型到 CPA”。控制台的数据操作始终经过 CPA 管理鉴权。部分厂商使用自己的 OAuth 回调规则，可能仍需按厂商提示转发回调端口。</p></section>
   <footer>直接基于 <a href="https://github.com/Ebony-Vinyl/dsh-our-free-model" target="_blank" rel="noopener noreferrer">原项目 Our Free Model</a>，独立适配 CPA。参考二开不是源码依赖。原项目授权与上游服务限制仍然适用。</footer>
 </main>
 <div id="workspace" hidden>
-  <div class="toolbar"><button id="back" type="button">返回插件设置</button><p id="connection-note"></p><button id="copy-base" type="button">复制 CPA 地址</button><button id="logout" type="button">退出管理</button></div>
-  <iframe id="console-frame" title="免费模型账号控制台" referrerpolicy="no-referrer"></iframe>
+  <div class="toolbar" role="region" aria-label="插件工作区">
+    <strong class="workspace-name">OFM <span aria-hidden="true">/</span> CPA</strong>
+    <button id="back" type="button">插件设置</button>
+    <button id="connection-toggle" type="button" aria-expanded="false" aria-controls="connection-panel">接入信息</button>
+    <a id="standalone-link" target="_blank" rel="noopener noreferrer" hidden>独立打开 &nearr;</a>
+    <button id="logout" type="button">退出管理</button>
+    <output id="workspace-feedback" aria-live="polite"></output>
+  </div>
+  <div id="connection-panel" hidden>
+    <p id="connection-note"></p>
+    <button id="copy-base" type="button">复制 CPA 地址</button>
+  </div>
+  <!-- Opaque origin on purpose: the vendored console is large generated upstream
+       code and must not be able to read this page's DOM (which holds the CPA
+       management key) or hook its fetch. Scripts, forms, modals, downloads and
+       popups are the capabilities the console actually needs. -->
+  <iframe id="console-frame" title="免费模型账号控制台" referrerpolicy="no-referrer"
+    sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"
+    allow="clipboard-write"></iframe>
 </div>
+<script src="./updater.js"></script>
 <script src="./manager.js"></script>
 </body>
 </html>

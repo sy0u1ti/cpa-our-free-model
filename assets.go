@@ -15,26 +15,44 @@ import (
 
 // Keep private or ignored files in service/ out of published binaries.
 //
-//go:embed service/package.json service/runner.mjs service/upstream-eac.json
-//go:embed service/src/catalog.mjs service/src/console-tickets.mjs service/src/eac-provider.mjs
-//go:embed service/vendor/CPA_LICENSE service/vendor/YAML_LICENSE service/vendor/WEB_LICENSES.txt service/vendor/WEB_LICENSE_SOURCES.json
-//go:embed service/vendor/ofm/LICENSE service/vendor/ofm/UPSTREAM.json service/vendor/ofm/package.json
-//go:embed service/vendor/ofm/scripts/standalone-third-party.txt
-//go:embed service/vendor/ofm/packages/standalone/README.md service/vendor/ofm/packages/standalone/package.json
-//go:embed service/vendor/ofm/packages/standalone/cli.mjs service/vendor/ofm/packages/standalone/service.mjs
-//go:embed service/vendor/ofm/packages/standalone/management.mjs service/vendor/ofm/packages/standalone/login-terminal.mjs service/vendor/ofm/packages/standalone/eac.mjs
-//go:embed service/vendor/ofm/packages/standalone/channels/business.mjs service/vendor/ofm/packages/standalone/channels/contracts.mjs service/vendor/ofm/packages/standalone/channels/credentials.mjs
-//go:embed service/vendor/ofm/packages/standalone/channels/images.mjs service/vendor/ofm/packages/standalone/channels/runtime.mjs service/vendor/ofm/packages/standalone/channels/worker.mjs
-//go:embed service/vendor/ofm/packages/standalone/web/_ofm-provider-list-D9WP3xjp.js service/vendor/ofm/packages/standalone/web/app.css service/vendor/ofm/packages/standalone/web/app.js
-//go:embed service/vendor/ofm/packages/standalone/web/assets.json service/vendor/ofm/packages/standalone/web/channels-DtR2ayCL.js service/vendor/ofm/packages/standalone/web/index.html
-//go:embed service/vendor/ofm/packages/standalone/web/loader-circle-BGKf-mYU.js service/vendor/ofm/packages/standalone/web/models-8lE4ufFd.js service/vendor/ofm/packages/standalone/web/search-RZVy3Eoo.js
-//go:embed service/vendor/ofm/packages/standalone/web/settings-Cq1Y-v4k.js service/vendor/ofm/packages/standalone/web/usage-SUrY-tWU.js service/vendor/ofm/packages/standalone/web/x-CzfajR1e.js
-//go:embed service/vendor/ofm/src/adapter.js service/vendor/ofm/src/catalog.js service/vendor/ofm/src/channel.js service/vendor/ofm/src/effort.js
-//go:embed service/vendor/ofm/src/eac.js service/vendor/ofm/src/eac-login.js service/vendor/ofm/src/eac-user.js service/vendor/ofm/src/egress.js
-//go:embed service/vendor/ofm/src/forward.js service/vendor/ofm/src/http.js service/vendor/ofm/src/image-pricing.js service/vendor/ofm/src/kilo.js service/vendor/ofm/src/messages.js
-//go:embed service/vendor/ofm/src/probe.js service/vendor/ofm/src/recovery.js service/vendor/ofm/src/store.js service/vendor/ofm/src/stream.js service/vendor/ofm/src/trust.js service/vendor/ofm/src/upstream.js
-//go:embed service/vendor/ofm/src/core/completion.js service/vendor/ofm/src/core/runtime.js service/vendor/ofm/src/core/stats.js
-//go:embed service/vendor/ofm/vendor/channel-pack/LICENSE service/vendor/ofm/vendor/channel-pack/NOTICE.md service/vendor/ofm/vendor/channel-pack/qoder-auth-wasm.wasm
+//go:embed service/package.json service/runner.mjs service/src/catalog.mjs service/src/console-tickets.mjs service/src/eac-provider.mjs
+//go:embed service/upstream-eac.json service/vendor/CPA_LICENSE service/vendor/WEB_LICENSES.txt service/vendor/WEB_LICENSE_SOURCES.json
+//go:embed service/vendor/ofm/UPSTREAM.json
+//go:embed service/vendor/YAML_LICENSE service/vendor/ofm/LICENSE service/vendor/ofm/package.json service/vendor/ofm/packages/standalone/README.md
+//go:embed service/vendor/ofm/packages/standalone/channels/business.mjs service/vendor/ofm/packages/standalone/channels/contracts.mjs
+//go:embed service/vendor/ofm/packages/standalone/channels/credentials.mjs service/vendor/ofm/packages/standalone/channels/images.mjs
+//go:embed service/vendor/ofm/packages/standalone/channels/runtime.mjs service/vendor/ofm/packages/standalone/channels/worker.mjs
+//go:embed service/vendor/ofm/packages/standalone/cli.mjs service/vendor/ofm/packages/standalone/eac.mjs
+//go:embed service/vendor/ofm/packages/standalone/login-terminal.mjs service/vendor/ofm/packages/standalone/management.mjs
+//go:embed service/vendor/ofm/packages/standalone/package.json service/vendor/ofm/packages/standalone/service.mjs
+//go:embed service/vendor/ofm/packages/standalone/web/_ofm-provider-list-D9WP3xjp.js service/vendor/ofm/packages/standalone/web/app.css
+//go:embed service/vendor/ofm/packages/standalone/web/app.js service/vendor/ofm/packages/standalone/web/assets.json
+//go:embed service/vendor/ofm/packages/standalone/web/channels-CQJ5sFg_.js service/vendor/ofm/packages/standalone/web/index.html
+//go:embed service/vendor/ofm/packages/standalone/web/loader-circle-BGKf-mYU.js service/vendor/ofm/packages/standalone/web/models-8lE4ufFd.js
+//go:embed service/vendor/ofm/packages/standalone/web/search-RZVy3Eoo.js service/vendor/ofm/packages/standalone/web/settings-Cq1Y-v4k.js
+//go:embed service/vendor/ofm/packages/standalone/web/usage-SUrY-tWU.js service/vendor/ofm/packages/standalone/web/x-CzfajR1e.js
+//go:embed service/vendor/ofm/scripts/standalone-third-party.txt service/vendor/ofm/src/adapter.js service/vendor/ofm/src/aggregate.js
+//go:embed service/vendor/ofm/src/anthropic.js service/vendor/ofm/src/catalog.js service/vendor/ofm/src/chan-relay.js
+//go:embed service/vendor/ofm/src/channel.js service/vendor/ofm/src/combos.js service/vendor/ofm/src/core/completion.js
+//go:embed service/vendor/ofm/src/core/runtime.js service/vendor/ofm/src/core/stats.js service/vendor/ofm/src/eac-login.js
+//go:embed service/vendor/ofm/src/eac-user.js service/vendor/ofm/src/eac.js service/vendor/ofm/src/effort.js service/vendor/ofm/src/egress.js
+//go:embed service/vendor/ofm/src/feed.js service/vendor/ofm/src/forward.js service/vendor/ofm/src/http.js service/vendor/ofm/src/image-pricing.js
+//go:embed service/vendor/ofm/src/kilo.js service/vendor/ofm/src/local-optimize.js service/vendor/ofm/src/messages.js
+//go:embed service/vendor/ofm/src/probe.js service/vendor/ofm/src/providers/index.js service/vendor/ofm/src/providers/registry.json
+//go:embed service/vendor/ofm/src/push.js service/vendor/ofm/src/recovery.js service/vendor/ofm/src/reload.js
+//go:embed service/vendor/ofm/src/route/classify.js service/vendor/ofm/src/store.js service/vendor/ofm/src/stream.js
+//go:embed service/vendor/ofm/src/token-saver/index.js service/vendor/ofm/src/token-saver/inject.js service/vendor/ofm/src/token-saver/prompts.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/applyFilter.js service/vendor/ofm/src/token-saver/rtk/autodetect.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/constants.js service/vendor/ofm/src/token-saver/rtk/filters/buildOutput.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/dedupLog.js service/vendor/ofm/src/token-saver/rtk/filters/find.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/gitDiff.js service/vendor/ofm/src/token-saver/rtk/filters/gitLog.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/gitStatus.js service/vendor/ofm/src/token-saver/rtk/filters/grep.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/ls.js service/vendor/ofm/src/token-saver/rtk/filters/readNumbered.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/searchList.js service/vendor/ofm/src/token-saver/rtk/filters/smartTruncate.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/tree.js service/vendor/ofm/src/token-saver/rtk/index.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/registry.js service/vendor/ofm/src/trust.js service/vendor/ofm/src/updater.js
+//go:embed service/vendor/ofm/src/upstream.js service/vendor/ofm/vendor/channel-pack/LICENSE service/vendor/ofm/vendor/channel-pack/NOTICE.md
+//go:embed service/vendor/ofm/vendor/channel-pack/qoder-auth-wasm.wasm
 var serviceAssets embed.FS
 
 //go:embed web/index.html
@@ -42,6 +60,15 @@ var managementPage []byte
 
 //go:embed web/manager.js
 var managementScript []byte
+
+//go:embed web/updater.js
+var updaterScript []byte
+
+//go:embed web/eac-feedback.js
+var eacFeedbackScript []byte
+
+//go:embed web/console-layout.css
+var consoleLayoutStyle []byte
 
 //go:embed web/console-bridge.js
 var consoleBridgeScript []byte

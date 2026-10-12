@@ -8,7 +8,8 @@ import (
 
 const pluginID = "our-free-model"
 
-var version = "0.3.0"
+// Keep in lockstep with package.json; a release tag must match both.
+var version = "0.5.0"
 
 // These wire types intentionally avoid linking a second copy of the CPA server.
 // CPA C ABI v1 uses PascalCase for SDK structs and snake_case for RPC envelopes.

@@ -25,6 +25,18 @@ const child = spawn(binary, ['--config', config, '--local-model'], { cwd: direct
 let logs = ''; child.stdout.on('data', data => { logs += data; }); child.stderr.on('data', data => { logs += data; });
 const exit = once(child, 'exit');
 const proxy = http.createServer((request, response) => {
+  if (request.url === '/embedded-preview') {
+    response.setHeader('content-type', 'text/html; charset=utf-8');
+    response.end(`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>CPA 嵌套布局测试（模拟外壳）</title>
+      <style>*{box-sizing:border-box}body{margin:0;background:#181b20;color:#dbe2ea;font:13px "Microsoft YaHei",sans-serif;display:grid;grid-template-columns:188px minmax(0,1fr);height:100dvh;overflow:hidden}
+      aside{padding:24px 14px;border-right:1px solid #30353d}strong{display:block;margin-bottom:8px}small{font-size:10px;color:#8d98a6}nav{display:grid;gap:8px;margin-top:30px}nav span{padding:10px 12px;border-radius:6px}.active{background:#34453a;color:#d0efc5}
+      main{min-width:0;position:relative}iframe{width:100%;height:100%;border:0;display:block}.host-actions{position:absolute;top:7px;right:10px;padding:8px 12px;border:1px solid #3e4651;border-radius:6px;color:#c4ced9;background:#222832;z-index:20;font-size:11px}
+      @media(max-width:700px){body{grid-template-columns:48px minmax(0,1fr)}aside{padding:14px 5px}aside strong{font-size:11px}aside small{display:none}nav span{font-size:0;padding:10px 6px}nav span:before{content:"·";font-size:18px}.active:before{content:"OFM";font-size:9px}.host-actions{font-size:10px;padding:5px 8px}}</style>
+      <aside><strong>CPA / 布局测试</strong><small>模拟外壳 · 不是实际管理台</small><nav><span>仪表盘</span><span>模型管理</span><span>插件管理</span><span class="active">免费模型管理</span></nav></aside>
+      <main><div class="host-actions">CPA 顶部操作占位</div><iframe title="CPA 插件内容" src="/gateway/v0/resource/plugins/our-free-model/console"></iframe></main></html>`);
+    return;
+  }
   if (!request.url.startsWith('/gateway/')) { response.writeHead(404); response.end(); return; }
   const upstream = http.request({ host: '127.0.0.1', port, path: request.url.slice('/gateway'.length), method: request.method,
     headers: { ...request.headers, host: '127.0.0.1:' + port } }, reply => {

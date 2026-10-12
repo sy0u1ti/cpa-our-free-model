@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { startStandalone } from './vendor/ofm/packages/standalone/service.mjs';
-import { configureEac, eacDiagnostic } from './src/eac-provider.mjs';
+import { configureEac, eacDiagnostic, warmupEac } from './src/eac-provider.mjs';
 import { openConsoleTickets } from './src/console-tickets.mjs';
 import { admitModel, modelRows, normalizeBody } from './src/catalog.mjs';
 
@@ -94,6 +94,7 @@ async function command(message) {
   if (!service || inputClosed) throw new Error('Service is stopping');
   switch (message.type) {
     case 'connection': return connection();
+    case 'eac-warmup': return warmupEac();
     case 'console': {
       handoffPromise ??= openConsoleTickets(service, settingsInUse.consolePort).then(value => { handoff = value; return value; }, error => { handoffPromise = undefined; throw error; });
       await handoffPromise;

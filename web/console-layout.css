@@ -1,0 +1,125 @@
+/* Scoped to the nested CPA view; the standalone console keeps its own shell. */
+:root[data-cpa-embedded="true"] .app-shell {
+  display: block;
+  min-height: 100vh;
+}
+
+:root[data-cpa-embedded="true"] .sidebar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  width: 100%;
+  height: auto;
+  padding: 10px clamp(16px, 2.4vw, 36px);
+  overflow: visible;
+  border-right: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+:root[data-cpa-embedded="true"] .sidebar .console-brand,
+:root[data-cpa-embedded="true"] .workspace-switch,
+:root[data-cpa-embedded="true"] .sidebar-support,
+:root[data-cpa-embedded="true"] .nav-group-label,
+:root[data-cpa-embedded="true"] .console-nav-indicator,
+:root[data-cpa-embedded="true"] .console-sidebar-footer > div,
+:root[data-cpa-embedded="true"] .console-sidebar-footer [aria-label="退出管理"],
+:root[data-cpa-embedded="true"] .topbar {
+  display: none;
+}
+
+:root[data-cpa-embedded="true"] .console-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+:root[data-cpa-embedded="true"] .nav-group {
+  display: contents;
+}
+
+:root[data-cpa-embedded="true"] .console-nav-item {
+  flex: 0 0 auto;
+  gap: 7px;
+  width: auto;
+  min-height: 36px;
+  margin: 0;
+  padding: 8px 11px;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+:root[data-cpa-embedded="true"] .console-nav-item svg {
+  width: 16px;
+  height: 16px;
+}
+
+:root[data-cpa-embedded="true"] .count-badge {
+  margin-left: 2px;
+}
+
+:root[data-cpa-embedded="true"] .console-sidebar-footer {
+  display: flex;
+  position: static;
+  flex: 0 0 auto;
+  gap: 0;
+  margin: 0;
+  padding: 0 0 0 6px;
+  border: 0;
+  border-left: 1px solid var(--line);
+}
+
+:root[data-cpa-embedded="true"] .page {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 26px clamp(16px, 2.4vw, 36px);
+}
+
+:root[data-cpa-embedded="true"] .dashboard-heading,
+:root[data-cpa-embedded="true"] .page-heading {
+  margin-bottom: 22px;
+}
+
+:root[data-cpa-embedded="true"] .heading-eyebrow {
+  display: none;
+}
+
+:root[data-cpa-embedded="true"] footer {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 8px clamp(16px, 2.4vw, 36px) 20px;
+}
+
+@media (max-width: 700px) {
+  :root[data-cpa-embedded="true"] .sidebar {
+    flex-wrap: nowrap;
+    gap: 4px;
+    padding: 8px 12px;
+  }
+
+  :root[data-cpa-embedded="true"] .console-nav {
+    flex: 1;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding: 2px 0;
+  }
+
+  :root[data-cpa-embedded="true"] .console-nav-item {
+    min-height: 38px;
+    padding: 8px;
+    font-size: 11px;
+  }
+
+  :root[data-cpa-embedded="true"] .page {
+    padding: 20px 16px;
+  }
+}

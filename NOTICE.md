@@ -8,7 +8,7 @@ binary Release is implied.
 ## Our Free Model
 
 - Source: https://github.com/Ebony-Vinyl/dsh-our-free-model
-- Commit: `f9cdb664f00738e14106290ff511f34455904122`
+- Commit: `7e3a1da5407a4206b2c672f6845ada3244fb300e` (v2.1.0)
 - Runtime, providers, console, usage accounting, authentication flows and model
   policy are upstream functionality, not newly authored by this adapter.
 - License: `service/vendor/ofm/LICENSE` (MIT).
@@ -19,18 +19,24 @@ binary Release is implied.
   in `service/vendor/WEB_LICENSE_SOURCES.json`; no reference-fork license bundle
   is reused.
 
-**The original OFM repository is the sole product-source upstream.** The 53
-retained files are read directly from that repository's pinned Git blobs by
+**The original OFM repository is the sole product-source upstream.** The retained
+files are read directly from that repository's pinned Git blobs by
 `scripts/import-upstream.mjs`, never from a secondary fork or working-tree copy.
-51 files, including the standalone service and complete web UI, remain byte for
-byte identical to the original. Two CPA-only changes are reproducible in
-`scripts/upstream-patches.mjs`:
+The import covers the whole `src/` tree plus the service entry points and only
+those web bundles `assets.json` actually serves, so superseded bundles are not
+shipped. Every retained file is byte-for-byte identical to the original except
+the two patched files below; `service/vendor/ofm/UPSTREAM.json` records the exact
+count. Two CPA-only changes are reproducible in `scripts/upstream-patches.mjs`:
 
 1. Replace the standalone EAC credential-module import with the CPA private
    supplier. The original login, Star validation, signing and authorization
    logic in `eac.mjs` is otherwise unchanged.
-2. Remove the channel bundle's built-in Google OAuth defaults and Loomy app ID.
-   Use explicit private configuration, with a clear missing-config error.
+2. Remove the channel bundle's built-in Google OAuth defaults and Loomy app ID
+   (use explicit private configuration, with a clear missing-config error), and
+   lead WorkBuddy/CodeBuddy wire messages with a system entry. The Tencent
+   gateway rejects any request whose first message is not a system prompt with
+   `400 + code 11128`, and the OpenAI gateway path only forwarded one when the
+   caller supplied it.
 
 `service/vendor/ofm/UPSTREAM.json` records original Git blob IDs, original
 SHA-256 hashes, resulting hashes, patch IDs and omitted optional credential

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "plugins": [
+    {
+      "id": "our-free-model",
+      "name": "Our Free Model",
+      "description": "Original Our Free Model runtime and account console, adapted to native CLIProxyAPI plugins.",
+      "author": "CPA adapter contributors; original OFM contributors",
+      "repository": "https://github.com/sy0u1ti/cpa-our-free-model",
+      "homepage": "https://github.com/sy0u1ti/cpa-our-free-model",
+      "license": "MIT",
+      "tags": ["models", "free", "openai-compatible"],
+      "install": { "type": "github-release" }
+    }
+  ]
+}

@@ -66,6 +66,7 @@ try {
   const html = await page.text();
   assert.ok(!html.includes(managementKey) && !html.includes('/open/fixture'));
   assert.equal((await fetch(base + '/v0/management/ofm/console', { method: 'POST' })).status, 401);
+  assert.equal((await fetch(base + '/v0/management/ofm/releases')).status, 401);
   pass('Public menu does not reveal private credentials; console API requires CPA management auth');
   const status = await (await api('/v0/management/ofm/status', undefined, managementKey)).json();
   ofmPid = status.pid;

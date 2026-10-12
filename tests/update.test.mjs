@@ -41,6 +41,14 @@ test('installer backs up existing files and atomically installs without editing 
   assert.equal(installBinary({ pluginDir, binary, version: '0.3.0', target }).unchanged, true);
   assert.throws(() => installBinary({ pluginDir, binary, version: '0.2.0', target }), /拒绝降级/);
   assert.deepEqual(fs.readFileSync(previous), after);
+  // CPA may run as another user: install directories must stay traversable while
+  // the backup directory that holds library copies stays private.
+  if (process.platform !== 'win32') {
+    const mode = file => fs.statSync(file).mode & 0o777;
+    assert.equal(mode(targetDir), 0o755);
+    assert.equal(mode(result.backup), 0o700);
+    assert.equal(mode(result.destination), 0o755);
+  }
 });
 
 test('updater refuses a dirty clone before fetching or changing files', t => {

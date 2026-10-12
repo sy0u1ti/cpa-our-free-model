@@ -33,7 +33,7 @@ try {
   fs.writeFileSync(path.join(stage, 'PACKAGE.json'), JSON.stringify({ version, platform, arch,
     upstream: JSON.parse(fs.readFileSync(path.join(root, 'service/vendor/ofm/UPSTREAM.json'))).commit,
     files }, null, 2) + '\n');
-  const archive = path.join(root, 'dist', `our-free-model-v${version}-${platform}-${arch}.zip`);
+  const archive = path.join(root, 'dist', `our-free-model_${version}_${platform}_${arch}.zip`);
   if (process.platform === 'win32') {
     const cmd = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
       'Compress-Archive -Path (Join-Path $env:OFM_PACKAGE_STAGE "*") -DestinationPath $env:OFM_PACKAGE_ARCHIVE -Force'],

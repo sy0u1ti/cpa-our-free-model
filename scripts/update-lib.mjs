@@ -49,7 +49,11 @@ function inside(root, target) {
   return target;
 }
 
-function directory(root, target) {
+// CPA may run as a different (non-root) user than whoever ran the updater.
+// A 0700 install directory would still be unreadable to it even though the
+// library itself is fine, so directories the service must traverse stay
+// world-traversable while the backup directory keeps private permissions.
+function directory(root, target, mode = 0o755) {
   const relative = path.relative(root, target);
   let current = root;
   for (const part of relative.split(path.sep).filter(Boolean)) {
@@ -57,14 +61,14 @@ function directory(root, target) {
     if (fs.existsSync(current)) {
       const stat = fs.lstatSync(current);
       if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error('安装目录包含非普通目录或符号链接：' + current);
-    } else fs.mkdirSync(current, { mode: 0o700 });
+    } else fs.mkdirSync(current, { mode });
   }
 }
 
 export function installBinary({ pluginDir, binary, version, commit, target = nativeTarget() }) {
   if (!path.isAbsolute(pluginDir) || !/^\d+\.\d+\.\d+$/.test(version)) throw new Error('安装目录或版本不合法。');
   if (fs.existsSync(pluginDir) && fs.lstatSync(pluginDir).isSymbolicLink()) throw new Error('请使用真实插件目录，不要使用符号链接。');
-  fs.mkdirSync(pluginDir, { recursive: true, mode: 0o700 });
+  fs.mkdirSync(pluginDir, { recursive: true, mode: 0o755 });
   const root = fs.realpathSync(pluginDir);
   const platformDirectory = inside(root, path.join(root, target.goos, target.goarch));
   directory(root, platformDirectory);
@@ -87,7 +91,7 @@ export function installBinary({ pluginDir, binary, version, commit, target = nat
   const hash = digest(bytes);
   if (fs.existsSync(destination) && digest(fs.readFileSync(destination)) === hash) return { destination, unchanged: true, hash };
   const backupRoot = inside(root, path.join(root, '.ofm-backups'));
-  directory(root, backupRoot);
+  directory(root, backupRoot, 0o700);
   const backup = fs.mkdtempSync(path.join(backupRoot, 'update-'));
   const records = [];
   for (let index = 0; index < installed.length; index++) {
