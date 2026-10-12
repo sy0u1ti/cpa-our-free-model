@@ -38,8 +38,10 @@ Linux 源码备用更新器创建的安装目录改为可遍历权限，备份�
 已使用 **官方 CPA 8.0.23 的 Windows x64 与 Linux x64 发行版**验证。请使用支持插件的 CPA
 发行版，不要使用文件名含 `no-plugin` 的构建。其他 CPA 版本需自行验证 ABI 与功能支持。
 
-**当前 GitHub 仓库只提供源码，尚未发布预编译 Release，`dist/` 不随源码提交。**
-从仓库克隆后，请先按第 7 节构建，再在 `dist/` 找到对应平台产物：
+**v0.5.0 起提供预编译 Release（Windows x64 / Linux x64），也可从源码构建。**
+`dist/` 不随源码提交：优先从 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases)
+下载 `our-free-model_0.5.0_<系统>_amd64.zip` 并核对 `checksums.txt`；从仓库克隆后
+也可按第 7 节自行构建，产物位于：
 
 | 系统 | 文件 |
 | --- | --- |
@@ -67,7 +69,8 @@ plugins:
 首次使用时释放到私有数据目录，以内容哈希命名并逐文件校验，损坏时拒绝执行。
 
 CPA 适配源码仓库为 [sy0u1ti/cpa-our-free-model](https://github.com/sy0u1ti/cpa-our-free-model)。
-目前没有发布二进制 Release，也未上架插件商店；商店一键安装还需要各平台 Release 和商店注册表条目。
+v0.5.0 已发布二进制 Release；尚未上架公共插件商店，首次安装请手动放置动态库，
+之后可直接用页面一键更新（见第 7 节）。
 
 ## 2. 打开管理界面
 
@@ -269,9 +272,9 @@ https://raw.githubusercontent.com/sy0u1ti/cpa-our-free-model/main/registry.json
 不会自动重启整个 CPA，也不声称所有 CPA 版本都支持无中断热更新。使用反代路径前缀时，
 要把同前缀下的 `/v8/management/` 也转发到 CPA。
 
-**当前仓库尚未发布首个正式 Release。** 首次上线还需发布包含更新器的版本及根目录
-`registry.json`，并将旧 v0.3.x 手动升级一次。之后才能用页面更新到后续正式版本。尚无
-Release、平台安装包缺失、GitHub 请求失败或本地开发构建，都会显示对应状态并禁用安装按钮。
+**v0.5.0 是首个正式 Release**，根目录 `registry.json` 已发布。v0.5.0 之前的版本不含更新器，
+需要手动安装一次 v0.5.0；从 v0.5.0 起可直接在页面更新到后续正式版本。尚无 Release、
+平台安装包缺失、GitHub 请求失败或本地开发构建，都会显示对应状态并禁用安装按钮。
 
 ### 源码更新备用
 

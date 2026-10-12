@@ -41,9 +41,11 @@ runtime fixes remain in place. The plugin ID remains `our-free-model`.
 
 ## Quick start
 
-This repository publishes source only; no prebuilt GitHub Release is published
-yet. Clone this repository and follow **Development** to build the native library
-before the installation steps below. Generated `dist/` files are not committed.
+Since v0.5.0, prebuilt GitHub Releases are published for Windows x64 and Linux
+x64. Download `our-free-model_0.5.0_<os>_amd64.zip` from
+[Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases) and verify it
+against `checksums.txt`, or clone this repository and follow **Development** to
+build the native library yourself. Generated `dist/` files are not committed.
 
 1. Use a plugin-enabled CLIProxyAPI build. Validated against **CPA 8.0.23**.
 2. Copy the matching binary into CPA's configured `plugins` directory:
@@ -130,10 +132,11 @@ cannot be confirmed, it offers a verification retry and does not reinstall blind
 If CPA requires a restart, it says so; the page never restarts the whole server.
 
 Reverse proxies must also route `/v8/management/` to CPA, with the same path prefix.
-Upgrading from 0.3.x needs one initial manual installation of this version. The
-repository has no published Release at the time this feature was implemented;
-online updates remain unavailable until release assets and `registry.json` exist
-on GitHub. A new button is not a substitute for publishing those artifacts.
+Upgrading from a version older than v0.5.0 needs one initial manual installation of
+v0.5.0. v0.5.0 is the first published Release and ships `registry.json`, so later
+versions can be installed from the page. Missing releases, missing platform
+archives, failed GitHub requests or local development builds keep the install
+button disabled with an explicit state.
 
 ### Source fallback
 
