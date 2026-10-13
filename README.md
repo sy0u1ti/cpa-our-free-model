@@ -10,11 +10,18 @@ repository**. The [Magpie adaptation](https://github.com/mu-zi-lee/magpie-our-fr
 is an architectural reference only, not a code source or dependency. The CPA
 C ABI integration is separate. Original authorship and MIT licenses are retained.
 
-Version **0.5.3** vendors OFM `ddb451c` (upstream v2.1.0, v5.1 UI pass). Only the files the
+Version **0.5.4** vendors OFM `ddb451c` (upstream v2.1.0, v5.1 UI pass). Only the files the
 served UI actually references are kept, and the private EAC seal is never
 vendored. `npm run vendor:original -- /path/to/original-checkout` regenerates the
 snapshot from pinned Git blobs. See `scripts/upstream-patches.mjs` and
 `service/vendor/ofm/UPSTREAM.json` for exact provenance.
+
+**New in 0.5.4:** model sync scope: the plugin settings page can now sync only
+chosen models instead of the whole upstream catalog. Unchecked models leave the
+CPA catalog and are refused at execution time (HTTP 404) even before CPA
+reloads it. The choice lives in `data-dir/model-selection.json` rather than in
+the plugin config, so it survives upgrades and prefix changes; with no saved
+file the plugin syncs everything, as before.
 
 **New in 0.5.3:** prebuilt releases now cover every platform the official plugin
 store requires - Windows amd64, Linux amd64/arm64 and macOS amd64/arm64 - so the
@@ -63,14 +70,14 @@ runtime fixes remain in place. The plugin ID remains `our-free-model`.
 
 Since v0.5.0, prebuilt GitHub Releases are published; since v0.5.3 they cover
 Windows amd64, Linux amd64/arm64 and macOS amd64/arm64. Download
-`our-free-model_0.5.3_<os>_<arch>.zip` from
+`our-free-model_0.5.4_<os>_<arch>.zip` from
 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases) and verify it
 against `checksums.txt`, or clone this repository and follow **Development** to
 build the native library yourself. Generated `dist/` files are not committed.
 
 1. Use a plugin-enabled CLIProxyAPI build. Validated against **CPA 8.0.23**.
 2. Copy the matching binary into CPA's configured `plugins` directory:
-   `our-free-model-v0.5.3.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
+   `our-free-model-v0.5.4.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
 3. Merge `config.example.yaml` into CPA's configuration and restart CPA:
 
 ```yaml
@@ -86,6 +93,11 @@ plugins:
    key**, and click **打开账号控制台**. It opens inside the same CPA page/domain.
 5. Anonymous/Kilo pools need no account. Log in to other channels in that console,
    then click **同步模型到 CPA**. Client model IDs start with `ofm/`.
+6. To sync only some models, click **选择要同步的模型…**. Unchecked models leave
+   the CPA catalog and are refused at execution time (HTTP 404) even before CPA
+   reloads it. The choice is stored in `data-dir/model-selection.json` (mode
+   0600) rather than in the plugin config, so it survives upgrades and prefix
+   changes; with no saved file the plugin syncs everything, as before.
 
 The plugin manages a private Node child process automatically. It uses installed
 Node.js 22.19+ or 24+, or installs a pinned SHA-256-verified official Node build

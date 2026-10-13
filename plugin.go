@@ -29,6 +29,7 @@ type plugin struct {
 	consoleCalls map[string]context.CancelFunc
 	updates      updateCache
 	releases     releaseCache
+	selection    selectionCache
 }
 
 func newPlugin(caller hostCaller) *plugin {
@@ -242,8 +243,7 @@ func (p *plugin) ownsModelLocked(model string) bool {
 }
 
 func (p *plugin) discover(cfg config, rt controlRuntime) (modelResponse, error) {
-	var rows []modelRow
-	err := rt.command("models", nil, &rows)
+	rows, err := discoverRows(rt)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if err != nil {
@@ -252,10 +252,20 @@ func (p *plugin) discover(cfg config, rt controlRuntime) (modelResponse, error) 
 		}
 		return modelResponse{}, err
 	}
+	// A scope file that cannot be read must not silently re-expose models the
+	// user excluded, so it disables discovery instead of degrading to "all".
+	hidden, err := p.selection.get(cfg)
+	if err != nil {
+		return modelResponse{}, err
+	}
+	skip := selectionSet(hidden)
 	models := make([]modelInfo, 0, len(rows))
 	seen := make(map[string]bool)
 	for _, row := range rows {
 		if row.ID == "" || strings.ContainsAny(row.ID, "\r\n\t") || seen[row.ID] {
+			continue
+		}
+		if skip[row.ID] {
 			continue
 		}
 		seen[row.ID] = true
@@ -283,9 +293,113 @@ func (p *plugin) discover(cfg config, rt controlRuntime) (modelResponse, error) 
 	return modelResponse{Provider: pluginID, Models: append([]modelInfo{}, models...)}, nil
 }
 
+// discoverRows reads the complete upstream catalog before any sync scope is
+// applied, so callers can tell the user what is available as well as what is
+// currently synced.
+func discoverRows(rt controlRuntime) ([]modelRow, error) {
+	var rows []modelRow
+	if err := rt.command("models", nil, &rows); err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// readSelection reports the selectable catalog plus the IDs the user excluded.
+// IDs are returned without the CPA prefix so the UI always works on the
+// upstream identity, and `hidden` is empty when everything is synced.
+func (p *plugin) readSelection(cfg config, rt controlRuntime) (any, error) {
+	rows, err := discoverRows(rt)
+	if err != nil {
+		return nil, err
+	}
+	hidden, err := p.selection.get(cfg)
+	if err != nil {
+		return nil, err
+	}
+	skip := selectionSet(hidden)
+	// Only report IDs that still exist upstream; a model that disappeared keeps
+	// its saved entry so it stays excluded if the provider brings it back, but
+	// the UI should not display phantom rows.
+	present := make(map[string]bool, len(rows))
+	models := make([]map[string]any, 0, len(rows))
+	seen := make(map[string]bool, len(rows))
+	for _, row := range rows {
+		if row.ID == "" || strings.ContainsAny(row.ID, "\r\n\t") || seen[row.ID] {
+			continue
+		}
+		seen[row.ID] = true
+		present[row.ID] = true
+		models = append(models, map[string]any{
+			"id": row.ID, "name": row.Name, "synced": !skip[row.ID],
+			"contextWindow": row.Context, "maxOutput": row.MaxTokens,
+		})
+	}
+	known := make([]string, 0, len(hidden))
+	stale := make([]string, 0)
+	for _, id := range hidden {
+		if present[id] {
+			known = append(known, id)
+		} else {
+			stale = append(stale, id)
+		}
+	}
+	return map[string]any{
+		"models": models, "hidden": known, "stale": stale,
+		"total": len(models), "syncedCount": len(models) - len(known),
+		"modelPrefix": cfg.ModelPrefix,
+	}, nil
+}
+
+// writeSelection replaces the saved scope. The body carries the IDs to exclude
+// (`hidden`) and is validated against the live catalog, so a caller cannot
+// persist an entry for a model this service does not offer.
+func (p *plugin) writeSelection(cfg config, rt controlRuntime, raw []byte) (any, error) {
+	var body struct {
+		// A pointer distinguishes an explicit empty list (sync everything) from a
+		// request that simply forgot the field, which must not silently widen the
+		// scope back to every model.
+		Hidden *[]string `json:"hidden"`
+	}
+	if err := decodeRequest(raw, &body); err != nil {
+		return nil, err
+	}
+	if body.Hidden == nil {
+		return nil, problem(400, "invalid_selection", "请求必须包含 hidden 字段；同步全部模型请传空数组。")
+	}
+	hidden, err := normalizeSelection(*body.Hidden)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := discoverRows(rt)
+	if err != nil {
+		return nil, err
+	}
+	available := make(map[string]bool, len(rows))
+	for _, row := range rows {
+		if row.ID != "" {
+			available[row.ID] = true
+		}
+	}
+	for _, id := range hidden {
+		if !available[id] {
+			return nil, problem(400, "unknown_model", "同步范围包含当前目录中不存在的模型："+id)
+		}
+	}
+	if err := p.selection.save(cfg, hidden); err != nil {
+		return nil, err
+	}
+	// Rebuild the CPA catalog now so the change takes effect without waiting for
+	// the next discovery cycle.
+	models, err := p.discover(cfg, rt)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"hidden": hidden, "syncedCount": len(models.Models), "total": len(available)}, nil
+}
+
 func managementRegistration() any {
 	routes := []map[string]string{}
-	for _, item := range [][2]string{{"GET", "status"}, {"POST", "console"}, {"POST", "console-local"}, {"POST", "console-api"}, {"POST", "console-cancel"}, {"GET", "updates"}, {"GET", "releases"}, {"GET", "models"}} {
+	for _, item := range [][2]string{{"GET", "status"}, {"POST", "console"}, {"POST", "console-local"}, {"POST", "console-api"}, {"POST", "console-cancel"}, {"GET", "updates"}, {"GET", "releases"}, {"GET", "models"}, {"GET", "selection"}, {"POST", "selection"}} {
 		routes = append(routes, map[string]string{"Method": item[0], "Path": "/ofm/" + item[1]})
 	}
 	resources := []map[string]string{{"Path": "/console", "Menu": "免费模型管理", "Description": "通过当前 CPA 域名管理 OFM，需要 CPA 管理密钥"}}
@@ -308,7 +422,8 @@ func (p *plugin) management(request managementRequest) (any, error) {
 	allowed := map[string]bool{"GET /v0/management/ofm/status": true, "GET /v0/management/ofm/models": true,
 		"POST /v0/management/ofm/console": true, "POST /v0/management/ofm/console-local": true,
 		"POST /v0/management/ofm/console-api": true, "POST /v0/management/ofm/console-cancel": true,
-		"GET /v0/management/ofm/updates": true, "GET /v0/management/ofm/releases": true}
+		"GET /v0/management/ofm/updates": true, "GET /v0/management/ofm/releases": true,
+		"GET /v0/management/ofm/selection": true, "POST /v0/management/ofm/selection": true}
 	if !allowed[key] {
 		return httpResponse{StatusCode: 404, Body: []byte("Not found")}, nil
 	}
@@ -339,6 +454,10 @@ func (p *plugin) management(request managementRequest) (any, error) {
 	defer p.active.Done()
 	var value any
 	switch key {
+	case "GET /v0/management/ofm/selection":
+		value, err = p.readSelection(cfg, rt)
+	case "POST /v0/management/ofm/selection":
+		value, err = p.writeSelection(cfg, rt, request.Body)
 	case "GET /v0/management/ofm/models":
 		value, err = p.discover(cfg, rt)
 	case "GET /v0/management/ofm/status":

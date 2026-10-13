@@ -11,22 +11,65 @@ function page({ embedded = false } = {}) {
   const events = new Map();
   const requests = [], replies = [];
   const location = new URL('https://cpa.example:8443/proxy/v0/resource/plugins/our-free-model/console');
-  const element = selector => {
-    if (!elements.has(selector)) elements.set(selector, { hidden: false, value: '', textContent: '', dataset: {}, attributes: {},
+  // Minimal element double: clearing textContent drops children (as the panel
+  // relies on when it re-renders) and registered listeners stay callable.
+  const createNode = () => {
+    const node = { hidden: false, value: '', dataset: {}, style: {}, attributes: {}, appended: [], listeners: {},
       setAttribute(name, value) { this.attributes[name] = value; },
-      addEventListener() {}, querySelectorAll: () => [], contentWindow: { postMessage: (...value) => replies.push(value) } });
+      append(...nodes) { this.appended.push(...nodes); },
+      addEventListener(type, handler) { this.listeners[type] = handler; },
+      querySelectorAll: () => [],
+      remove() {} };
+    let text = '';
+    Object.defineProperty(node, 'textContent', {
+      get: () => text,
+      set: value => { text = value; node.appended.length = 0; },
+    });
+    Object.defineProperty(node, 'children', { get: () => node.appended });
+    // The manager assigns handlers directly (`node.onclick = ...`), so mirror
+    // those assignments into the listener map the tests invoke.
+    for (const [type, name] of [['change', 'onchange'], ['input', 'oninput']]) {
+      Object.defineProperty(node, name, {
+        get: () => (...args) => node.listeners[type]?.(...args),
+        set: handler => { node.listeners[type] = handler; },
+      });
+    }
+    return node;
+  };
+  const element = selector => {
+    if (!elements.has(selector)) {
+      const node = createNode();
+      node.contentWindow = { postMessage: (...value) => replies.push(value) };
+      elements.set(selector, node);
+    }
     return elements.get(selector);
   };
+  const catalog = [
+    { id: 'alpha', name: 'Alpha', synced: true, contextWindow: 128000 },
+    { id: 'beta', name: 'Beta', synced: true, contextWindow: 64000 },
+    { id: 'gamma', name: 'Gamma', synced: false, contextWindow: 32000 },
+  ];
+  const saved = [];
   element('#workspace').hidden = true;
   element('#connection-panel').hidden = true;
+  element('#selection-panel').hidden = true;
   element('#key').value = 'management-fixture-only';
   const context = {
-    document: { querySelector: element, documentElement: { dataset: {} } }, location, console, AbortSignal, AbortController,
+    // Elements created by the selection panel need just enough DOM behaviour:
+    // clearing textContent drops children, and listeners are callable by tests.
+    document: { querySelector: element, documentElement: { dataset: {} }, createElement: createNode },
+    location, console, AbortSignal, AbortController,
     navigator: { clipboard: { writeText: async () => {} } },
     window: { addEventListener: (event, handler) => events.set(event, handler) },
     async fetch(url, options) {
       requests.push({ url, options });
+      if (url.endsWith('/selection') && options?.method === 'POST') {
+        const hidden = JSON.parse(options.body).hidden;
+        saved.push(hidden);
+        return new Response(JSON.stringify({ hidden, syncedCount: catalog.length - hidden.length, total: catalog.length }), { headers: { 'content-type': 'application/json' } });
+      }
       const body = url.endsWith('/console') ? { url: '/v0/resource/plugins/our-free-model/app' }
+        : url.endsWith('/selection') ? { models: catalog, hidden: ['gamma'], stale: [], total: 3, syncedCount: 2, modelPrefix: 'ofm/' }
         : url.endsWith('/status') ? { modelPrefix: 'ofm/', pluginVersion: '0.3.0', models: 2, running: true }
         : { ok: true };
       return new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } });
@@ -37,7 +80,7 @@ function page({ embedded = false } = {}) {
   vm.createContext(context);
   vm.runInContext(updaterScript, context);
   vm.runInContext(script, context);
-  return { element, events, requests, replies, location, document: context.document };
+  return { element, events, requests, replies, saved, location, document: context.document };
 }
 
 test('Chinese manager opens original UI under the exact current CPA origin and proxy prefix', async () => {
@@ -169,4 +212,62 @@ test('leaving the page cancels management work instead of only dropping the wait
   assert.equal(cancel.options.keepalive, true, 'the unload cancel must survive page teardown');
   assert.equal(cancel.options.headers.Authorization, 'Bearer management-fixture-only');
   assert.equal(p.element('#key').value, '');
+});
+
+test('model selection loads the catalog, preselects synced models and hides the rest', async () => {
+  const p = page();
+  await p.element('#choose-models').onclick();
+  assert.equal(p.element('#selection-panel').hidden, false);
+  const list = p.element('#selection-list');
+  assert.equal(list.children.length, 3);
+  const boxes = list.children.map(item => item.appended.find(node => node.type === 'checkbox'));
+  assert.deepEqual(boxes.map(box => box.checked), [true, true, false]);
+  assert.match(p.element('#selection-summary').textContent, /已选 2 \/ 3/);
+  assert.match(p.element('#selection-summary').textContent, /1 个不会同步到 CPA/);
+  // The exclusion already on the server must survive into the working copy, and
+  // saving without touching anything must round-trip it unchanged.
+  await p.element('#selection-save').onclick();
+  assert.deepEqual(p.saved.at(-1), ['gamma']);
+  assert.equal(p.element('#selection-panel').hidden, true);
+});
+
+test('model selection supports search, bulk toggles and a clean cancel', async () => {
+  const p = page();
+  await p.element('#choose-models').onclick();
+  // Search narrows the rendered rows without changing the working selection.
+  p.element('#selection-search').value = 'beta';
+  await p.element('#selection-search').oninput();
+  let list = p.element('#selection-list');
+  assert.equal(list.appended.length, 1);
+  assert.equal(list.appended[0].appended.find(node => node.type === 'checkbox').checked, true);
+  p.element('#selection-search').value = '';
+  await p.element('#selection-search').oninput();
+  // Bulk actions apply to the visible rows only.
+  await p.element('#selection-none').onclick();
+  list = p.element('#selection-list');
+  assert.deepEqual(list.appended.map(item => item.appended.find(node => node.type === 'checkbox').checked), [false, false, false]);
+  await p.element('#selection-all').onclick();
+  assert.deepEqual(list.appended.map(item => item.appended.find(node => node.type === 'checkbox').checked), [true, true, true]);
+  await p.element('#selection-invert').onclick();
+  assert.deepEqual(list.appended.map(item => item.appended.find(node => node.type === 'checkbox').checked), [false, false, false]);
+  // Cancelling must discard the edit and write nothing.
+  const before = p.saved.length;
+  p.element('#selection-cancel').onclick();
+  assert.equal(p.element('#selection-panel').hidden, true);
+  assert.equal(p.saved.length, before);
+  assert.match(p.element('#result').textContent, /未改变同步范围/);
+});
+
+test('model selection sends the exact hidden set and reports the outcome', async () => {
+  const p = page();
+  await p.element('#choose-models').onclick();
+  const list = p.element('#selection-list');
+  const boxes = list.children.map(item => item.appended.find(node => node.type === 'checkbox'));
+  boxes[1].checked = false;
+  await boxes[1].onchange();
+  await p.element('#selection-save').onclick();
+  assert.deepEqual(p.saved.at(-1), ['beta', 'gamma']);
+  assert.match(p.element('#result').textContent, /已保存：同步 1 个模型，排除 2 个/);
+  const write = p.requests.filter(row => row.url.endsWith('/ofm/selection') && row.options.method === 'POST').at(-1);
+  assert.equal(write.options.headers.Authorization, 'Bearer management-fixture-only');
 });

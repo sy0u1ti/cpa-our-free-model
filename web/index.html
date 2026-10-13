@@ -49,6 +49,20 @@
     code, pre { font-family: "Cascadia Code", Consolas, "Microsoft YaHei", monospace; }
     #update-command { font-size: 12px; }
     .update-card { margin-top: 18px; padding: 20px; border: 1px solid var(--line); background: #ffffff08; }
+    .selection-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 16px 0 4px; }
+    .selection-toolbar input { flex: 1 1 260px; width: auto; padding: 11px 12px; font-size: 14px; }
+    .selection-toolbar .actions { margin: 0; }
+    .selection-toolbar button { padding: 9px 12px; font-size: 12px; }
+    .selection-list { list-style: none; margin: 10px 0 16px; padding: 0; max-height: 46vh; overflow: auto; border: 1px solid var(--line); border-radius: 3px; }
+    .selection-list li { display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--line); font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; }
+    .selection-list li:last-child { border-bottom: 0; }
+    .selection-list li:hover { background: #ffffff55; }
+    .selection-list input[type="checkbox"] { width: auto; margin: 3px 0 0; flex: 0 0 auto; accent-color: var(--ink); }
+    .selection-list label { flex: 1 1 auto; margin: 0; text-transform: none; cursor: pointer; }
+    .selection-name { display: block; font-size: 14px; }
+    .selection-id { display: block; margin-top: 3px; font-family: "Cascadia Code", Consolas, monospace; font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
+    .selection-meta { flex: 0 0 auto; font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; font-size: 11px; color: var(--muted); white-space: nowrap; }
+    .selection-toolbar button:disabled, .selection-list input:disabled { cursor: wait; }
     #release-version { margin: 0 0 10px; font-family: "Cascadia Code", Consolas, "Microsoft YaHei", monospace; font-size: 13px; overflow-wrap: anywhere; }
     #update-progress { display: block; width: 100%; height: 4px; margin: 16px 0; accent-color: var(--ink); }
     details { margin-top: 22px; font-size: 13px; }
@@ -75,10 +89,30 @@
       <button id="open" class="primary" type="button">打开账号控制台 &rarr;</button>
       <button id="status" type="button">查看服务状态</button>
       <button id="refresh" type="button">同步模型到 CPA</button>
+      <button id="choose-models" type="button">选择要同步的模型…</button>
       <button id="forget" type="button">清除密钥</button>
     </div>
     <output id="result" aria-live="polite">输入管理密钥，即可通过当前 CPA 打开控制台。</output>
     <pre id="details" hidden></pre>
+  </section>
+  <section id="selection-panel" hidden aria-labelledby="selection-heading">
+    <h2 id="selection-heading">同步到 CPA 的模型</h2>
+    <p class="note">取消勾选的模型不会再出现在 CPA 的模型列表中，客户端直接请求也会被拒绝；控制台里的账号、额度与渠道设置不受影响。选择结果保存在插件的私有数据目录，升级插件不会丢失。</p>
+    <div class="selection-toolbar">
+      <input id="selection-search" type="search" placeholder="搜索模型名称或 ID…" autocomplete="off" spellcheck="false" aria-label="搜索模型">
+      <div class="actions">
+        <button id="selection-all" type="button">全选</button>
+        <button id="selection-none" type="button">全不选</button>
+        <button id="selection-invert" type="button">反选</button>
+      </div>
+    </div>
+    <p id="selection-summary" class="note" role="status" aria-live="polite"></p>
+    <ul id="selection-list" class="selection-list" aria-label="模型列表"></ul>
+    <p id="selection-stale" class="note" hidden></p>
+    <div class="actions">
+      <button id="selection-save" class="primary" type="button">保存并同步 &rarr;</button>
+      <button id="selection-cancel" type="button">取消</button>
+    </div>
   </section>
   <section>
     <h2>更新插件</h2>

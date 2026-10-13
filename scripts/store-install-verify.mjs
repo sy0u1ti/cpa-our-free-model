@@ -1,6 +1,6 @@
 // One-off verification harness: serves this repository's real registry.json over
 // loopback so a stock CPA binary resolves the store entry through its normal
-// github-release path, downloads the real v0.5.3 release asset, checks the
+// github-release path, downloads the real published release asset, checks the
 // checksum, hot-loads it and serves a chat completion. Not part of npm test.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';

@@ -96,7 +96,120 @@
   $('#refresh').onclick = () => run(async () => {
     const models = await api('ofm/models');
     await api('plugins/our-free-model/config', 'PATCH', { 'catalog-revision': Date.now() });
-    output.textContent = `已请求同步 ${models.Models.length} 个模型，CPA 会在几秒内重新载入目录。`;
+    const selection = await api('ofm/selection');
+    const excluded = selection.hidden?.length ?? 0;
+    output.textContent = excluded
+      ? `已请求同步 ${models.Models.length} 个模型（另有 ${excluded} 个已在同步范围外），CPA 会在几秒内重新载入目录。`
+      : `已请求同步 ${models.Models.length} 个模型，CPA 会在几秒内重新载入目录。`;
+  });
+
+  // The selection panel keeps its own working copy of the checkboxes so a
+  // half-finished edit is never written back, and so "cancel" is a pure
+  // client-side discard.
+  const selectionState = { models: [], checked: new Set(), saving: false };
+  function selectionVisible() {
+    const term = $('#selection-search').value.trim().toLocaleLowerCase();
+    if (!term) return selectionState.models;
+    return selectionState.models.filter(row => `${row.name ?? ''} ${row.id}`.toLocaleLowerCase().includes(term));
+  }
+  function renderSelection() {
+    const rows = selectionVisible();
+    const list = $('#selection-list');
+    list.textContent = '';
+    rows.forEach((row, index) => {
+      const item = document.createElement('li');
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = selectionState.checked.has(row.id);
+      box.disabled = selectionState.saving;
+      // Sanitized IDs can collide (for example "a/b" and "a-b"), so the label
+      // target includes the row index to stay unique.
+      const id = 'selection-' + index + '-' + row.id.replace(/[^\w-]/g, '_');
+      box.id = id;
+      box.addEventListener('change', () => {
+        if (box.checked) selectionState.checked.add(row.id); else selectionState.checked.delete(row.id);
+        renderSelectionSummary();
+      });
+      const label = document.createElement('label');
+      label.htmlFor = id;
+      const name = document.createElement('span');
+      name.className = 'selection-name';
+      name.textContent = row.name || row.id;
+      const code = document.createElement('span');
+      code.className = 'selection-id';
+      code.textContent = row.id;
+      label.append(name, code);
+      const meta = document.createElement('span');
+      meta.className = 'selection-meta';
+      meta.textContent = row.contextWindow ? `${Math.round(row.contextWindow / 1024)}K 上下文` : '';
+      item.append(box, label, meta);
+      list.append(item);
+    });
+    if (!rows.length) {
+      const item = document.createElement('li');
+      item.textContent = selectionState.models.length ? '没有匹配的模型。' : '上游目录暂时为空，请先刷新清单。';
+      list.append(item);
+    }
+    renderSelectionSummary();
+  }
+  function renderSelectionSummary() {
+    const total = selectionState.models.length;
+    const chosen = selectionState.checked.size;
+    $('#selection-summary').textContent = `已选 ${chosen} / ${total} 个模型；未勾选的 ${total - chosen} 个不会同步到 CPA。`;
+    const stale = selectionState.stale ?? [];
+    const note = $('#selection-stale');
+    note.hidden = !stale.length;
+    if (stale.length) note.textContent = `另有 ${stale.length} 个已保存但当前目录中不存在的模型仍保持排除：${stale.slice(0, 6).join('、')}${stale.length > 6 ? ' 等' : ''}。`;
+  }
+  function setSelectionBusy(busy) {
+    selectionState.saving = busy;
+    for (const selector of ['#selection-search', '#selection-all', '#selection-none', '#selection-invert', '#selection-save', '#selection-cancel']) {
+      $(selector).disabled = busy;
+    }
+    for (const box of $('#selection-list').querySelectorAll('input[type="checkbox"]')) box.disabled = busy;
+  }
+  $('#choose-models').onclick = () => run(async () => {
+    output.textContent = '正在读取上游模型目录…';
+    const value = await api('ofm/selection');
+    const rows = Array.isArray(value.models) ? value.models : [];
+    selectionState.models = rows;
+    selectionState.stale = Array.isArray(value.stale) ? value.stale : [];
+    selectionState.checked = new Set(rows.filter(row => row.synced !== false).map(row => row.id));
+    $('#selection-search').value = '';
+    $('#selection-panel').hidden = false;
+    renderSelection();
+    output.textContent = `已读取 ${rows.length} 个上游模型，取消勾选即可排除。`;
+  });
+  $('#selection-all').onclick = () => { for (const row of selectionVisible()) selectionState.checked.add(row.id); renderSelection(); };
+  $('#selection-none').onclick = () => { for (const row of selectionVisible()) selectionState.checked.delete(row.id); renderSelection(); };
+  $('#selection-invert').onclick = () => {
+    for (const row of selectionVisible()) {
+      if (selectionState.checked.has(row.id)) selectionState.checked.delete(row.id); else selectionState.checked.add(row.id);
+    }
+    renderSelection();
+  };
+  $('#selection-search').oninput = () => renderSelection();
+  $('#selection-cancel').onclick = () => {
+    $('#selection-panel').hidden = true;
+    selectionState.models = []; selectionState.checked = new Set(); selectionState.stale = [];
+    output.textContent = '已取消选择，未改变同步范围。';
+  };
+  $('#selection-save').onclick = () => run(async () => {
+    if (!selectionState.models.length) throw new Error('没有可保存的模型目录，请先刷新清单。');
+    setSelectionBusy(true);
+    try {
+      const hidden = selectionState.models.filter(row => !selectionState.checked.has(row.id)).map(row => row.id);
+      const result = await api('ofm/selection', 'POST', { hidden });
+      // Bumping catalog-revision is what makes CPA re-read the plugin catalog;
+      // without it the change would only take effect on the next restart.
+      await api('plugins/our-free-model/config', 'PATCH', { 'catalog-revision': Date.now() });
+      const synced = result.syncedCount ?? selectionState.checked.size;
+      output.textContent = `已保存：同步 ${synced} 个模型，排除 ${hidden.length} 个。CPA 目录会在几秒内重新载入。`;
+      $('#selection-panel').hidden = true;
+      $('#details').hidden = true;
+    } finally {
+      setSelectionBusy(false);
+    }
   });
   updater = window.createOFMUpdater({ fetchManagement: managementFetch, setBusy, onMessage: text => { output.textContent = text; } });
   $('#updates').onclick = updater.check;

@@ -36,6 +36,17 @@ func (p *plugin) prepare(cfg config, rt controlRuntime, request executorRequest,
 	if !strings.HasPrefix(model, cfg.ModelPrefix) || len(model) == len(cfg.ModelPrefix) {
 		return preparedCall{}, problem(404, "model_not_found", "Model is not owned by Our Free Model")
 	}
+	// Enforce the sync scope here as well as in the catalog. CPA's static model
+	// list is only rebuilt when catalog-revision changes, so a model removed
+	// from the scope can still be present in the host catalog for a while; it
+	// must never be forwarded in that window.
+	hidden, err := p.selection.get(cfg)
+	if err != nil {
+		return preparedCall{}, err
+	}
+	if selectionSet(hidden)[strings.TrimPrefix(model, cfg.ModelPrefix)] {
+		return preparedCall{}, problem(404, "model_not_found", "Model is excluded from the CPA sync scope; change it in the plugin settings")
+	}
 	var body map[string]json.RawMessage
 	if err := decodeRequest(request.Payload, &body); err != nil || body == nil {
 		return preparedCall{}, problem(400, "invalid_request", "Expected a Chat Completions request object")
