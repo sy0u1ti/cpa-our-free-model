@@ -7,6 +7,7 @@
       "description": "Original Our Free Model runtime and account console, adapted to native CLIProxyAPI plugins.",
       "author": "CPA adapter contributors; original OFM contributors",
       "repository": "https://github.com/sy0u1ti/cpa-our-free-model",
+      "logo": "https://raw.githubusercontent.com/sy0u1ti/cpa-our-free-model/main/assets/logo.png",
       "homepage": "https://github.com/sy0u1ti/cpa-our-free-model",
       "license": "MIT",
       "tags": ["models", "free", "openai-compatible"],
