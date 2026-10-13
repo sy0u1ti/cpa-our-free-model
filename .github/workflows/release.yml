@@ -13,8 +13,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-2022]
-    runs-on: ${{ matrix.os }}
+        include:
+          - { goos: linux, goarch: amd64, runner: ubuntu-22.04 }
+          - { goos: linux, goarch: arm64, runner: ubuntu-22.04-arm }
+          - { goos: darwin, goarch: amd64, runner: macos-15-intel }
+          - { goos: darwin, goarch: arm64, runner: macos-15 }
+          - { goos: windows, goarch: amd64, runner: windows-2025 }
+    runs-on: ${{ matrix.runner }}
     env:
       CGO_ENABLED: '1'
     steps:
@@ -63,7 +68,7 @@ jobs:
       - run: npm run package
       - uses: actions/upload-artifact@v4
         with:
-          name: native-${{ runner.os }}
+          name: native-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/our-free-model_*.zip
           if-no-files-found: error
 
@@ -92,5 +97,5 @@ jobs:
         run: |
           gh release create "$RELEASE_TAG" dist/our-free-model_*.zip dist/checksums.txt \
             --verify-tag --draft --title "Our Free Model $RELEASE_TAG" \
-            --notes "Native CPA plugins for Windows amd64 and Linux amd64. See README_CN.md for installation, one-click updates and provider authorization boundaries."
+            --notes "Native CPA plugins for Windows amd64, Linux amd64/arm64 and macOS amd64/arm64. See README_CN.md for installation, one-click updates and provider authorization boundaries."
           gh release edit "$RELEASE_TAG" --draft=false --latest

@@ -14,7 +14,13 @@
 来源、原始 Git blob、前后 SHA-256、补丁说明均记录在 `service/vendor/ofm/UPSTREAM.json`。
 `scripts/import-upstream.mjs` 和 `scripts/upstream-patches.mjs` 可以重现整个取源过程。
 
-**当前版本 v0.5.2**：修复控制台主题按钮只能切换一次的问题（沙盒帧里
+**当前版本 v0.5.3**：把预编译产物补全到官方插件商店要求的全部平台
+（Windows amd64、Linux amd64/arm64、macOS amd64/arm64），商店条目在 Intel 与
+Apple 芯片的 Mac、以及 64 位 ARM Linux 上都能解析到安装包。发布任务改为每个目标
+各自用对应架构的 runner 构建，产物名补上架构名（否则两个 Linux runner 会重名冲突）。
+本轮不改运行时代码，也不改渠道逻辑。
+
+**v0.5.2**：修复控制台主题按钮只能切换一次的问题（沙盒帧里
 `localStorage` 抛错导致 React 状态不更新）；上游仍同步在 OFM **v2.1.0**（`ddb451c`，含上游 v5.1 UI 精修），控制台随上游换成新的
 六页毛玻璃面板，并带来聚合渠道、省 Token、降级链与原生 Anthropic `/v1/messages`。
 本轮修复三个已确认问题：
@@ -39,16 +45,19 @@ Linux 源码备用更新器创建的安装目录改为可遍历权限，备份�
 已使用 **官方 CPA 8.0.23 的 Windows x64 与 Linux x64 发行版**验证。请使用支持插件的 CPA
 发行版，不要使用文件名含 `no-plugin` 的构建。其他 CPA 版本需自行验证 ABI 与功能支持。
 
-**v0.5.0 起提供预编译 Release（Windows x64 / Linux x64），也可从源码构建。**
-`dist/` 不随源码提交：优先从 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases)
-下载 `our-free-model_0.5.2_<系统>_amd64.zip` 并核对 `checksums.txt`；从仓库克隆后
+**v0.5.0 起提供预编译 Release；v0.5.3 起覆盖 Windows amd64、Linux amd64/arm64
+与 macOS amd64/arm64。** `dist/` 不随源码提交：优先从
+[Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases)
+下载 `our-free-model_0.5.3_<系统>_<架构>.zip` 并核对 `checksums.txt`；从仓库克隆后
 也可按第 7 节自行构建，产物位于：
 
 | 系统 | 文件 |
 | --- | --- |
-| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.2.dll` |
-| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.2.so` |
-| macOS / ARM64 | 从源码在相应平台构建；不将未实测平台宣称为已验证 |
+| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.3.dll` |
+| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.3.so` |
+| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.3.so` |
+| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.3.dylib` |
+| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.3.dylib` |
 
 1. 把对应动态库复制到 CPA 配置的插件目录，例如 `plugins/` 或 `plugins/windows/amd64/`。
    **不要改掉 `our-free-model` 这一文件名 ID**；文件名和配置键必须一致。
@@ -70,8 +79,9 @@ plugins:
 首次使用时释放到私有数据目录，以内容哈希命名并逐文件校验，损坏时拒绝执行。
 
 CPA 适配源码仓库为 [sy0u1ti/cpa-our-free-model](https://github.com/sy0u1ti/cpa-our-free-model)。
-v0.5.0 起已发布二进制 Release（当前 v0.5.2）；尚未上架公共插件商店，首次安装请手动
-放置动态库，之后可直接用页面一键更新（见第 7 节）。
+v0.5.0 起已发布二进制 Release（当前 v0.5.3，覆盖五个平台）；公共插件商店的上架申请
+仍在审核中，通过后即可在 CPA 插件商店里直接安装，在那之前请先手动放置动态库，
+之后可直接用页面一键更新（见第 7 节）。
 
 ## 2. 打开管理界面
 
@@ -273,7 +283,7 @@ https://raw.githubusercontent.com/sy0u1ti/cpa-our-free-model/main/registry.json
 不会自动重启整个 CPA，也不声称所有 CPA 版本都支持无中断热更新。使用反代路径前缀时，
 要把同前缀下的 `/v8/management/` 也转发到 CPA。
 
-**v0.5.0 是首个正式 Release**（当前 v0.5.2），根目录 `registry.json` 已发布。
+**v0.5.0 是首个正式 Release**（当前 v0.5.3），根目录 `registry.json` 已发布。
 v0.5.0 之前的版本不含更新器，需要手动安装一次；从 v0.5.0 起可直接在页面更新到
 后续正式版本。尚无 Release、平台安装包缺失、GitHub 请求失败或本地开发构建，
 都会显示对应状态并禁用安装按钮。

@@ -10,6 +10,24 @@
 圆角覆盖的样式微调；`src/`、控制台 JS、渠道代码与 `assets.json` 均未变化。
 新增的 Tauri 桌面版与未被引用的 `splash.html` 不进入本插件包。
 
+## v0.5.3：补全商店要求的平台产物
+
+商店上架申请（PR #240）的阻塞项是平台覆盖：审计明确要求
+`darwin/amd64`、`darwin/arm64`、`linux/amd64`、`linux/arm64`、`windows/amd64`
+五个平台的预编译产物，而 v0.5.2 只有 Linux/Windows amd64。本轮只动发布流程。
+
+- 矩阵由 `os: [ubuntu-22.04, windows-2022]` 改为显式 include，每个目标用对应架构的
+  runner：`ubuntu-22.04`、`ubuntu-22.04-arm`、`macos-15-intel`、`macos-15`、
+  `windows-2025`。选择与已通过审核的 `client-guard` 一致。
+- 顺带修掉一个隐藏缺陷：上传产物名原为 `native-${{ runner.os }}`，两个 Linux runner
+  会重名，`upload-artifact@v4` 会直接报错；现改为 `native-<goos>-<goarch>`。
+- `release-checksums.mjs` 与 `package.mjs` 本就接受三个系统与两种架构，
+  `releases.go` 的平台匹配用 `runtime.GOOS`/`GOARCH`，无需改动。
+
+本地已交叉验证：`linux/arm64` 用 zig 完整构建成功（19.9 MB `.so`）；
+`darwin/amd64`、`darwin/arm64` 的 `go vet` 通过（macOS 链接需要真实 SDK，
+只能由 CI 的 macOS runner 完成）。未改运行时代码、渠道逻辑与配置格式。
+
 ## v0.5.2：主题按钮只能切换一次
 
 用户报告：暗色模式点击一次切到浅色后，再点击无法切回暗色。
