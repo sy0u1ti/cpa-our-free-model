@@ -10,11 +10,22 @@ repository**. The [Magpie adaptation](https://github.com/mu-zi-lee/magpie-our-fr
 is an architectural reference only, not a code source or dependency. The CPA
 C ABI integration is separate. Original authorship and MIT licenses are retained.
 
-Version **0.5.4** vendors OFM `ddb451c` (upstream v2.1.0, v5.1 UI pass). Only the files the
+Version **0.5.5** vendors OFM `9e61218` (upstream v2.2.0). Only the files the
 served UI actually references are kept, and the private EAC seal is never
 vendored. `npm run vendor:original -- /path/to/original-checkout` regenerates the
 snapshot from pinned Git blobs. See `scripts/upstream-patches.mjs` and
 `service/vendor/ofm/UPSTREAM.json` for exact provenance.
+
+**New in 0.5.5:** upstream v2.2.0 sync. The EAC co-paid lane moved to a migrated
+gateway: the pinned seal pair (`src/vault-data.js`, `src/vault-anchor.js`) is
+replaced by upstream's new pair, so an opt-in EAC source now unlocks the new
+endpoint, and `service/upstream-eac.json` records the new digests. RTK grep
+hardening also lands: a candidate hit in the first rows is now validated against
+the complete output before any compression, so webpage timestamps and source
+citations in prose are returned untouched instead of being rewritten as grep
+results. Upstream's own version strings became 2.2.0. The two CPA-patched files
+(`packages/standalone/eac.mjs`, `packages/standalone/channels/business.mjs`) did
+not change upstream, so both patches still apply byte-for-byte.
 
 **New in 0.5.4:** model sync scope: the plugin settings page can now sync only
 chosen models instead of the whole upstream catalog. Unchecked models leave the
@@ -70,14 +81,14 @@ runtime fixes remain in place. The plugin ID remains `our-free-model`.
 
 Since v0.5.0, prebuilt GitHub Releases are published; since v0.5.3 they cover
 Windows amd64, Linux amd64/arm64 and macOS amd64/arm64. Download
-`our-free-model_0.5.4_<os>_<arch>.zip` from
+`our-free-model_0.5.5_<os>_<arch>.zip` from
 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases) and verify it
 against `checksums.txt`, or clone this repository and follow **Development** to
 build the native library yourself. Generated `dist/` files are not committed.
 
 1. Use a plugin-enabled CLIProxyAPI build. Validated against **CPA 8.0.23**.
 2. Copy the matching binary into CPA's configured `plugins` directory:
-   `our-free-model-v0.5.4.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
+   `our-free-model-v0.5.5.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
 3. Merge `config.example.yaml` into CPA's configuration and restart CPA:
 
 ```yaml

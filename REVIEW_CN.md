@@ -10,6 +10,26 @@
 圆角覆盖的样式微调；`src/`、控制台 JS、渠道代码与 `assets.json` 均未变化。
 新增的 Tauri 桌面版与未被引用的 `splash.html` 不进入本插件包。
 
+## v0.5.5：同步上游 OFM v2.2.0
+
+上游发布了 v2.2.0（`9e61218`，共 12 个提交），本轮把 vendored 快照从 `ddb451c`
+整体重取到该提交，文件数由 85 增至 86（新增 `src/token-saver/rtk/hitLine.js`）。
+
+- **EAC 服务迁移**：上游把协付渠道迁到新服务器，并随发布替换了密封对
+  `src/vault-data.js`（677 → 566 字节）与 `src/vault-anchor.js`（262 → 192 字节）。
+  本插件不随包分发密封材料，而是按 pin 的提交下载并逐文件校验 SHA-256，
+  因此只需同步 `scripts/import-upstream.mjs` 的提交号；`service/upstream-eac.json`
+  已记录新摘要。本地实测新密封解开为 `mode=worker`，指向
+  `https://ourfreemodel.beichenapi.com/eac/v1`，与上游迁移文档一致。
+- **RTK grep 误判修复**：旧逻辑只看前 5 行非空内容里是否出现 `文件:行号:内容`，
+  网页时间戳或源码引用会被误判成 grep 输出并整段压缩。新逻辑先用完整输出验证
+  候选行（`parseGrepOutput`），散文不再被有损改写；候选不成立时直接返回原文。
+- **版本号统一**：上游 `package.json` 与 `packages/standalone/package.json`
+  都变为 2.2.0。
+- **补丁适用性**：两个 CPA 补丁的目标文件（`packages/standalone/eac.mjs`、
+  `packages/standalone/channels/business.mjs`）本轮上游未改动，
+  `patchOriginal` 的单次匹配断言仍然成立，补丁逐字节适用。
+
 ## v0.5.4：模型同步范围可选
 
 用户反馈：「同步模型到 CPA」此前只能整体同步，无法挑选。上游 OFM 到 `ddb451c`

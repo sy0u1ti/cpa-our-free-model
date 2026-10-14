@@ -8,16 +8,21 @@
 模型运行时、账号渠道、管理控制台和用量统计来自原作者；本项目新增 CPA 原生接入、
 服务生命周期、安全边界及宿主兼容测试，不把上游功能声明为独立原创。
 
-**v0.2.0 的唯一产品源码上游是原项目，不使用参考项目的源码快照或辅助模块。**
-通过 `git show` 直接读取原仓库固定提交的 53 个文件，其中 51 个逐字节不变（包括独立服务
-与完整控制台），2 个应用独立可追溯的 CPA 补丁：接入私有 EAC 来源、外置内置 OAuth 配置。
-来源、原始 Git blob、前后 SHA-256、补丁说明均记录在 `service/vendor/ofm/UPSTREAM.json`。
-`scripts/import-upstream.mjs` 和 `scripts/upstream-patches.mjs` 可以重现整个取源过程。
+**唯一产品源码上游是原项目，不使用参考项目的源码快照或辅助模块。**
+通过 `git show` 直接读取原仓库固定提交的文件（当前 86 个），除 2 个独立可追溯的
+CPA 补丁（接入私有 EAC 来源、外置内置 OAuth 配置）外逐字节不变，包括独立服务与
+完整控制台。来源、原始 Git blob、前后 SHA-256、补丁说明均记录在
+`service/vendor/ofm/UPSTREAM.json`。`scripts/import-upstream.mjs` 和
+`scripts/upstream-patches.mjs` 可以重现整个取源过程。
 
-**当前版本 v0.5.4**：模型同步范围可选——插件入口新增「选择要同步的模型…」，
-可以只把需要的模型同步给 CPA，未勾选的模型既不进目录也会在请求转发前被拒绝。
-选择结果保存在插件的私有数据目录，升级、换前缀都不会丢；没有保存过时行为不变（全部同步）。
-本轮不改上游渠道逻辑。
+**当前版本 v0.5.5**：同步上游 OFM **v2.2.0**（`9e61218`）。上游把 EAC 协付渠道
+迁到了新服务器，并随发布替换了密封材料；本插件把 pin 的密封对
+（`src/vault-data.js`、`src/vault-anchor.js`）更新为上游的新版本，
+`service/upstream-eac.json` 同步记录新的摘要，因此启用 EAC 来源后解开的是新网关地址。
+上游同时修了 RTK grep 的误判：以前只看到前几行像 `文件:行号:内容` 就整段压缩，
+现在会先用完整输出验证候选，网页时间戳、源码引用等正常散文不再被改写。上游自身
+版本号统一为 2.2.0。两个 CPA 补丁文件（`eac.mjs`、`business.mjs`）本轮上游未改动，
+补丁仍逐字节适用。
 
 **v0.5.3**：把预编译产物补全到官方插件商店要求的全部平台
 （Windows amd64、Linux amd64/arm64、macOS amd64/arm64），商店条目在 Intel 与
@@ -25,7 +30,7 @@ Apple 芯片的 Mac、以及 64 位 ARM Linux 上都能解析到安装包。发�
 各自用对应架构的 runner 构建，产物名补上架构名（否则两个 Linux runner 会重名冲突）。
 
 **v0.5.2**：修复控制台主题按钮只能切换一次的问题（沙盒帧里
-`localStorage` 抛错导致 React 状态不更新）；上游仍同步在 OFM **v2.1.0**（`ddb451c`，含上游 v5.1 UI 精修），控制台随上游换成新的
+`localStorage` 抛错导致 React 状态不更新）；该轮上游同步在 OFM **v2.1.0**（`ddb451c`，含上游 v5.1 UI 精修），控制台随上游换成新的
 六页毛玻璃面板，并带来聚合渠道、省 Token、降级链与原生 Anthropic `/v1/messages`。
 本轮修复三个已确认问题：
 
@@ -52,16 +57,16 @@ Linux 源码备用更新器创建的安装目录改为可遍历权限，备份�
 **v0.5.0 起提供预编译 Release；v0.5.3 起覆盖 Windows amd64、Linux amd64/arm64
 与 macOS amd64/arm64。** `dist/` 不随源码提交：优先从
 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases)
-下载 `our-free-model_0.5.4_<系统>_<架构>.zip` 并核对 `checksums.txt`；从仓库克隆后
+下载 `our-free-model_0.5.5_<系统>_<架构>.zip` 并核对 `checksums.txt`；从仓库克隆后
 也可按第 7 节自行构建，产物位于：
 
 | 系统 | 文件 |
 | --- | --- |
-| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.4.dll` |
-| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.4.so` |
-| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.4.so` |
-| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.4.dylib` |
-| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.4.dylib` |
+| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.5.dll` |
+| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.5.so` |
+| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.5.so` |
+| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.5.dylib` |
+| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.5.dylib` |
 
 1. 把对应动态库复制到 CPA 配置的插件目录，例如 `plugins/` 或 `plugins/windows/amd64/`。
    **不要改掉 `our-free-model` 这一文件名 ID**；文件名和配置键必须一致。
@@ -83,7 +88,7 @@ plugins:
 首次使用时释放到私有数据目录，以内容哈希命名并逐文件校验，损坏时拒绝执行。
 
 CPA 适配源码仓库为 [sy0u1ti/cpa-our-free-model](https://github.com/sy0u1ti/cpa-our-free-model)。
-v0.5.0 起已发布二进制 Release（当前 v0.5.4，覆盖五个平台）；公共插件商店的上架申请
+v0.5.0 起已发布二进制 Release（当前 v0.5.5，覆盖五个平台）；公共插件商店的上架申请
 仍在审核中，通过后即可在 CPA 插件商店里直接安装，在那之前请先手动放置动态库，
 之后可直接用页面一键更新（见第 7 节）。
 
@@ -223,6 +228,11 @@ auto-install-eac: true
 不会伪装 DSH 桌面宿主、绕过服务器校验、公开解密结果或获取别人的登录信息。
 你也可以通过 `eac-source-dir` 指定可信原项目源码；该目录的模块会在本机执行。
 
+上游 v2.2.0 把 EAC 服务迁到了新服务器，本插件同步后 pin 的是新网关与配套密封材料。
+按上游说明，服务器迁移后**旧 EAC 授权可能需要重新完成一次 GitHub 登录与 Star 确认**；
+如果控制台提示需要授权，从页面重新发起登录即可，不要继续使用旧的登录页面。
+免费车道的模型不受影响。
+
 来源准备在子服务开放之前完成，不需要先点击登录。首次打开控制台会等待初始化；如果已经
 明确启用的来源在启动时加载失败，会额外尝试一次，并把失败原因显示为来源准备问题。
 并发打开多个页面共用这一尝试，后续轮询不会循环下载。准备成功不表示已授权，不会代替
@@ -295,7 +305,7 @@ https://raw.githubusercontent.com/sy0u1ti/cpa-our-free-model/main/registry.json
 不会自动重启整个 CPA，也不声称所有 CPA 版本都支持无中断热更新。使用反代路径前缀时，
 要把同前缀下的 `/v8/management/` 也转发到 CPA。
 
-**v0.5.0 是首个正式 Release**（当前 v0.5.4），根目录 `registry.json` 已发布。
+**v0.5.0 是首个正式 Release**（当前 v0.5.5），根目录 `registry.json` 已发布。
 v0.5.0 之前的版本不含更新器，需要手动安装一次；从 v0.5.0 起可直接在页面更新到
 后续正式版本。尚无 Release、平台安装包缺失、GitHub 请求失败或本地开发构建，
 都会显示对应状态并禁用安装按钮。

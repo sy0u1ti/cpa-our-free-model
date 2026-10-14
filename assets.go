@@ -44,6 +44,7 @@ import (
 //go:embed service/vendor/ofm/src/token-saver/index.js service/vendor/ofm/src/token-saver/inject.js service/vendor/ofm/src/token-saver/prompts.js
 //go:embed service/vendor/ofm/src/token-saver/rtk/applyFilter.js service/vendor/ofm/src/token-saver/rtk/autodetect.js
 //go:embed service/vendor/ofm/src/token-saver/rtk/constants.js service/vendor/ofm/src/token-saver/rtk/filters/buildOutput.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/hitLine.js
 //go:embed service/vendor/ofm/src/token-saver/rtk/filters/dedupLog.js service/vendor/ofm/src/token-saver/rtk/filters/find.js
 //go:embed service/vendor/ofm/src/token-saver/rtk/filters/gitDiff.js service/vendor/ofm/src/token-saver/rtk/filters/gitLog.js
 //go:embed service/vendor/ofm/src/token-saver/rtk/filters/gitStatus.js service/vendor/ofm/src/token-saver/rtk/filters/grep.js

@@ -1,7 +1,7 @@
 {
   "schema": "cpa-ofm-original-source/v1",
   "repository": "https://github.com/Ebony-Vinyl/dsh-our-free-model",
-  "commit": "ddb451c2f24bac0b0f8b03b2473efbb1f0aefb68",
+  "commit": "9e6121802ab5b87e379a07141e94e36482809147",
   "method": "git show <original-commit>:<path>; no working-tree bytes and no secondary fork",
   "files": [
     {
@@ -12,9 +12,9 @@
     },
     {
       "path": "package.json",
-      "gitBlob": "802d81fd97b0c50f1e8c58b32639d47063bab098",
-      "originalSha256": "65d2cf69f41f94f1cf8d2e25ee605941302dcbe39b01cd748dc13200aa22eabd",
-      "sha256": "65d2cf69f41f94f1cf8d2e25ee605941302dcbe39b01cd748dc13200aa22eabd"
+      "gitBlob": "24855a251aebf6138c56e40e46929dc436ec5ee8",
+      "originalSha256": "1e6e34df59cf782f9a95c05c14f282857db28fc9b0837d57d1ac689298a26e2e",
+      "sha256": "1e6e34df59cf782f9a95c05c14f282857db28fc9b0837d57d1ac689298a26e2e"
     },
     {
       "path": "packages/standalone/README.md",
@@ -86,9 +86,9 @@
     },
     {
       "path": "packages/standalone/package.json",
-      "gitBlob": "7a8586afe992fc72e1be74e3aac53f89a6946bf7",
-      "originalSha256": "dc75891b74091aabcb3be13cee6f9e63244af545f5355d7382d8f5a87e308eae",
-      "sha256": "dc75891b74091aabcb3be13cee6f9e63244af545f5355d7382d8f5a87e308eae"
+      "gitBlob": "fcfe0e0b422008433d7beb8e976d2eacd78b91b7",
+      "originalSha256": "32ccbf7716a9f026f56c864f61989caf6d16d0317e8292774f6c52d84e775cd4",
+      "sha256": "32ccbf7716a9f026f56c864f61989caf6d16d0317e8292774f6c52d84e775cd4"
     },
     {
       "path": "packages/standalone/service.mjs",
@@ -386,9 +386,9 @@
     },
     {
       "path": "src/token-saver/rtk/autodetect.js",
-      "gitBlob": "b4d411277677b23387f832fb69f9cd7473f1657a",
-      "originalSha256": "e88809de7adaa512b648181b73a68631d0d6bad1dfa80cfae92c3ecbb8961f88",
-      "sha256": "e88809de7adaa512b648181b73a68631d0d6bad1dfa80cfae92c3ecbb8961f88"
+      "gitBlob": "17f250f54e4683713144a918e8672a8308bb866f",
+      "originalSha256": "017650d4a88959552dfd6a01b8841fd5caeead462271ae355b7730fbfd5c9416",
+      "sha256": "017650d4a88959552dfd6a01b8841fd5caeead462271ae355b7730fbfd5c9416"
     },
     {
       "path": "src/token-saver/rtk/constants.js",
@@ -434,9 +434,9 @@
     },
     {
       "path": "src/token-saver/rtk/filters/grep.js",
-      "gitBlob": "8c1ae58eb37e7d197f238b7b24707d10c536580e",
-      "originalSha256": "1cbd9ae989f5b66894ca49f80a04954ab173d7580aabd9cd60c362433dd5e0e5",
-      "sha256": "1cbd9ae989f5b66894ca49f80a04954ab173d7580aabd9cd60c362433dd5e0e5"
+      "gitBlob": "12422410848a504ea116f3bbe2dc8c285817e6e9",
+      "originalSha256": "06abe489488e2c796696d4f1b42f91d19c2dfa6b50fadd82d9c8331e15f157b1",
+      "sha256": "06abe489488e2c796696d4f1b42f91d19c2dfa6b50fadd82d9c8331e15f157b1"
     },
     {
       "path": "src/token-saver/rtk/filters/ls.js",
@@ -467,6 +467,12 @@
       "gitBlob": "3330e69a2f6081b0c97e4ea53c193c962fb8b246",
       "originalSha256": "283ce99b64971c5c83786e5f8d68f78bdbbc67372f80c27af92823b1edf09082",
       "sha256": "283ce99b64971c5c83786e5f8d68f78bdbbc67372f80c27af92823b1edf09082"
+    },
+    {
+      "path": "src/token-saver/rtk/hitLine.js",
+      "gitBlob": "ee6219f888dbc13b53874e18b7219dc128ba9427",
+      "originalSha256": "b87bfe38ea75451b94da3cf202c281245ec2650ae283fcff37cf8e3dfe58d64e",
+      "sha256": "b87bfe38ea75451b94da3cf202c281245ec2650ae283fcff37cf8e3dfe58d64e"
     },
     {
       "path": "src/token-saver/rtk/index.js",
@@ -538,14 +544,14 @@
     },
     {
       "path": "src/vault-data.js",
-      "sha256": "4db83a43440a0bddb27e5dd0ef9ecd911ed24d96b7e29f9f940ee20a55cd1147",
-      "bytes": 677,
+      "sha256": "c5d33a4607a8834615da00c32daa81899bb73f6096bc0a2b0b74f45ba4232f57",
+      "bytes": 566,
       "reason": "Optional original EAC source is loaded only from a verified private cache or an explicit trusted local source."
     },
     {
       "path": "src/vault-anchor.js",
-      "sha256": "28a156e0da6853e9b72b840637f79ea1a8e005bf7e432878a98ee8cb3eefe897",
-      "bytes": 262,
+      "sha256": "0ac4dfb79cc037af8a0c568eaa067bfac0402ac84030cb3ad709a7feaafae7f6",
+      "bytes": 192,
       "reason": "Optional original EAC source is loaded only from a verified private cache or an explicit trusted local source."
     }
   ]
