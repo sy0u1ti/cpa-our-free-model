@@ -154,29 +154,29 @@ var consoleLabels = [][2]string{
 // Keep the original source hashes intact and fail tests if upstream hooks change.
 var eacConsolePatches = [][2]string{
 	// Login start: the pinned UI discards the cause and prints "unreachable".
-	{`catch{_===x.current&&r(n("eac.startFailed").replace("{reason}","unreachable"))}finally{y.current=!1,o(!1)}}`,
-		`catch(error){_===x.current&&r(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}finally{y.current=!1,o(!1)}}`},
+	{`catch{A===x.current&&r(o("eac.startFailed").replace("{reason}","unreachable"))}finally{w.current=!1,s(!1)}}`,
+		`catch(error){A===x.current&&r(o("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}finally{w.current=!1,s(!1)}}`},
 	// Logout: same blanket catch, same fix.
-	{`catch{r(n("eac.startFailed").replace("{reason}","unreachable"))}finally{o(!1)}},cancel:async()=>{`,
-		`catch(error){r(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}finally{o(!1)}},cancel:async()=>{`},
+	{`catch{r(o("eac.startFailed").replace("{reason}","unreachable"))}finally{s(!1)}},cancel:async()=>{`,
+		`catch(error){r(o("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}finally{s(!1)}},cancel:async()=>{`},
 	// Login start with a structured error object from the gateway.
-	{`r(n("eac.startFailed").replace("{reason}",T.error))`,
-		`r(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(T.error)))`},
+	{`r(o("eac.startFailed").replace("{reason}",T.error))`,
+		`r(o("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(T.error)))`},
 	// Polling: the pinned UI narrows every failure to a fixed vocabulary and
 	// labels anything unrecognised as a network fault.
-	{`const c=/\(([^)]+)\)\s*$/.exec(String(d?.message??""))?.[1]??"";s(c)`,
-		`s(window.ofmEacFeedback.reason(d))`},
+	{`const c=/\(([^)]+)\)\s*$/.exec(String(l?.message??""))?.[1]??"";n(c)`,
+		`n(window.ofmEacFeedback.reason(l))`},
 	// Login polling builds the same "unreachable" fallback, which is why a
 	// source-preparation failure during polling used to read as a gateway
 	// network fault. `not-writable` keeps its dedicated message.
-	{`r(S==="not-writable"?R("eac.saveFailed"):R("eac.pollFailed").replace("{reason}",U))`,
-		`r(S==="not-writable"?R("eac.saveFailed"):R("eac.pollFailed").replace("{reason}",window.ofmEacFeedback.reason(E)))`},
+	{`r(E==="not-writable"?O("eac.saveFailed"):O("eac.pollFailed").replace("{reason}",U))`,
+		`r(E==="not-writable"?O("eac.saveFailed"):O("eac.pollFailed").replace("{reason}",window.ofmEacFeedback.reason(S)))`},
 	// The pool hook already stores a human-readable reason (the poll hook above
 	// maps it at the source), so the badge needs no further translation.
 	// The EAC page, however, discarded that reason and printed its own hardcoded
 	// "cannot query right now", which made a disabled source look like a
 	// transient gateway problem. Surface the hook's reason there too.
-	{`{pool:se}=_n(),e=se==null?null:Cn(se)`, `{pool:se,poolError:eacPoolError}=_n(),e=se==null?null:Cn(se)`},
+	{`{pool:se}=Lo(),e=se==null?null:Po(se)`, `{pool:se,poolError:eacPoolError}=Lo(),e=se==null?null:Po(se)`},
 	{`se==null?M("p",null,se===void 0?"正在查询资源池…":"资源池暂时无法查询，请稍后刷新。")`,
 		`se==null?M("p",null,se===void 0?"正在查询资源池…":eacPoolError||"资源池暂时无法查询，请稍后刷新。")`},
 	// "No lane" is a composition state, not a network failure.
@@ -184,8 +184,8 @@ var eacConsolePatches = [][2]string{
 		`if(t.available!==!0)return e("p",{className:"ofm_note"},window.ofmEacFeedback.reason(t.reason||"no-lane"))`},
 	// The EAC page must not paint the summary's stale authorization state before
 	// its own query answers.
-	{`function Ln({summary:Y}){const[$,Z]=G.useState(Y.eacAuth)`,
-		`function Ln({summary:Y}){const[$,Z]=G.useState(void 0)`},
+	{`function Go({summary:Y}){const[$,Z]=V.useState(Y.eacAuth)`,
+		`function Go({summary:Y}){const[$,Z]=V.useState(void 0)`},
 	// The pinned UI says importing "merges", but the service replaces the whole
 	// account pool, model blacklist and permanent-lock table. Say what happens and
 	// report how much was written, so an old backup cannot silently drop newer
@@ -195,10 +195,10 @@ var eacConsolePatches = [][2]string{
 	// The shared action wrapper appends "已保存。" after every action, which
 	// immediately overwrote the import summary. Let an action that reports its
 	// own result (by resolving `true`) suppress that generic line.
-	{`const pe=async P=>{j(!0),ee("");try{await P(),await D(),window.dispatchEvent(new CustomEvent("ofm:channels")),Y.reload?.(),ee("已保存。")}catch(te){ee(te.message)}finally{j(!1)}}`,
-		`const pe=async P=>{j(!0),ee("");try{const dt=await P();await D(),window.dispatchEvent(new CustomEvent("ofm:channels")),Y.reload?.(),dt!==!0&&ee("已保存。")}catch(te){ee(te.message)}finally{j(!1)}}`},
-	{`&&await pe(async()=>{await ke("backup.import",{payload:JSON.parse(await te.text())})})}};`,
-		`&&await pe(async()=>{const dt=await ke("backup.import",{payload:JSON.parse(await te.text())});const gt=Number(dt?.accountsImported??0),Rt=Number(dt?.credentialsImported??0),wt=Number(dt?.missingCredentials??0),Re=Number(dt?.expiredAccounts??0),Te=["已整体替换：写入 "+gt+" 个账号、"+Rt+" 条凭据。"];wt>0&&Te.push(wt+" 个账号缺少凭据，需重新登录。");Re>0&&Te.push(Re+" 个账号的凭据已过期，使用时可能自动续期。");dt?.skipped?.length>0&&Te.push("跳过 "+dt.skipped.length+" 条无效凭据。");ee(Te.join(""));return!0})}};`},
+	{`const me=async z=>{B(!0),ee("");try{await z(),await j(),window.dispatchEvent(new CustomEvent("ofm:channels")),Y.reload?.(),ee("已保存。")}catch(oe){ee(oe.message)}finally{B(!1)}}`,
+		`const me=async z=>{B(!0),ee("");try{const dt=await z();await j(),window.dispatchEvent(new CustomEvent("ofm:channels")),Y.reload?.(),dt!==!0&&ee("已保存。")}catch(oe){ee(oe.message)}finally{B(!1)}}`},
+	{`&&await me(async()=>{await ke("backup.import",{payload:JSON.parse(await oe.text())})})}};`,
+		`&&await me(async()=>{const dt=await ke("backup.import",{payload:JSON.parse(await oe.text())});const gt=Number(dt?.accountsImported??0),Rt=Number(dt?.credentialsImported??0),wt=Number(dt?.missingCredentials??0),Re=Number(dt?.expiredAccounts??0),Te=["已整体替换：写入 "+gt+" 个账号、"+Rt+" 条凭据。"];wt>0&&Te.push(wt+" 个账号缺少凭据，需重新登录。");Re>0&&Te.push(Re+" 个账号的凭据已过期，使用时可能自动续期。");dt?.skipped?.length>0&&Te.push("跳过 "+dt.skipped.length+" 条无效凭据。");ee(Te.join(""));return!0})}};`},
 }
 
 func validateConsoleRequest(request consoleProxyRequest) bool {

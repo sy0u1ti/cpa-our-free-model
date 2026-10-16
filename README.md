@@ -10,31 +10,32 @@ repository**. The [Magpie adaptation](https://github.com/mu-zi-lee/magpie-our-fr
 is an architectural reference only, not a code source or dependency. The CPA
 C ABI integration is separate. Original authorship and MIT licenses are retained.
 
-Version **0.5.6** vendors OFM `e937077` (upstream v2.3.0). Only the files the
+Version **0.5.7** vendors OFM `0b712bc` (upstream v2.4.0). Only the files the
 served UI actually references are kept, and the private EAC seal is never
 vendored. `npm run vendor:original -- /path/to/original-checkout` regenerates the
 snapshot from pinned Git blobs. See `scripts/upstream-patches.mjs` and
 `service/vendor/ofm/UPSTREAM.json` for exact provenance.
 
-**New in 0.5.6:** upstream v2.3.0 sync. The anonymous free lane moved from
-`/zen/v1` to **`/inference/v1`** and the gateway tightened its client gate: every
-request must carry `x-opencode-session-id`, the session id has to be minted
-rather than derived, `bash` and `read` must each declare a parameter schema with
-at least one property, and a User-Agent containing `deepseek-harness` is
-refused by name. Upstream also persists the session map under
-`$DSH_HOME/our-free-model/session-map.json` so one conversation keeps one
-upstream session across restarts instead of burning quota on a fresh one per
-call, and a free-lane `403 FreeTierError` now classifies as a lane lock rather
-than a bad credential. This adapter pins `DSH_HOME` to the plugin's own data
-directory, so those new state files stay inside `data-dir` instead of leaking
-into the host's home directory or being shared with another instance. On the
-console side upstream split the plugin-upgrade panel into its own nav page and
-added a providers/backup entry; the twelve CPA console patches were re-anchored
-against the new bundle, and the vendored set stays at 86 files with the channel
-bundle renamed from `channels-CQJ5sFg_.js` to `channels-BNNYYkX2.js`. The two
-CPA-patched files (`packages/standalone/eac.mjs`,
-`packages/standalone/channels/business.mjs`) did not change upstream, so both
-patches still apply byte-for-byte, and the pinned EAC seal digests are unchanged.
+**New in 0.5.7:** upstream v2.4.0 sync. The anonymous free lane re-fingerprints
+itself as the **OpenCode v2 client**, and every one of the four changes is a
+`403 FreeTierError` on its own: the User-Agent becomes
+`opencode/latest/2.0.26/cli` (the v1 `opencode/1.18.x` shape is refused by
+name), the four session headers `x-opencode-session` / `x-opencode-session-id` /
+`x-session-affinity` / `x-session-id` must all carry the same value while the
+v1-only `x-opencode-request` must be gone, the tool gate now wants `read` and
+`shell` declared with OpenCode's own verbatim descriptions and schemas instead
+of the old `bash`/`glob`/`grep`/`read` stubs, and `tool_choice: 'none'` is never
+sent because the gate rejects it. Caller tools are passed through untouched; a
+caller tool that happens to use one of those two names with a different
+definition is renamed to `<name>_client` for the wire, with history and
+`tool_choice` rewritten to match and the response side restoring the caller's
+name. The vendored set grows to 87 files (`src/picks.js`, the recommended-
+projects page's GitHub star counts) and the served channel bundle moves from
+`channels-BNNYYkX2.js` to `channels-Dyod_rQn.js`. Nine of the twelve CPA console
+patches no longer matched the rebuilt bundle; all twelve were re-anchored and
+verified to match exactly once. Both CPA-patched files
+(`packages/standalone/eac.mjs`, `packages/standalone/channels/business.mjs`)
+still apply byte-for-byte, and the pinned EAC seal digests are unchanged.
 
 **New in 0.5.4:** model sync scope: the plugin settings page can now sync only
 chosen models instead of the whole upstream catalog. Unchecked models leave the
@@ -90,14 +91,14 @@ runtime fixes remain in place. The plugin ID remains `our-free-model`.
 
 Since v0.5.0, prebuilt GitHub Releases are published; since v0.5.3 they cover
 Windows amd64, Linux amd64/arm64 and macOS amd64/arm64. Download
-`our-free-model_0.5.6_<os>_<arch>.zip` from
+`our-free-model_0.5.7_<os>_<arch>.zip` from
 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases) and verify it
 against `checksums.txt`, or clone this repository and follow **Development** to
 build the native library yourself. Generated `dist/` files are not committed.
 
 1. Use a plugin-enabled CLIProxyAPI build. Validated against **CPA 8.0.23**.
 2. Copy the matching binary into CPA's configured `plugins` directory:
-   `our-free-model-v0.5.6.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
+   `our-free-model-v0.5.7.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
 3. Merge `config.example.yaml` into CPA's configuration and restart CPA:
 
 ```yaml

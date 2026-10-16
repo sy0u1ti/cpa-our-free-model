@@ -21,10 +21,10 @@
  *   `tool_calls` by index (the common OpenAI shape) got a sparse array with
  *   holes and merged or dropped arguments.
  * - Tool calls aimed at the fingerprint decoys are suppressed. The free tier's
- *   gate makes the plugin declare the `bash/glob/grep/read` quartet even when
- *   the caller has no such tools, and a model that dialed one of those decoys
- *   handed the client a tool it never registered — the call came back as an
- *   error the caller could do nothing about.
+ *   gate makes the plugin declare `read` and `shell` (v2) even when the caller
+ *   has no such tools, and a model that dialed one of those placeholders handed
+ *   the client a tool it never registered — the call came back as an error the
+ *   caller could do nothing about.
  *
  * @module src/forward.js
  */
@@ -715,7 +715,7 @@ function openStreamHeaders(res, heartbeatMs = SSE_HEARTBEAT_MS) {
 /** Per-request tool-wire state: harness block index → OpenAI tool index. */
 function createToolWire(body) {
   // The caller's own tool names, spelled as they declared them. A call whose
-  // restored name is one of the fingerprint quartet but not one of these is a
+  // restored name is one of the fingerprint gate names but not one of these is a
   // call to a decoy the model should never have dialed — it is suppressed on
   // the wire instead of handed over as a tool the caller cannot run.
   const declared = new Set()

@@ -46,6 +46,8 @@ const DISPLAY_NAMES = {
   'space-bunny-free': 'Space Bunny',
   'union-alpha': 'Union Alpha',
   'deepseek-v4-flash-free': 'DeepSeek V4 Flash',
+  'deepseek-v4.1-flash-free': 'DeepSeek V4.1 Flash',
+  'glm-5.3-flash-free': 'GLM 5.3 Flash',
   'jev-1.13-free': 'Jev 1.13',
 }
 

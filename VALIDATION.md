@@ -9,9 +9,59 @@ plugin directories and data directories inside `.test-output/`.
 
 | Component | Revision |
 | --- | --- |
-| OFM | `e937077fa92d8cc21d3108d5d1e1f32f37e2534e` (upstream v2.3.0) |
+| OFM | `0b712bcbb887ae101cae5fdf935b0845761a1421` (upstream v2.4.0) |
 | Official CPA | v8.0.23 / `d318bcc3afb9ea8782862f5e8cdb541afdc9dfa5` |
 | Native contract | C ABI 1, negotiated RPC schema up to 6 |
+
+## Upstream v2.4.0 Sync: 0.5.7
+
+Re-vendored the original OFM runtime from `e937077` to `0b712bc` (upstream
+v2.4.0, 3 commits). The retained set grows from 86 to 87 files: `src/picks.js`
+(the recommended-projects page's GitHub star counts) is new, and the served
+channel bundle moves from `channels-BNNYYkX2.js` to `channels-Dyod_rQn.js`. Both
+changes move with the embed manifest, the Go console test, the EAC UI test and
+the provenance test.
+
+The anonymous free lane was re-fingerprinted as the OpenCode v2 client
+(`docs/free-lane-wire.md`, measured upstream from 2026-10-14). Four facts change
+together, each a `403 FreeTierError` on its own: the User-Agent becomes
+`opencode/latest/2.0.26/cli` (the v1 `opencode/1.18.x` shape is refused by
+name); the four session headers `x-opencode-session` / `x-opencode-session-id` /
+`x-session-affinity` / `x-session-id` must carry one value while the v1-only
+`x-opencode-request` must be gone; the tool gate wants `read` and `shell`
+declared with OpenCode's own verbatim descriptions and schemas rather than the
+old four stub names; and `tool_choice: 'none'` is never sent. Caller tools pass
+through untouched, and a caller tool that uses one of the gate names with a
+different definition is renamed to `<name>_client` on the wire with history and
+`tool_choice` rewritten to match and the response side restoring the caller's
+name.
+
+Nine of the twelve CPA console patches no longer matched after upstream rebuilt
+the channel bundle with a new minifier output. All twelve were re-anchored
+against the new bytes and are verified to match exactly once by
+`TestEACUIHooksMatchOnlyThePinnedBundle` and `tests/eac-ui.test.mjs`. The new
+"recommended projects" page reads `/picks`, which the embedded standalone
+service does not implement (it is a DSH host route) and `consoleAPIRoutes` does
+not allow, so the figures fail closed in the CPA console like the other
+host-only tabs.
+
+The two CPA-patched files (`packages/standalone/eac.mjs`,
+`packages/standalone/channels/business.mjs`) did not change upstream, so both
+patches still apply byte-for-byte, and the pinned EAC seal digests are unchanged
+from v2.2.0. The web dependency versions in the original lockfile are also
+unchanged, so re-recording the license sources only moved the commit.
+
+Verified on Windows x64 against official CPA 8.0.23:
+
+- `npm run check` (111 JavaScript files), `npm test` (44 tests), `go test ./...`,
+  `go vet ./...`.
+- `scripts/cpa-smoke.mjs` against the real plugin binary, including the free-lane
+  wire assertions updated to the v2 contract: `/inference/v1`, the four session
+  headers carrying one value, no `x-opencode-request`, a User-Agent in the
+  `opencode/<channel>/<version>/<client>` shape with major >= 2, `read` and
+  `shell` declared with non-empty schemas, and no `tool_choice: 'none'`.
+- Provenance audit of all 87 vendored files against the original Git blobs
+  (0 mismatches), including the two CPA patches.
 
 ## Upstream v2.3.0 Sync: 0.5.6
 

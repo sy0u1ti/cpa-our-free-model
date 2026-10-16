@@ -80,23 +80,27 @@ try {
   assert.equal(result.model, model);
   assert.equal(result.usage.prompt_tokens, 7);
   pass('Nonstream Chat Completions, model identity and token usage');
-  // The free lane moved to /inference/v1 in upstream v2.3.0 and the gateway
-  // gates on the client fingerprint, so assert the wire contract the fixture
+  // The free lane moved to /inference/v1 in upstream v2.3.0 and re-fingerprinted
+  // for the OpenCode v2 client in v2.4.0, so assert the wire contract the fixture
   // can see rather than only the answer.
   const laneCall = upstream.calls.filter(call => call.path.endsWith('/chat/completions')).at(-1);
   assert.ok(laneCall.path.startsWith('/inference/v1/'), 'free lane must use the migrated path: ' + laneCall.path);
   assert.ok(laneCall.headers['x-opencode-session-id'], 'session id header must be sent');
   assert.equal(laneCall.headers['x-opencode-session-id'], laneCall.headers['x-opencode-session']);
+  assert.equal(laneCall.headers['x-session-affinity'], laneCall.headers['x-opencode-session']);
+  assert.equal(laneCall.headers['x-session-id'], laneCall.headers['x-opencode-session']);
+  assert.equal(laneCall.headers['x-opencode-request'], undefined, 'the v1-only request header must not be sent');
   assert.equal(laneCall.headers['x-opencode-client'], 'cli');
-  assert.match(laneCall.headers['user-agent'], /opencode\//);
+  assert.match(laneCall.headers['user-agent'], /^opencode\/[^/]+\/2\.\d+\.\d+\/[^/]+$/, 'User-Agent must be the v2 client shape');
   assert.doesNotMatch(laneCall.headers['user-agent'], /deepseek[-_]harness/i);
-  for (const name of ['bash', 'read']) {
+  for (const name of ['read', 'shell']) {
     const tool = laneCall.body.tools?.find(entry => (entry.function?.name ?? entry.name) === name);
     assert.ok(tool, 'fingerprint tool missing: ' + name);
     const schema = tool.function?.parameters ?? tool.parameters ?? tool.input_schema;
     assert.ok(Object.keys(schema?.properties ?? {}).length > 0, name + ' needs a declared property');
   }
-  pass('Free lane speaks the v2.3.0 wire: /inference/v1, session id header and tool fingerprint');
+  assert.notEqual(laneCall.body.tool_choice, 'none', 'v2 rejects tool_choice:none');
+  pass('Free lane speaks the v2.4.0 wire: /inference/v1, four session headers and the read/shell fingerprint');
   const stream = await api('/v1/chat/completions', { ...body, stream: true,
     tools: [{ type: 'function', function: { name: 'lookup', parameters: { type: 'object', properties: {} } } }] });
   assert.equal(stream.status, 200);

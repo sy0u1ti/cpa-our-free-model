@@ -10,6 +10,49 @@
 圆角覆盖的样式微调；`src/`、控制台 JS、渠道代码与 `assets.json` 均未变化。
 新增的 Tauri 桌面版与未被引用的 `splash.html` 不进入本插件包。
 
+## v0.5.7：同步上游 OFM v2.4.0
+
+上游发布了 v2.4.0（`0b712bc`，自 v2.3.0 起共 3 个提交），本轮把 vendored
+快照从 `e937077` 重取到该提交。文件数由 86 增至 87（新增 `src/picks.js`），
+前端渠道 bundle 更名（`channels-BNNYYkX2.js` → `channels-Dyod_rQn.js`），
+因此 `assets.go` 的 embed 清单、`console_test.go`、`tests/eac-ui.test.mjs` 与
+`tests/provenance.test.mjs` 同步改名与增补。
+
+- **免费车道换 v2 指纹**：上游按 2026-10-14 起生效的 OpenCode v2 客户端重做
+  指纹（`docs/free-lane-wire.md` 末节），四项特征一起变、缺一即 `403 FreeTierError`：
+  UA 换成 `opencode/latest/2.0.26/cli`（旧 `opencode/1.18.x` 被按名字拒）；
+  会话头补齐 `x-session-affinity` / `x-session-id`，与 `x-opencode-session` /
+  `x-opencode-session-id` 四头同值，并去掉 v1 专用的 `x-opencode-request`；
+  工具闸门从 `bash`/`glob`/`grep`/`read` 桩改为 `read` 与 `shell`，且描述与
+  schema 必须与官方客户端逐字一致；`tool_choice: 'none'` 一律不下发。
+  `src/upstream.js`、`src/http.js`、`src/probe.js`、`src/adapter.js`、
+  `src/forward.js`、`src/messages.js`、`src/core/runtime.js` 与 vendored 渠道包
+  的 `opencode*.ts` 同步更新，属逐字节保真的上游代码。
+- **调用方工具别名**：调用方工具原样保留；若正好用了 `read`/`shell` 且定义与官方
+  不同，则改名成 `<name>_client`，并同步改写历史里的同名调用与 `tool_choice`，
+  响应侧再还原。`scripts/cpa-smoke.mjs` 的线路断言随之更新为 v2 形状：
+  `/inference/v1`、四会话头同值、无 `x-opencode-request`、UA 为
+  `opencode/<channel>/2.x.y/<client>`、`read`/`shell` 齐备且 `tool_choice` 不为
+  `none`。
+- **推荐项目页**：新增 `src/picks.js`，两张卡片实时读取 EAC-Desktop 与 EAC-Pack
+  的 Star / Fork / 最近提交数，取不到就整块不显示，绝不用占位数字；该页同时加入
+  标签持久化列表。CPA 内部服务未实现 `/picks`（属 DSH 宿主路由），
+  `consoleAPIRoutes` 也不放行，因此该页在 CPA 下失败关闭，数字区域不显示，
+  不影响其余页面。
+- **聚合渠道注册表**：移除 OpenCode 免密池一行（它要求每请求的会话 id、v2 UA 与
+  官方工具声明，聚合车道的通用传输承载不了），注册表为 75 家；这 10 个模型仍由
+  免费车道原生提供。
+- **控制台补丁重定位**：新 bundle 的压缩标识符再次整体重排，原 12 条
+  `eacConsolePatches` 中有 9 条不再命中；已按新 bundle 逐条重新定位，全部恢复为
+  单次命中：登录/登出的「unreachable」兜底、结构化启动错误、轮询原因映射、
+  资源池原因、无车道原因、EAC 页初始状态、导入确认文案与导入结果汇总。
+  `tests/eac-ui.test.mjs` 的桩（`ma` 工厂、`V.useState` 等新压缩名）与断言同步
+  更新，Go 侧 `TestEACUIHooksMatchOnlyThePinnedBundle` 仍要求每条补丁恰好命中一次。
+- **补丁与密封**：两个 CPA 补丁文件（`eac.mjs`、`business.mjs`）本轮上游未改动，
+  `patchOriginal` 的单次匹配断言仍然成立，补丁逐字节适用。EAC 密封材料未变，
+  `service/upstream-eac.json` 的四个摘要与 v2.2.0 时一致；`collect-web-licenses.mjs`
+  重跑后依赖版本无变化，只更新了记录的 commit。
+
 ## v0.5.6：同步上游 OFM v2.3.0
 
 上游发布了 v2.3.0（`e937077`，自 v2.2.0 起共 37 个提交），本轮把 vendored
