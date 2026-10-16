@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const feedback = fs.readFileSync(new URL('../web/eac-feedback.js', import.meta.url), 'utf8');
-const bundle = fs.readFileSync(new URL('../service/vendor/ofm/packages/standalone/web/channels-CQJ5sFg_.js', import.meta.url), 'utf8');
+const bundle = fs.readFileSync(new URL('../service/vendor/ofm/packages/standalone/web/channels-BNNYYkX2.js', import.meta.url), 'utf8');
 const adapter = fs.readFileSync(new URL('../console.go', import.meta.url), 'utf8');
 const patches = [...adapter.slice(adapter.indexOf('var eacConsolePatches'), adapter.indexOf('func validateConsoleRequest')).matchAll(/\{`([^`]+)`,\s*`([^`]+)`\}/g)]
   .map(([, before, after]) => [before, after]);
@@ -17,20 +17,23 @@ let served = bundle;
 for (const [before, after] of patches) served = served.replaceAll(before, after);
 assert.ok(!served.includes('导入会合并备份'), 'the merge wording must not survive');
 assert.ok(!served.includes('replace("{reason}",G)'), 'polling must not keep its own unreachable fallback');
-assert.match(served, /return!0\}\)\}\};/, 'the import summary must suppress the generic saved line');
-assert.doesNotMatch(served, /e==null\?M\("p",null,e===void 0\?"正在查询资源池…":"资源池暂时无法查询/,
+assert.match(served, /dt!==!0&&ee\("已保存。"\)/, 'the import summary must suppress the generic saved line');
+assert.doesNotMatch(served, /se==null\?M\("p",null,se===void 0\?"正在查询资源池…":"资源池暂时无法查询/,
   'the EAC page must surface the pool reason instead of a hardcoded fallback');
 
 // The pinned login factory is a closure over its own state helpers. These stubs
 // mirror just enough of them to drive `login()` and read the notice it sets.
 function loginHook(source, failure) {
   const states = [];
+  const useState = value => { const index = states.length; states.push(typeof value === 'function' ? value() : value); return [states[index], next => { states[index] = next; }]; };
+  // The pinned factory destructures its React helpers by minified name:
+  // b=useState, j=useEffect, ve=useMemo, ee=useRef, ae=useCallback.
   const context = {
-    window: {}, k(value) { const index = states.length; states.push(typeof value === 'function' ? value() : value); return [states[index], next => { states[index] = next; }]; },
-    de: value => ({ current: value }), ee: fn => fn, y: value => { const index = states.length; states.push(typeof value === 'function' ? value() : value); return [states[index], next => { states[index] = next; }]; },
-    U: async () => { throw new Error(failure); },
+    window: {}, b: useState, y: useState,
+    j() {}, ve: fn => fn(), ee: value => ({ current: value }), ae: fn => fn,
+    D: async () => { throw new Error(failure); },
     V: async () => { throw new Error('unused'); },
-    lt: () => null, Ha() {}, P() {}, Oa: 600000, da: 'ofm.eac.pending:test',
+    dt: () => null, lt: () => null, Ha() {}, Oa: 600000, da: 'ofm.eac.pending:test',
   };
   vm.createContext(context);
   vm.runInContext(feedback, context);
@@ -73,6 +76,6 @@ test('unknown EAC error details cannot expose upstream secrets or be mislabeled 
 });
 
 test('EAC page starts in a loading state instead of presenting stale summary authorization', () => {
-  assert.match(served, /function Rn\(\{summary:Q\}\)\{const\[\$,Z\]=W\.useState\(void 0\)/);
-  assert.doesNotMatch(served, /function Rn\(\{summary:Q\}\)\{const\[\$,Z\]=W\.useState\(Q\.eacAuth\)/);
+  assert.match(served, /function Ln\(\{summary:Y\}\)\{const\[\$,Z\]=G\.useState\(void 0\)/);
+  assert.doesNotMatch(served, /function Ln\(\{summary:Y\}\)\{const\[\$,Z\]=G\.useState\(Y\.eacAuth\)/);
 });

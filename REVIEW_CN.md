@@ -10,6 +10,44 @@
 圆角覆盖的样式微调；`src/`、控制台 JS、渠道代码与 `assets.json` 均未变化。
 新增的 Tauri 桌面版与未被引用的 `splash.html` 不进入本插件包。
 
+## v0.5.6：同步上游 OFM v2.3.0
+
+上游发布了 v2.3.0（`e937077`，自 v2.2.0 起共 37 个提交），本轮把 vendored
+快照从 `9e61218` 重取到该提交。文件数仍是 86，只有前端渠道 bundle 更名
+（`channels-CQJ5sFg_.js` → `channels-BNNYYkX2.js`），因此 `assets.go` 的 embed
+清单、`console_test.go` 与 `tests/provenance.test.mjs` 同步改名。
+
+- **免费车道换线**：匿名车道从 `/zen/v1` 迁到 `/inference/v1`。上游实测
+  （`docs/free-lane-wire.md`）旧路径对插件全线返回 `403 FreeTierError`，同时新增四项
+  闸门：必须带 `x-opencode-session-id`；会话 id 必须是 `mintSessionId()` 的铸造形状
+  （sha256 派生或随机 hex 会被拒）；`bash` 与 `read` 必须同时声明且各自
+  `properties` 非空；User-Agent 含 `deepseek-harness` 会被点名拒绝。
+  `src/catalog.js`、`src/core/runtime.js`、`src/probe.js`、`src/http.js`、
+  `src/upstream.js` 随之更新，属于逐字节保真的上游代码。
+- **会话映射落盘**：`src/upstream.js` 新增 `session-map.json`，把「一个下游会话映射到
+  一个上游会话」持久化，重启后继续复用，避免每请求新开会话耗尽免费配额。
+  它经 `resolveDshHome()` 解析，即 `$DSH_HOME/our-free-model/`。
+  **这是本轮唯一的 CPA 集成改动**：宿主环境从不提供 `DSH_HOME`
+  （`childEnvironment` 明确剥离），若不处理，状态文件会落到运行 CPA 的系统账号主目录。
+  现在 `service/runner.mjs` 在初始化时把 `DSH_HOME` 固定为插件数据目录，
+  所有新状态文件都在 `data-dir` 内，同机多实例也不会串用；
+  `tests/runtime.test.mjs` 新增断言，验证 `session-map.json` 确实写在数据目录里。
+- **线路锁定分类**：`403 FreeTierError` 现在归类为 `LANE_LOCKED`（`src/http.js`），
+  可用性探测把它读成「网关不会路由这个模型」（`src/probe.js`），
+  不再当成 `INVALID_CREDENTIAL` 去清空模型目录、诱导用户重新登录。
+- **控制台补丁重定位**：上游把「插件升级」独立成导航页（新 `nav.tab.upgrade`、
+  `/update/status|check|apply`），并在渠道页新增「供应商与备份」。新 bundle 的
+  压缩标识符整体重排，原 12 条 `eacConsolePatches` 中有 7 条不再命中；
+  已按新 bundle 逐条重新定位，全部恢复为单次命中：登录/登出的「unreachable」
+  兜底、结构化启动错误、轮询原因映射、资源池原因、无车道原因、EAC 页初始状态、
+  导入确认文案与导入结果汇总。`tests/eac-ui.test.mjs` 的桩与断言同步更新，
+  Go 侧 `TestEACUIHooksMatchOnlyThePinnedBundle` 仍要求每条补丁恰好命中一次。
+- **升级页边界**：新导航页调用的 `/update/*` 属于 DSH 宿主路由，CPA 内部服务不提供，
+  `consoleAPIRoutes` 白名单也不放行，因此该页在 CPA 下失败关闭，不会误报成功；
+  这与既有的 `/token-saver`、`/combos`、`/chan-gateway` 等宿主专属标签页一致。
+- **许可证与摘要**：`collect-web-licenses.mjs` 重跑后依赖版本无变化，只更新了记录的
+  commit；EAC 密封材料本轮未变，`service/upstream-eac.json` 的四个摘要与 v2.2.0 相同。
+
 ## v0.5.5：同步上游 OFM v2.2.0
 
 上游发布了 v2.2.0（`9e61218`，共 12 个提交），本轮把 vendored 快照从 `ddb451c`

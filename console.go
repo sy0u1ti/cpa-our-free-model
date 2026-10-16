@@ -154,8 +154,8 @@ var consoleLabels = [][2]string{
 // Keep the original source hashes intact and fail tests if upstream hooks change.
 var eacConsolePatches = [][2]string{
 	// Login start: the pinned UI discards the cause and prints "unreachable".
-	{`catch{_===w.current&&r(n("eac.startFailed").replace("{reason}","unreachable"))}finally{k.current=!1,o(!1)}}`,
-		`catch(error){_===w.current&&r(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}finally{k.current=!1,o(!1)}}`},
+	{`catch{_===x.current&&r(n("eac.startFailed").replace("{reason}","unreachable"))}finally{y.current=!1,o(!1)}}`,
+		`catch(error){_===x.current&&r(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}finally{y.current=!1,o(!1)}}`},
 	// Logout: same blanket catch, same fix.
 	{`catch{r(n("eac.startFailed").replace("{reason}","unreachable"))}finally{o(!1)}},cancel:async()=>{`,
 		`catch(error){r(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}finally{o(!1)}},cancel:async()=>{`},
@@ -169,23 +169,23 @@ var eacConsolePatches = [][2]string{
 	// Login polling builds the same "unreachable" fallback, which is why a
 	// source-preparation failure during polling used to read as a gateway
 	// network fault. `not-writable` keeps its dedicated message.
-	{`r(S==="not-writable"?R("eac.saveFailed"):R("eac.pollFailed").replace("{reason}",G))`,
+	{`r(S==="not-writable"?R("eac.saveFailed"):R("eac.pollFailed").replace("{reason}",U))`,
 		`r(S==="not-writable"?R("eac.saveFailed"):R("eac.pollFailed").replace("{reason}",window.ofmEacFeedback.reason(E)))`},
 	// The pool hook already stores a human-readable reason (the poll hook above
 	// maps it at the source), so the badge needs no further translation.
 	// The EAC page, however, discarded that reason and printed its own hardcoded
 	// "cannot query right now", which made a disabled source look like a
 	// transient gateway problem. Surface the hook's reason there too.
-	{`{pool:e}=kn(),B=e==null?null:Nn(e)`, `{pool:e,poolError:eacPoolError}=kn(),B=e==null?null:Nn(e)`},
-	{`e==null?M("p",null,e===void 0?"正在查询资源池…":"资源池暂时无法查询，请稍后刷新。")`,
-		`e==null?M("p",null,e===void 0?"正在查询资源池…":eacPoolError||"资源池暂时无法查询，请稍后刷新。")`},
+	{`{pool:se}=_n(),e=se==null?null:Cn(se)`, `{pool:se,poolError:eacPoolError}=_n(),e=se==null?null:Cn(se)`},
+	{`se==null?M("p",null,se===void 0?"正在查询资源池…":"资源池暂时无法查询，请稍后刷新。")`,
+		`se==null?M("p",null,se===void 0?"正在查询资源池…":eacPoolError||"资源池暂时无法查询，请稍后刷新。")`},
 	// "No lane" is a composition state, not a network failure.
 	{`if(t.available!==!0)return e("p",{className:"ofm_note"},a("eac.noLane"))`,
 		`if(t.available!==!0)return e("p",{className:"ofm_note"},window.ofmEacFeedback.reason(t.reason||"no-lane"))`},
 	// The EAC page must not paint the summary's stale authorization state before
 	// its own query answers.
-	{`function Rn({summary:Q}){const[$,Z]=W.useState(Q.eacAuth)`,
-		`function Rn({summary:Q}){const[$,Z]=W.useState(void 0)`},
+	{`function Ln({summary:Y}){const[$,Z]=G.useState(Y.eacAuth)`,
+		`function Ln({summary:Y}){const[$,Z]=G.useState(void 0)`},
 	// The pinned UI says importing "merges", but the service replaces the whole
 	// account pool, model blacklist and permanent-lock table. Say what happens and
 	// report how much was written, so an old backup cannot silently drop newer
@@ -195,10 +195,10 @@ var eacConsolePatches = [][2]string{
 	// The shared action wrapper appends "已保存。" after every action, which
 	// immediately overwrote the import summary. Let an action that reports its
 	// own result (by resolving `true`) suppress that generic line.
-	{`const ae=async D=>{pe(!0),ee("");try{await D(),await ce(),window.dispatchEvent(new CustomEvent("ofm:channels")),Q.reload?.(),ee("已保存。")}catch(te){ee(te.message)}finally{pe(!1)}}`,
-		`const ae=async D=>{pe(!0),ee("");try{const dt=await D();await ce(),window.dispatchEvent(new CustomEvent("ofm:channels")),Q.reload?.(),dt!==!0&&ee("已保存。")}catch(te){ee(te.message)}finally{pe(!1)}}`},
-	{`&&await ae(async()=>{await xe("backup.import",{payload:JSON.parse(await te.text())})})}};`,
-		`&&await ae(async()=>{const dt=await xe("backup.import",{payload:JSON.parse(await te.text())});const gt=Number(dt?.accountsImported??0),Rt=Number(dt?.credentialsImported??0),wt=Number(dt?.missingCredentials??0),Re=Number(dt?.expiredAccounts??0),Te=["已整体替换：写入 "+gt+" 个账号、"+Rt+" 条凭据。"];wt>0&&Te.push(wt+" 个账号缺少凭据，需重新登录。");Re>0&&Te.push(Re+" 个账号的凭据已过期，使用时可能自动续期。");dt?.skipped?.length>0&&Te.push("跳过 "+dt.skipped.length+" 条无效凭据。");ee(Te.join(""));return!0})}};`},
+	{`const pe=async P=>{j(!0),ee("");try{await P(),await D(),window.dispatchEvent(new CustomEvent("ofm:channels")),Y.reload?.(),ee("已保存。")}catch(te){ee(te.message)}finally{j(!1)}}`,
+		`const pe=async P=>{j(!0),ee("");try{const dt=await P();await D(),window.dispatchEvent(new CustomEvent("ofm:channels")),Y.reload?.(),dt!==!0&&ee("已保存。")}catch(te){ee(te.message)}finally{j(!1)}}`},
+	{`&&await pe(async()=>{await ke("backup.import",{payload:JSON.parse(await te.text())})})}};`,
+		`&&await pe(async()=>{const dt=await ke("backup.import",{payload:JSON.parse(await te.text())});const gt=Number(dt?.accountsImported??0),Rt=Number(dt?.credentialsImported??0),wt=Number(dt?.missingCredentials??0),Re=Number(dt?.expiredAccounts??0),Te=["已整体替换：写入 "+gt+" 个账号、"+Rt+" 条凭据。"];wt>0&&Te.push(wt+" 个账号缺少凭据，需重新登录。");Re>0&&Te.push(Re+" 个账号的凭据已过期，使用时可能自动续期。");dt?.skipped?.length>0&&Te.push("跳过 "+dt.skipped.length+" 条无效凭据。");ee(Te.join(""));return!0})}};`},
 }
 
 func validateConsoleRequest(request consoleProxyRequest) bool {

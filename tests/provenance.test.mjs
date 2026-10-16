@@ -12,7 +12,7 @@ test('vendored OFM has the original repository as its sole source and explicit C
   const manifest = JSON.parse(fs.readFileSync(new URL('UPSTREAM.json', root)));
   assert.equal(manifest.repository, 'https://github.com/Ebony-Vinyl/dsh-our-free-model');
   assert.equal(manifest.schema, 'cpa-ofm-original-source/v1');
-  assert.equal(manifest.commit, '9e6121802ab5b87e379a07141e94e36482809147');
+  assert.equal(manifest.commit, 'e937077fa92d8cc21d3108d5d1e1f32f37e2534e');
   for (const file of manifest.files) {
     const bytes = fs.readFileSync(new URL(file.path, root));
     assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'), file.sha256, file.path);
@@ -22,7 +22,7 @@ test('vendored OFM has the original repository as its sole source and explicit C
   for (const name of ['vault.js', 'vault-data.js', 'vault-anchor.js']) assert.equal(fs.existsSync(new URL('src/' + name, root)), false);
   // Service entry points, the UI bundle and the seal loader must stay byte-identical:
   // CPA patches only the vendor's channel and EAC entry files.
-  for (const path of ['packages/standalone/service.mjs', 'packages/standalone/web/app.js', 'packages/standalone/web/channels-CQJ5sFg_.js']) {
+  for (const path of ['packages/standalone/service.mjs', 'packages/standalone/web/app.js', 'packages/standalone/web/channels-BNNYYkX2.js']) {
     const file = manifest.files.find(row => row.path === path);
     assert.equal(file.sha256, file.originalSha256, path);
   }

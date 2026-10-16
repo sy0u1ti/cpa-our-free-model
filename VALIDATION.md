@@ -9,9 +9,53 @@ plugin directories and data directories inside `.test-output/`.
 
 | Component | Revision |
 | --- | --- |
-| OFM | `9e6121802ab5b87e379a07141e94e36482809147` (upstream v2.2.0) |
+| OFM | `e937077fa92d8cc21d3108d5d1e1f32f37e2534e` (upstream v2.3.0) |
 | Official CPA | v8.0.23 / `d318bcc3afb9ea8782862f5e8cdb541afdc9dfa5` |
 | Native contract | C ABI 1, negotiated RPC schema up to 6 |
+
+## Upstream v2.3.0 Sync: 0.5.6
+
+Re-vendored the original OFM runtime from `9e61218` to `e937077` (upstream
+v2.3.0, 37 commits). The retained set stays at 86 files; the only filename
+change is the served channel bundle (`channels-CQJ5sFg_.js` ->
+`channels-BNNYYkX2.js`), which moves with the embed manifest, the Go console
+test and the provenance test.
+
+The anonymous free lane moved from `/zen/v1` to `/inference/v1` and gained four
+gate conditions upstream measured on 2026-10-14 (`docs/free-lane-wire.md`):
+`x-opencode-session-id` must be present, the session id must be minted rather
+than derived, `bash` and `read` must each declare a non-empty parameter schema,
+and a User-Agent containing `deepseek-harness` is refused by name. Upstream also
+persists the conversation-to-session map so one conversation keeps one upstream
+session across restarts, and reclassifies a free-lane `403 FreeTierError` as a
+lane lock instead of an invalid credential.
+
+That session map resolves through `$DSH_HOME/our-free-model/`. The host never
+supplies `DSH_HOME` (`childEnvironment` strips it), so the adapter now pins the
+variable to the plugin data directory during service initialization; every state
+file the vendored runtime writes stays inside `data-dir`. `tests/runtime.test.mjs`
+asserts `session-map.json` lands there and records the catalog conversation.
+
+Seven of the twelve CPA console patches no longer matched after upstream
+rebuilt the channel bundle with a new minifier output. All twelve were re-anchored
+against the new bytes and verified to match exactly once by
+`TestEACUIHooksMatchOnlyThePinnedBundle` and `tests/eac-ui.test.mjs`.
+
+The new "plugin upgrade" nav page calls the DSH host's `/update/*` routes, which
+the embedded service does not implement and `consoleAPIRoutes` does not allow,
+so it fails closed in the CPA console like the other host-only tabs
+(`/token-saver`, `/combos`, `/chan-gateway`).
+
+Verified on Windows x64 against official CPA 8.0.23:
+
+- `npm run check` (110 JavaScript files), `npm test` (44 tests), `go test ./...`,
+  `go vet ./...`.
+- `scripts/cpa-smoke.mjs` against the real plugin binary: 24 checks, including a
+  new one that asserts the free lane actually speaks `/inference/v1` with the
+  `x-opencode-session-id` header, the `cli` client marker, an attribution
+  User-Agent without `deepseek-harness`, and non-empty schemas on `bash`/`read`.
+- Provenance audit of all 86 vendored files against the original Git blobs
+  (0 mismatches), including the two CPA patches.
 
 ## SSE Regression: 0.2.1
 

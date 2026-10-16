@@ -59,6 +59,11 @@ test('real bundled OFM service: discovery, auth fences, key rotation, console, s
   const status = await runner.call('status');
   assert.equal(status.pid, runner.child.pid);
   assert.ok(fs.existsSync(path.join(directory, 'service.lock')));
+  // Upstream persists the free lane's session map under $DSH_HOME; the runner
+  // pins that variable to the plugin data directory so no state can escape it.
+  const sessionMap = path.join(directory, 'our-free-model', 'session-map.json');
+  assert.ok(fs.existsSync(sessionMap), 'free-lane session map must live inside the plugin data directory');
+  assert.ok(JSON.parse(fs.readFileSync(sessionMap, 'utf8')).sessions['catalog:our-free-model']);
   assert.equal((await runner.call('eac-warmup')).state, 'disabled');
   await runner.close();
   await until(() => !fs.existsSync(path.join(directory, 'service.lock')));

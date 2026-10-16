@@ -1,6 +1,8 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import net from 'node:net'
+import crypto from 'node:crypto'
 import { createModelRuntime, createRuntimeStores } from '../../src/core/runtime.js'
 import { generateKey, startForwardServer } from '../../src/forward.js'
 import { isLoopbackHost } from '../../src/trust.js'
@@ -16,6 +18,91 @@ export function resolveStandaloneDataDir(env = process.env, home = os.homedir())
   return configured === '' ? path.join(home, '.our-free-model') : path.resolve(configured)
 }
 
+/** 内核自动释放的互斥端点，串行化同一数据目录的锁检查与回收。 */
+async function acquireProcessGuard(dataDir) {
+  // 其他平台保留原来的保守文件锁行为，不使用会遗留文件的 Unix Socket。
+  if (process.platform !== 'win32' && process.platform !== 'linux') return null
+  let canonical = fs.realpathSync.native(dataDir)
+  if (process.platform === 'win32') canonical = canonical.toLowerCase()
+  const id = crypto.createHash('sha256').update(canonical).digest('hex')
+  const address = process.platform === 'win32' ? `\\\\.\\pipe\\ofm-service-lock-${id}` : `\0ofm-service-lock-${id}`
+  const server = net.createServer(socket => socket.destroy())
+  try {
+    await new Promise((resolve, reject) => {
+      server.once('error', reject)
+      server.listen(address, resolve)
+    })
+  } catch (error) {
+    if (error.code === 'EADDRINUSE') {
+      throw Object.assign(new Error('数据目录已被服务占用'), { code: 'EEXIST', cause: error })
+    }
+    throw error
+  }
+  server.unref()
+  return () => new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()))
+}
+
+async function acquireServiceLock(dataDir) {
+  const releaseGuard = await acquireProcessGuard(dataDir)
+  const lockFile = path.join(dataDir, 'service.lock')
+  const token = crypto.randomUUID()
+  let lock
+  let ownedStat
+  const removeOwnedLock = () => {
+    try {
+      const current = fs.lstatSync(lockFile)
+      if (current.isFile() && current.dev === ownedStat.dev && current.ino === ownedStat.ino) {
+        fs.unlinkSync(lockFile)
+      }
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+    }
+  }
+  try {
+    try { lock = fs.openSync(lockFile, 'wx', 0o600) }
+    catch (error) {
+      if (error.code !== 'EEXIST' || !releaseGuard) throw error
+      const previousStat = fs.lstatSync(lockFile)
+      if (!previousStat.isFile()) throw error
+      const previous = fs.readFileSync(lockFile, 'utf8')
+      let owner
+      try { owner = JSON.parse(previous) } catch { throw error }
+      if (owner?.product !== PRODUCT || !Number.isSafeInteger(owner.pid) || owner.pid <= 0) throw error
+      // 只有 ESRCH 能证明进程已经退出；无权限、PID 复用等情况均保留原锁。
+      let exited = false
+      try { process.kill(owner.pid, 0) }
+      catch (probeError) { exited = probeError.code === 'ESRCH' }
+      if (!exited) throw error
+      const current = fs.lstatSync(lockFile)
+      if (current.dev !== previousStat.dev || current.ino !== previousStat.ino ||
+          fs.readFileSync(lockFile, 'utf8') !== previous) throw error
+      fs.unlinkSync(lockFile)
+      lock = fs.openSync(lockFile, 'wx', 0o600)
+    }
+    ownedStat = fs.fstatSync(lock)
+    fs.writeFileSync(lock, JSON.stringify({ pid: process.pid, product: PRODUCT, token }))
+  } catch (error) {
+    try {
+      if (lock !== undefined) {
+        fs.closeSync(lock)
+        if (ownedStat) removeOwnedLock()
+      }
+    } finally { await releaseGuard?.() }
+    throw error
+  }
+  return async () => {
+    try {
+      // 在关闭文件句柄前核对归属，避免异常替换的锁被本实例清理。
+      const current = JSON.parse(fs.readFileSync(lockFile, 'utf8'))
+      if (current?.token === token && current.pid === process.pid && current.product === PRODUCT) removeOwnedLock()
+    } catch (error) {
+      if (error.code !== 'ENOENT' && !(error instanceof SyntaxError)) throw error
+    } finally {
+      try { fs.closeSync(lock) } finally { await releaseGuard?.() }
+    }
+  }
+}
+
 /** 直接创建核心和 HTTP 服务，不加载插件入口、Cordis 或 DSH 凭据。 */
 export async function startStandalone({
   dataDir = resolveStandaloneDataDir(), host = '127.0.0.1', port,
@@ -27,8 +114,7 @@ export async function startStandalone({
     throw new TypeError('port must be an integer between 0 and 65535')
   }
   fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 })
-  const lockFile = path.join(dataDir, 'service.lock')
-  const lock = fs.openSync(lockFile, 'wx', 0o600)
+  const releaseLock = await acquireServiceLock(dataDir)
   let stores
   let runtime
   let listener
@@ -39,12 +125,7 @@ export async function startStandalone({
   let refreshInFlight
   let closing
   let stopped = false
-  const releaseLock = () => {
-    fs.closeSync(lock)
-    fs.unlinkSync(lockFile)
-  }
   try {
-    fs.writeFileSync(lock, JSON.stringify({ pid: process.pid, product: PRODUCT }))
     stores = createRuntimeStores({ dataDir, logger })
     const { settings } = stores
     const savedPort = settings.get().standalonePort
@@ -137,8 +218,7 @@ export async function startStandalone({
         runtime.dispose()
         closing = (async () => {
           try { await Promise.all([listener.close(), channels.close()]) } finally {
-            stores.dispose()
-            releaseLock()
+            try { stores.dispose() } finally { await releaseLock() }
           }
         })()
         return closing
@@ -152,8 +232,7 @@ export async function startStandalone({
     runtime?.dispose()
     if (listener) await listener.close()
     await channels?.close()
-    stores?.dispose()
-    releaseLock()
+    try { stores?.dispose() } finally { await releaseLock() }
     throw error
   }
 }

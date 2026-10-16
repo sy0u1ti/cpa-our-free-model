@@ -66,6 +66,13 @@ async function initialize(settings) {
   if (!path.isAbsolute(settings.dataDir) || !Number.isInteger(settings.parentPid) || settings.parentPid < 1) throw new Error('Invalid service settings');
   settingsInUse = settings;
   fs.mkdirSync(settings.dataDir, { recursive: true, mode: 0o700 });
+  // Upstream resolves the free lane's persisted session map through
+  // "$DSH_HOME/our-free-model". The host environment never supplies
+  // DSH_HOME (childEnvironment strips it), so pin it to the plugin's own data
+  // directory: every byte the service writes stays inside data-dir instead of
+  // leaking into the CPA host's home directory or colliding with another
+  // instance that shares the same machine.
+  process.env.DSH_HOME = settings.dataDir;
   privateClientConfig(settings);
   recoverDeadLock(settings.dataDir);
   await configureEac(settings);

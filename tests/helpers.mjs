@@ -34,7 +34,7 @@ export async function fixtureUpstream() {
     const body = raw ? JSON.parse(raw) : {};
     calls.push({ path: url.pathname, headers: req.headers, body });
     const json = value => { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(value)); };
-    if (url.pathname === '/zen/v1/models') return json({ data: [{ id: state.model }] });
+    if (url.pathname === '/inference/v1/models') return json({ data: [{ id: state.model }] });
     if (url.pathname === '/models') return json({ data: [{ id: 'fixture/free', isFree: true, context_length: 128000 }] });
     if (!url.pathname.endsWith('/chat/completions')) return json({ data: [] });
     if (state.status !== 200) {

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { PATCHES, patchOriginal } from './upstream-patches.mjs';
 
 export const ORIGINAL_REPOSITORY = 'https://github.com/Ebony-Vinyl/dsh-our-free-model';
-export const ORIGINAL_COMMIT = '9e6121802ab5b87e379a07141e94e36482809147';
+export const ORIGINAL_COMMIT = 'e937077fa92d8cc21d3108d5d1e1f32f37e2534e';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const checkout = path.resolve(process.argv[2] || path.join(root, '.reference/ofm'));
 const destination = path.join(root, 'service/vendor/ofm');

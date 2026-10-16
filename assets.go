@@ -27,7 +27,7 @@ import (
 //go:embed service/vendor/ofm/packages/standalone/package.json service/vendor/ofm/packages/standalone/service.mjs
 //go:embed service/vendor/ofm/packages/standalone/web/_ofm-provider-list-D9WP3xjp.js service/vendor/ofm/packages/standalone/web/app.css
 //go:embed service/vendor/ofm/packages/standalone/web/app.js service/vendor/ofm/packages/standalone/web/assets.json
-//go:embed service/vendor/ofm/packages/standalone/web/channels-CQJ5sFg_.js service/vendor/ofm/packages/standalone/web/index.html
+//go:embed service/vendor/ofm/packages/standalone/web/channels-BNNYYkX2.js service/vendor/ofm/packages/standalone/web/index.html
 //go:embed service/vendor/ofm/packages/standalone/web/loader-circle-BGKf-mYU.js service/vendor/ofm/packages/standalone/web/models-8lE4ufFd.js
 //go:embed service/vendor/ofm/packages/standalone/web/search-RZVy3Eoo.js service/vendor/ofm/packages/standalone/web/settings-Cq1Y-v4k.js
 //go:embed service/vendor/ofm/packages/standalone/web/usage-SUrY-tWU.js service/vendor/ofm/packages/standalone/web/x-CzfajR1e.js
