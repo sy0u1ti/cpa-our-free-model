@@ -90,6 +90,11 @@ try {
   assert.equal(laneCall.headers['x-session-affinity'], laneCall.headers['x-opencode-session']);
   assert.equal(laneCall.headers['x-session-id'], laneCall.headers['x-opencode-session']);
   assert.equal(laneCall.headers['x-opencode-request'], undefined, 'the v1-only request header must not be sent');
+  // Upstream's 2026-10-17 gate decodes the 12 hex digits after `ses_`: the id
+  // must carry the descending layout `~(ms << 12 | counter)`, whose 10th digit
+  // is `f` for counters 1-63. Ascending or hashed ids get 403.
+  assert.match(laneCall.headers['x-opencode-session'], /^ses_[0-9a-f]{9}f[0-9a-f]{2}[0-9A-Za-z]{14}$/,
+    'session id must carry the descending encoding the free tier accepts');
   assert.equal(laneCall.headers['x-opencode-client'], 'cli');
   assert.match(laneCall.headers['user-agent'], /^opencode\/[^/]+\/2\.\d+\.\d+\/[^/]+$/, 'User-Agent must be the v2 client shape');
   assert.doesNotMatch(laneCall.headers['user-agent'], /deepseek[-_]harness/i);
@@ -100,7 +105,7 @@ try {
     assert.ok(Object.keys(schema?.properties ?? {}).length > 0, name + ' needs a declared property');
   }
   assert.notEqual(laneCall.body.tool_choice, 'none', 'v2 rejects tool_choice:none');
-  pass('Free lane speaks the v2.4.0 wire: /inference/v1, four session headers and the read/shell fingerprint');
+  pass('Free lane speaks the v2.5 wire: /inference/v1, four session headers, descending session id and the read/shell fingerprint');
   const stream = await api('/v1/chat/completions', { ...body, stream: true,
     tools: [{ type: 'function', function: { name: 'lookup', parameters: { type: 'object', properties: {} } } }] });
   assert.equal(stream.status, 200);

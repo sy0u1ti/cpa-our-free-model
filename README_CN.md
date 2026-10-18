@@ -9,34 +9,35 @@
 服务生命周期、安全边界及宿主兼容测试，不把上游功能声明为独立原创。
 
 **唯一产品源码上游是原项目，不使用参考项目的源码快照或辅助模块。**
-通过 `git show` 直接读取原仓库固定提交的文件（当前 87 个），除 2 个独立可追溯的
+通过 `git show` 直接读取原仓库固定提交的文件（当前 91 个），除 2 个独立可追溯的
 CPA 补丁（接入私有 EAC 来源、外置内置 OAuth 配置）外逐字节不变，包括独立服务与
 完整控制台。来源、原始 Git blob、前后 SHA-256、补丁说明均记录在
 `service/vendor/ofm/UPSTREAM.json`。`scripts/import-upstream.mjs` 和
 `scripts/upstream-patches.mjs` 可以重现整个取源过程。
 
-**当前版本 v0.5.7**：同步上游 OFM **v2.4.0**（`0b712bc`，自 v2.3.0 起共 3 个提交）。
-免费车道按上游 2026-10-14 起生效的 **OpenCode v2 客户端**重做指纹，四项特征一起变，
-缺一即 `403 FreeTierError`：User-Agent 换成 `opencode/latest/2.0.26/cli`（旧的
-`opencode/1.18.x` 形状被上游按名字拒掉）；会话头补齐 `x-session-affinity` /
-`x-session-id`，与 `x-opencode-session` / `x-opencode-session-id` 四头同值，且
-**不再**发 v1 专用的 `x-opencode-request`；工具闸门从 `bash`/`glob`/`grep`/`read`
-四个桩名改为 `read` 与 `shell` 两个名字，且 description 与参数 schema 必须与官方
-客户端逐字一致；`tool_choice: 'none'` 一律不下发（上游见到即 403），续写回合改由
-指令正文压制工具调用。调用方的工具原样保留（含 `Read`/`Bash` 这类大小写变体）；
-若调用方正好用了 `read`/`shell` 而定义不同，该工具会改名成 `<name>_client` 上线，
-历史调用与 `tool_choice` 同步改写，响应侧再还原成调用方的名字。
+**当前版本 v0.5.8**：同步上游 OFM **v2.5.2**（`8c2c0f1`，自 v2.4.0 起共 35 个提交，
+含 v2.5.0 / v2.5.1 / v2.5.2 三个正式版本）。最关键的修复是免费车道的**会话 id
+编码门禁**：上游 2026-10-17 起会解码 `ses_` 后十二位十六进制，只接受官方客户端的
+降序布局 `~(毫秒 << 12 | 计数器)`（计数器 1–63，第十位固定为 `f`）；升序写法
+`毫秒 << 12` 或任何哈希摘要即使 `ses_` 形状完全正确，也一律 `403 FreeTierError`。
+上游新增 `isCanonicalSession()` 校验与 `canonicalizeSession()` 确定性重编码，
+同一段对话仍映射到同一个上游会话，`session-map.json` 里旧的非降序 id 会被重编码。
 
-控制台侧，上游新增「推荐项目」页（Star / Fork / 最近提交数实时取自 GitHub，
-取不到就整块不显示，绝不用占位数字），并把它加入标签持久化列表；聚合渠道注册表
-移除 OpenCode 免密池一行（该车道要求每请求的会话 id、v2 UA 与官方工具声明，
-聚合车道的通用传输承载不了），注册表为 75 家。vendored 快照增至 87 个文件
-（新增 `src/picks.js`），前端渠道 bundle 从 `channels-BNNYYkX2.js` 更名为
-`channels-Dyod_rQn.js`（`assets.go` 的 embed 清单与测试同步更新）。CPA 的
-控制台补丁（EAC 错误原因、资源池原因、备份导入文案与结果汇总）有 9 条因新 bundle
-的压缩标识符重排而失效，已逐条重新定位，12 条补丁全部恢复单次命中。两个 CPA
-补丁文件（`eac.mjs`、`business.mjs`）仍逐字节适用。EAC 密封材料未变，
-`service/upstream-eac.json` 的四个摘要与 v2.2.0 时一致。
+其余随 v2.5.x 合入的变化：推荐项目页新增第三个仓库 EAC-design-world；支持按单个
+模型或整组（匿名 / Kilo / EAC）隐藏模型，隐藏只影响选择器与网关清单，不影响历史
+会话；独立服务新增 `--lan` 局域网推理中继（本插件不启用）；升级源新增国内可达镜像；
+WorkBuddy 会话头与初始 system 修复、Raccoon/Loomy 有界账号轮换、聚合渠道发送真实
+模型 ID、三种转发协议保留上游错误分类，以及一批渠道适配修复。
+
+vendored 快照增至 91 个文件（新增 `src/deferred-response.js`、`src/failure.js`、
+`src/open-external.js` 与 `packages/standalone/open-external.mjs`），前端资源整体
+重新生成：渠道 bundle `channels-Dyod_rQn.js` → `channels-Bo15uddV.js`，models /
+settings / usage 三个 bundle 改名，并新增 `visibility-data` 分块。导入脚本的
+standalone 白名单补上了 `open-external.mjs`——新版 `eac.mjs` 会 import 它，漏掉会
+导致服务启动失败。CPA 的 12 条控制台补丁中有 8 条因新 bundle 的压缩标识符重排而
+失效，已逐条重新定位，全部恢复单次命中。两个 CPA 补丁文件（`eac.mjs`、
+`business.mjs`）仍逐字节适用；EAC 密封材料未变，`service/upstream-eac.json`
+的四个摘要与 v2.2.0 时一致。
 
 **v0.5.3**：把预编译产物补全到官方插件商店要求的全部平台
 （Windows amd64、Linux amd64/arm64、macOS amd64/arm64），商店条目在 Intel 与
@@ -71,16 +72,16 @@ Linux 源码备用更新器创建的安装目录改为可遍历权限，备份�
 **v0.5.0 起提供预编译 Release；v0.5.3 起覆盖 Windows amd64、Linux amd64/arm64
 与 macOS amd64/arm64。** `dist/` 不随源码提交：优先从
 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases)
-下载 `our-free-model_0.5.7_<系统>_<架构>.zip` 并核对 `checksums.txt`；从仓库克隆后
+下载 `our-free-model_0.5.8_<系统>_<架构>.zip` 并核对 `checksums.txt`；从仓库克隆后
 也可按第 7 节自行构建，产物位于：
 
 | 系统 | 文件 |
 | --- | --- |
-| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.7.dll` |
-| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.7.so` |
-| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.7.so` |
-| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.7.dylib` |
-| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.7.dylib` |
+| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.8.dll` |
+| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.8.so` |
+| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.8.so` |
+| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.8.dylib` |
+| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.8.dylib` |
 
 1. 把对应动态库复制到 CPA 配置的插件目录，例如 `plugins/` 或 `plugins/windows/amd64/`。
    **不要改掉 `our-free-model` 这一文件名 ID**；文件名和配置键必须一致。
@@ -102,7 +103,7 @@ plugins:
 首次使用时释放到私有数据目录，以内容哈希命名并逐文件校验，损坏时拒绝执行。
 
 CPA 适配源码仓库为 [sy0u1ti/cpa-our-free-model](https://github.com/sy0u1ti/cpa-our-free-model)。
-v0.5.0 起已发布二进制 Release（当前 v0.5.7，覆盖五个平台）；公共插件商店的上架申请
+v0.5.0 起已发布二进制 Release（当前 v0.5.8，覆盖五个平台）；公共插件商店的上架申请
 仍在审核中，通过后即可在 CPA 插件商店里直接安装，在那之前请先手动放置动态库，
 之后可直接用页面一键更新（见第 7 节）。
 
@@ -319,7 +320,7 @@ https://raw.githubusercontent.com/sy0u1ti/cpa-our-free-model/main/registry.json
 不会自动重启整个 CPA，也不声称所有 CPA 版本都支持无中断热更新。使用反代路径前缀时，
 要把同前缀下的 `/v8/management/` 也转发到 CPA。
 
-**v0.5.0 是首个正式 Release**（当前 v0.5.7），根目录 `registry.json` 已发布。
+**v0.5.0 是首个正式 Release**（当前 v0.5.8），根目录 `registry.json` 已发布。
 v0.5.0 之前的版本不含更新器，需要手动安装一次；从 v0.5.0 起可直接在页面更新到
 后续正式版本。尚无 Release、平台安装包缺失、GitHub 请求失败或本地开发构建，
 都会显示对应状态并禁用安装按钮。

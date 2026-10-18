@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { PATCHES, patchOriginal } from './upstream-patches.mjs';
 
 export const ORIGINAL_REPOSITORY = 'https://github.com/Ebony-Vinyl/dsh-our-free-model';
-export const ORIGINAL_COMMIT = '0b712bcbb887ae101cae5fdf935b0845761a1421';
+export const ORIGINAL_COMMIT = '8c2c0f1e3a1caf5cb682704a576d36a449a6780d';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const checkout = path.resolve(process.argv[2] || path.join(root, '.reference/ofm'));
 const destination = path.join(root, 'service/vendor/ofm');
@@ -21,7 +21,7 @@ const withheld = new Set(['src/vault.js', 'src/vault-data.js', 'src/vault-anchor
 const webAssets = JSON.parse(git(['show', `${ORIGINAL_COMMIT}:packages/standalone/web/assets.json`]).toString('utf8'));
 const selected = [
   'LICENSE', 'package.json', 'scripts/standalone-third-party.txt', 'packages/standalone/README.md',
-  ...['package.json', 'cli.mjs', 'service.mjs', 'management.mjs', 'login-terminal.mjs', 'eac.mjs'].map(file => 'packages/standalone/' + file),
+  ...['package.json', 'cli.mjs', 'service.mjs', 'management.mjs', 'login-terminal.mjs', 'open-external.mjs', 'eac.mjs'].map(file => 'packages/standalone/' + file),
   ...['business', 'contracts', 'credentials', 'images', 'runtime', 'worker'].map(file => `packages/standalone/channels/${file}.mjs`),
   // Only the files the served index.html and assets.json actually reference:
   // the original repo keeps superseded bundles around, and shipping dead code

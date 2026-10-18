@@ -1,11 +1,11 @@
 {
   "repository": "https://github.com/Ebony-Vinyl/dsh-our-free-model",
-  "commit": "0b712bcbb887ae101cae5fdf935b0845761a1421",
+  "commit": "8c2c0f1e3a1caf5cb682704a576d36a449a6780d",
   "files": [
     {
       "path": "src/vault.js",
-      "sha256": "6f9d5dce4af5dc504991af32b46cd3b76dd0c587fcacb35cc6245a518201c021",
-      "bytes": 9942
+      "sha256": "9ee2cd231f9642883485787832ea82c6411c062ba276e70cc770cff3a464f186",
+      "bytes": 9969
     },
     {
       "path": "src/vault-data.js",

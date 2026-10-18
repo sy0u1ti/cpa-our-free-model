@@ -10,6 +10,49 @@
 圆角覆盖的样式微调；`src/`、控制台 JS、渠道代码与 `assets.json` 均未变化。
 新增的 Tauri 桌面版与未被引用的 `splash.html` 不进入本插件包。
 
+## v0.5.8：同步上游 OFM v2.5.2
+
+上游发布了 v2.5.0 / v2.5.1 / v2.5.2（自 v2.4.0 起共 35 个提交），本轮把 vendored
+快照从 `0b712bc` 重取到 `8c2c0f1`。文件数由 87 增至 91：新增
+`src/deferred-response.js`、`src/failure.js`、`src/open-external.js` 与
+`packages/standalone/open-external.mjs`；前端资源整体重新生成，渠道 bundle
+`channels-Dyod_rQn.js` → `channels-Bo15uddV.js`，models / settings / usage 三个
+bundle 改名，新增 `visibility-data-9WWAmLOB.js` 分块。
+
+- **免费车道会话编码门禁（最关键）**：上游 2026-10-17 起解码 `ses_` 后十二位
+  十六进制，只接受官方客户端的降序布局 `~(毫秒 << 12 | 计数器)`（计数器 1–63，
+  第十位固定为 `f`）。升序 `毫秒 << 12` 或哈希摘要即使 `ses_` 形状完全正确，也一律
+  `403 FreeTierError`。`src/upstream.js` 新增 `SESSION_DESCENDING_RE`、
+  `isCanonicalSession()` 与 `canonicalizeSession()`：合规 id 原样透传，其余确定性
+  重编码，同一对话仍映射同一上游会话；`session-map.json` 中的旧 id 读到时同样重编码。
+  `scripts/cpa-smoke.mjs` 的线路断言新增会话 id 降序编码校验。
+- **模型可见性**：支持按单个模型或整组（匿名 / Kilo / EAC）隐藏，隐藏只影响模型
+  选择器与网关清单，不影响通过已保存 ID 发起的历史会话请求。管理页新增
+  `visibility-data` 分块与对应设置字段。
+- **独立服务 LAN 中继**：新增 `--lan` / `--no-lan` / `--lan-port` 与独立密钥，
+  `startStandalone` 增加 `lanEnabled` / `lanPort` 参数（默认关闭）。本适配器不传
+  这两个参数，CPA 下行为不变，也不会额外监听局域网端口。
+- **升级与公告源**：升级清单新增国内可达镜像，链路为 raw → jsDelivr → 镜像 →
+  master 兜底；镜像同样先解析到完整 commit SHA 再取件，签名与逐文件 SHA-256
+  校验照常执行。公告订阅同样加入镜像。
+- **渠道与协议修复**：WorkBuddy 补齐会话头与初始 system，区分 11128 / 11140；
+  Gemini、MiniMax 保留消息内的 system；Raccoon、Loomy 对明确额度不足做有界轮换；
+  聚合渠道发送真实模型 ID；三种转发协议保留上游错误分类、HTTP 状态与重试提示；
+  SSE 在终止标记停止读取。`vendor/channel-pack` 与 `src/` 对应文件同步更新。
+- **导入清单修复**：新版 `packages/standalone/eac.mjs` 新增
+  `import { openExternal } from './open-external.mjs'`，而导入脚本的 standalone
+  白名单原先没有该文件。本轮把 `open-external.mjs` 加入 `scripts/import-upstream.mjs`
+  与 `assets.go` 的 embed 清单；否则插件二进制启动时会因缺少模块而失败。
+- **控制台补丁重定位**：新 bundle 的压缩标识符再次整体重排，12 条
+  `eacConsolePatches` 中有 8 条不再命中；已按新 bundle 逐条重新定位，全部恢复单次
+  命中。`tests/eac-ui.test.mjs` 的桩同步更新为新的工厂名（`ba`）与 React 辅助名
+  （`y`/`P`/`te`/`K`），断言改用新的变量名。Go 侧
+  `TestEACUIHooksMatchOnlyThePinnedBundle` 仍要求每条补丁恰好命中一次。
+- **补丁与密封**：两个 CPA 补丁文件（`eac.mjs`、`business.mjs`）本轮上游有改动，
+  但补丁锚点仍各单次命中，`patchOriginal` 逐字节适用。`src/vault.js` 只增加了
+  `tauri` profile 判定；EAC 密封材料 `vault-data` / `vault-anchor` 摘要未变。
+  `collect-web-licenses.mjs` 重跑后依赖版本无变化，只更新记录的 commit。
+
 ## v0.5.7：同步上游 OFM v2.4.0
 
 上游发布了 v2.4.0（`0b712bc`，自 v2.3.0 起共 3 个提交），本轮把 vendored

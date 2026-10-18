@@ -9,9 +9,68 @@ plugin directories and data directories inside `.test-output/`.
 
 | Component | Revision |
 | --- | --- |
-| OFM | `0b712bcbb887ae101cae5fdf935b0845761a1421` (upstream v2.4.0) |
+| OFM | `8c2c0f1e3a1caf5cb682704a576d36a449a6780d` (upstream v2.5.2) |
 | Official CPA | v8.0.23 / `d318bcc3afb9ea8782862f5e8cdb541afdc9dfa5` |
 | Native contract | C ABI 1, negotiated RPC schema up to 6 |
+
+## Upstream v2.5.2 Sync: 0.5.8
+
+Re-vendored the original OFM runtime from `0b712bc` to `8c2c0f1` (upstream
+v2.5.2, 35 commits including the v2.5.0, v2.5.1 and v2.5.2 releases). The
+retained set grows from 87 to 91 files: `src/deferred-response.js`,
+`src/failure.js`, `src/open-external.js` and
+`packages/standalone/open-external.mjs` are new. The served web assets were
+regenerated: the channel bundle moves from `channels-Dyod_rQn.js` to
+`channels-Bo15uddV.js`, the models/settings/usage bundles are renamed, and a new
+`visibility-data` chunk appears.
+
+The headline upstream fix is the free lane's session-id encoding gate. Since
+2026-10-17 the gateway decodes the twelve hex digits after `ses_` and accepts
+only the descending layout `~(ms << 12 | counter)` with counter 1-63, whose
+tenth digit is `f`; an ascending `ms << 12` value or a hash digest gets
+`403 FreeTierError` even with a valid `ses_` shape. Upstream now validates with
+`isCanonicalSession()` and deterministically re-encodes anything else through
+`canonicalizeSession()`, so a conversation keeps one stable upstream session and
+old non-canonical ids in `session-map.json` are re-encoded on read.
+
+The importer's standalone allow-list needed a real fix: the new
+`packages/standalone/eac.mjs` imports `./open-external.mjs`, which the previous
+allow-list did not select. Both `scripts/import-upstream.mjs` and the
+`assets.go` embed list now include `packages/standalone/open-external.mjs`;
+without it the embedded service would fail to load at startup.
+
+Other upstream changes folded in: a third recommended project
+(EAC-design-world), per-model and per-group model hiding with a new
+`visibility-data` console chunk, an opt-in standalone LAN inference relay
+(`startStandalone` gained `lanEnabled`/`lanPort`, default off; this adapter does
+not enable it), domestic mirrors for the in-app updater and announcement feed,
+WorkBuddy session/system-prompt fixes, bounded Raccoon/Loomy account rotation,
+real model IDs on the aggregate lane, upstream error classification through all
+three forwarding protocols, and a batch of channel-adapter fixes.
+
+Eight of the twelve CPA console patches no longer matched after upstream rebuilt
+the channel bundle with a new minifier output. All twelve were re-anchored
+against the new bytes and are verified to match exactly once by
+`TestEACUIHooksMatchOnlyThePinnedBundle` and `tests/eac-ui.test.mjs`; that test's
+login-factory stubs were re-pointed at the new minified names.
+
+Both CPA-patched files (`packages/standalone/eac.mjs`,
+`packages/standalone/channels/business.mjs`) changed upstream this round, but
+every patch anchor still matches exactly once and `patchOriginal` reproduces the
+expected bytes. `src/vault.js` only gained the `tauri` profile check; the pinned
+EAC seal digests (`vault-data.js`, `vault-anchor.js`) are unchanged. The web
+dependency versions in the original lockfile are unchanged, so re-recording the
+license sources only moved the commit.
+
+Verified on Windows x64 against official CPA 8.0.23:
+
+- `npm run check` (115 JavaScript files), `npm test` (44 tests), `go test ./...`,
+  `go vet ./...`.
+- `scripts/cpa-smoke.mjs` against the real plugin binary: 24 checks, including a
+  free-lane assertion that now also verifies the descending session-id encoding
+  the upstream gate decodes.
+- Provenance audit of all 91 vendored files against the original Git blobs
+  (0 mismatches), including the two CPA patches.
 
 ## Upstream v2.4.0 Sync: 0.5.7
 
