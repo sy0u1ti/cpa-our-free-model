@@ -9,9 +9,49 @@ plugin directories and data directories inside `.test-output/`.
 
 | Component | Revision |
 | --- | --- |
-| OFM | `8c2c0f1e3a1caf5cb682704a576d36a449a6780d` (upstream v2.5.2) |
+| OFM | `f0b979fdf48d3915504f5f20e0a105596712f3c8` (upstream v2.5.3) |
 | Official CPA | v8.0.23 / `d318bcc3afb9ea8782862f5e8cdb541afdc9dfa5` |
 | Native contract | C ABI 1, negotiated RPC schema up to 6 |
+
+## Upstream v2.5.3 Sync: 0.5.9
+
+Re-vendored the original OFM runtime from `8c2c0f1` to `f0b979f` (upstream
+v2.5.3, 7 commits). The retained set stays at 91 files and the served web assets
+are byte-identical to 0.5.8, so all twelve CPA console patches and all seventeen
+console labels still match exactly once without re-anchoring. Only
+`src/adapter.js`, `src/recovery.js`, `src/updater.js` and the upstream package
+manifests changed.
+
+The hotfix removes the EAC no-progress cutoff that v2.5.2 introduced. That rule
+ended a request with `NO_PROGRESS` after 60 seconds without text, reasoning or
+tool progress, which wrongly aborted queuing, silent reasoning, heartbeat-only
+waits and long silences after the answer had started. `progressTimeoutMs` is
+gone from `RECOVERY_DEFAULTS`, the adapter no longer arms or renews a progress
+timer, and a legacy `progressTimeoutMs` setting has no effect. User
+cancellation, transport idle detection and the overall recovery deadline keep
+their previous behaviour.
+
+Upstream also stops copying `packages/` (standalone product sources and the Rust
+`target` cache) into rollback backups when upgrading a development install, and
+filters those paths out of older rollback receipts. That change lives in
+upstream's own `src/updater.js`; this adapter installs through
+`scripts/update.mjs`, so the fix is vendored but inactive here.
+
+Both CPA-patched files (`packages/standalone/eac.mjs`,
+`packages/standalone/channels/business.mjs`) are unchanged upstream this round,
+so both patches still apply byte-for-byte, and the pinned EAC seal digests are
+unchanged from v2.2.0. The web dependency versions in the original lockfile are
+also unchanged, so re-recording the license sources only moved the commit.
+
+Verified on Windows x64 against official CPA 8.0.23:
+
+- `npm run check` (115 JavaScript files), `npm test` (44 tests), `go test ./...`,
+  `go vet ./...`.
+- `scripts/cpa-smoke.mjs` against the real plugin binary: 24 checks, including
+  the free-lane v2.5 wire assertions (path, four session headers, descending
+  session encoding, read/shell fingerprint, no `tool_choice: 'none'`).
+- Provenance audit of all 91 vendored files against the original Git blobs
+  (0 mismatches), including the two CPA patches.
 
 ## Upstream v2.5.2 Sync: 0.5.8
 

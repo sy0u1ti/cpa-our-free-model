@@ -15,29 +15,32 @@ CPA 补丁（接入私有 EAC 来源、外置内置 OAuth 配置）外逐字节�
 `service/vendor/ofm/UPSTREAM.json`。`scripts/import-upstream.mjs` 和
 `scripts/upstream-patches.mjs` 可以重现整个取源过程。
 
-**当前版本 v0.5.8**：同步上游 OFM **v2.5.2**（`8c2c0f1`，自 v2.4.0 起共 35 个提交，
-含 v2.5.0 / v2.5.1 / v2.5.2 三个正式版本）。最关键的修复是免费车道的**会话 id
+**当前版本 v0.5.9**：同步上游 OFM **v2.5.3**（`f0b979f`，自 v2.5.2 起共 7 个提交）。
+这是 v2.5.2 的紧急热修：v2.5.2 新增的「EAC 连续 60 秒没有正文、思考或工具增量就
+终止请求」规则会误伤排队、静默思考、只有心跳的等待，以及正文输出后的长静默，
+一律报 `NO_PROGRESS`。v2.5.3 把这条截止整个移除：恢复策略里删掉
+`progressTimeoutMs`，适配器不再启动或续期进度计时器，旧配置里的
+`progressTimeoutMs` 也不再生效。用户取消、传输层空闲检测与恢复总时限保持原行为。
+上游同时修复了本地开发目录升级时把 `packages/`（独立产品源码与 Rust `target`
+编译缓存）复制进回滚备份、占满系统盘的问题；该修复位于上游自己的更新器，本插件
+不使用它，因此只作为 vendored 代码保留，在 CPA 下不生效。
+
+本轮 vendored 快照仍是 91 个文件，前端资源完全未变（仍为
+`channels-Bo15uddV.js` 等），因此 12 条 CPA 控制台补丁与 17 条界面文案全部继续
+单次命中，无需重新定位。实际变化只有 `src/adapter.js`、`src/recovery.js`、
+`src/updater.js` 与上游包清单。两个 CPA 补丁文件（`eac.mjs`、`business.mjs`）
+仍逐字节适用；EAC 密封材料未变，`service/upstream-eac.json` 的摘要与 v2.2.0 时
+一致。
+
+**上一版 v0.5.8**：同步上游 OFM **v2.5.2**（`8c2c0f1`，自 v2.4.0 起共 35 个提交，
+含 v2.5.0 / v2.5.1 / v2.5.2 三个正式版本）。关键修复是免费车道的**会话 id
 编码门禁**：上游 2026-10-17 起会解码 `ses_` 后十二位十六进制，只接受官方客户端的
 降序布局 `~(毫秒 << 12 | 计数器)`（计数器 1–63，第十位固定为 `f`）；升序写法
 `毫秒 << 12` 或任何哈希摘要即使 `ses_` 形状完全正确，也一律 `403 FreeTierError`。
 上游新增 `isCanonicalSession()` 校验与 `canonicalizeSession()` 确定性重编码，
 同一段对话仍映射到同一个上游会话，`session-map.json` 里旧的非降序 id 会被重编码。
-
-其余随 v2.5.x 合入的变化：推荐项目页新增第三个仓库 EAC-design-world；支持按单个
-模型或整组（匿名 / Kilo / EAC）隐藏模型，隐藏只影响选择器与网关清单，不影响历史
-会话；独立服务新增 `--lan` 局域网推理中继（本插件不启用）；升级源新增国内可达镜像；
-WorkBuddy 会话头与初始 system 修复、Raccoon/Loomy 有界账号轮换、聚合渠道发送真实
-模型 ID、三种转发协议保留上游错误分类，以及一批渠道适配修复。
-
-vendored 快照增至 91 个文件（新增 `src/deferred-response.js`、`src/failure.js`、
-`src/open-external.js` 与 `packages/standalone/open-external.mjs`），前端资源整体
-重新生成：渠道 bundle `channels-Dyod_rQn.js` → `channels-Bo15uddV.js`，models /
-settings / usage 三个 bundle 改名，并新增 `visibility-data` 分块。导入脚本的
-standalone 白名单补上了 `open-external.mjs`——新版 `eac.mjs` 会 import 它，漏掉会
-导致服务启动失败。CPA 的 12 条控制台补丁中有 8 条因新 bundle 的压缩标识符重排而
-失效，已逐条重新定位，全部恢复单次命中。两个 CPA 补丁文件（`eac.mjs`、
-`business.mjs`）仍逐字节适用；EAC 密封材料未变，`service/upstream-eac.json`
-的四个摘要与 v2.2.0 时一致。
+该版还合入了推荐项目第三项、模型可见性、独立服务 LAN 中继、升级源国内镜像，以及
+一批渠道适配修复。
 
 **v0.5.3**：把预编译产物补全到官方插件商店要求的全部平台
 （Windows amd64、Linux amd64/arm64、macOS amd64/arm64），商店条目在 Intel 与
@@ -72,16 +75,16 @@ Linux 源码备用更新器创建的安装目录改为可遍历权限，备份�
 **v0.5.0 起提供预编译 Release；v0.5.3 起覆盖 Windows amd64、Linux amd64/arm64
 与 macOS amd64/arm64。** `dist/` 不随源码提交：优先从
 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases)
-下载 `our-free-model_0.5.8_<系统>_<架构>.zip` 并核对 `checksums.txt`；从仓库克隆后
+下载 `our-free-model_0.5.9_<系统>_<架构>.zip` 并核对 `checksums.txt`；从仓库克隆后
 也可按第 7 节自行构建，产物位于：
 
 | 系统 | 文件 |
 | --- | --- |
-| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.8.dll` |
-| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.8.so` |
-| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.8.so` |
-| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.8.dylib` |
-| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.8.dylib` |
+| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.9.dll` |
+| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.9.so` |
+| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.9.so` |
+| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.9.dylib` |
+| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.9.dylib` |
 
 1. 把对应动态库复制到 CPA 配置的插件目录，例如 `plugins/` 或 `plugins/windows/amd64/`。
    **不要改掉 `our-free-model` 这一文件名 ID**；文件名和配置键必须一致。
@@ -103,7 +106,7 @@ plugins:
 首次使用时释放到私有数据目录，以内容哈希命名并逐文件校验，损坏时拒绝执行。
 
 CPA 适配源码仓库为 [sy0u1ti/cpa-our-free-model](https://github.com/sy0u1ti/cpa-our-free-model)。
-v0.5.0 起已发布二进制 Release（当前 v0.5.8，覆盖五个平台）；公共插件商店的上架申请
+v0.5.0 起已发布二进制 Release（当前 v0.5.9，覆盖五个平台）；公共插件商店的上架申请
 仍在审核中，通过后即可在 CPA 插件商店里直接安装，在那之前请先手动放置动态库，
 之后可直接用页面一键更新（见第 7 节）。
 
@@ -320,7 +323,7 @@ https://raw.githubusercontent.com/sy0u1ti/cpa-our-free-model/main/registry.json
 不会自动重启整个 CPA，也不声称所有 CPA 版本都支持无中断热更新。使用反代路径前缀时，
 要把同前缀下的 `/v8/management/` 也转发到 CPA。
 
-**v0.5.0 是首个正式 Release**（当前 v0.5.8），根目录 `registry.json` 已发布。
+**v0.5.0 是首个正式 Release**（当前 v0.5.9），根目录 `registry.json` 已发布。
 v0.5.0 之前的版本不含更新器，需要手动安装一次；从 v0.5.0 起可直接在页面更新到
 后续正式版本。尚无 Release、平台安装包缺失、GitHub 请求失败或本地开发构建，
 都会显示对应状态并禁用安装按钮。

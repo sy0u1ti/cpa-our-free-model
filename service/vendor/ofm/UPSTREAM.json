@@ -1,7 +1,7 @@
 {
   "schema": "cpa-ofm-original-source/v1",
   "repository": "https://github.com/Ebony-Vinyl/dsh-our-free-model",
-  "commit": "8c2c0f1e3a1caf5cb682704a576d36a449a6780d",
+  "commit": "f0b979fdf48d3915504f5f20e0a105596712f3c8",
   "method": "git show <original-commit>:<path>; no working-tree bytes and no secondary fork",
   "files": [
     {
@@ -12,9 +12,9 @@
     },
     {
       "path": "package.json",
-      "gitBlob": "602f06df35ff7e93fd0aba641a53d0b8c3b470a5",
-      "originalSha256": "d3d65455d636c90a37137977adf53100982f9f7635937b32422b5d69b809ed34",
-      "sha256": "d3d65455d636c90a37137977adf53100982f9f7635937b32422b5d69b809ed34"
+      "gitBlob": "4bc47bf1621ea612ed13171415d89f47fe399b4c",
+      "originalSha256": "a0a1b5d5f8b51533535d4e67e677098fc80694b5f544a99d6e12a13ca5103cb2",
+      "sha256": "a0a1b5d5f8b51533535d4e67e677098fc80694b5f544a99d6e12a13ca5103cb2"
     },
     {
       "path": "packages/standalone/README.md",
@@ -92,9 +92,9 @@
     },
     {
       "path": "packages/standalone/package.json",
-      "gitBlob": "fa6350a846d334a6075bd87e6bb4c62f0c4b14d7",
-      "originalSha256": "9b11ce983428ce6a9623f97a81a0cf95e8a0bc42cc092aa2971e87ec5539d817",
-      "sha256": "9b11ce983428ce6a9623f97a81a0cf95e8a0bc42cc092aa2971e87ec5539d817"
+      "gitBlob": "6b4416ed700c8392e94eea386eff559dca6de363",
+      "originalSha256": "423969a003fb4da9290a0bfbe87bd4c376f6a08bdb60aa4d06b7e76b7f51d47c",
+      "sha256": "423969a003fb4da9290a0bfbe87bd4c376f6a08bdb60aa4d06b7e76b7f51d47c"
     },
     {
       "path": "packages/standalone/service.mjs",
@@ -182,9 +182,9 @@
     },
     {
       "path": "src/adapter.js",
-      "gitBlob": "1f3157920a4eebde2027f09fd79ea3f2200bbc29",
-      "originalSha256": "725b51566ded2ac1902ee5a5fca43a3436cb44e29c12d4b19bdf86ad588fe8d7",
-      "sha256": "725b51566ded2ac1902ee5a5fca43a3436cb44e29c12d4b19bdf86ad588fe8d7"
+      "gitBlob": "2c14019bc4c21b084ef6af3af470d4e675486361",
+      "originalSha256": "061467678f70b62e480ecab23e9612631d8bfabff1cde09fe175d132921f2858",
+      "sha256": "061467678f70b62e480ecab23e9612631d8bfabff1cde09fe175d132921f2858"
     },
     {
       "path": "src/aggregate.js",
@@ -362,9 +362,9 @@
     },
     {
       "path": "src/recovery.js",
-      "gitBlob": "fe0a650aeefe4bb0073f8a584a9f8bde1429ae49",
-      "originalSha256": "264fa145f45de55ea6e232db4c5dcf2a1397cb8a8717c3a8c511c3a888896b54",
-      "sha256": "264fa145f45de55ea6e232db4c5dcf2a1397cb8a8717c3a8c511c3a888896b54"
+      "gitBlob": "e3eae5ba3383d531d4c7c50755abdfc6bb17041b",
+      "originalSha256": "8284e09f3bd75ade5f3ca62166d6710aaf2e069a879feccdc480568c6e363a50",
+      "sha256": "8284e09f3bd75ade5f3ca62166d6710aaf2e069a879feccdc480568c6e363a50"
     },
     {
       "path": "src/reload.js",
@@ -524,9 +524,9 @@
     },
     {
       "path": "src/updater.js",
-      "gitBlob": "efb9920c2b1759d31683c27d27664ec81c3eaaad",
-      "originalSha256": "89bb77fa3f874f7ea5876dfeabc6475ce7419bef611b4f624fb058097a9a08a7",
-      "sha256": "89bb77fa3f874f7ea5876dfeabc6475ce7419bef611b4f624fb058097a9a08a7"
+      "gitBlob": "b1b64f1cb4a3e7ebbc71609c03cc6ee5c7d767b6",
+      "originalSha256": "825813e80c343e1bf1107f3c18e0b443472e2157da73f9c5a48e6a0ca76355c7",
+      "sha256": "825813e80c343e1bf1107f3c18e0b443472e2157da73f9c5a48e6a0ca76355c7"
     },
     {
       "path": "src/upstream.js",

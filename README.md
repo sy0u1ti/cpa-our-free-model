@@ -10,14 +10,34 @@ repository**. The [Magpie adaptation](https://github.com/mu-zi-lee/magpie-our-fr
 is an architectural reference only, not a code source or dependency. The CPA
 C ABI integration is separate. Original authorship and MIT licenses are retained.
 
-Version **0.5.8** vendors OFM `8c2c0f1` (upstream v2.5.2). Only the files the
+Version **0.5.9** vendors OFM `f0b979f` (upstream v2.5.3). Only the files the
 served UI actually references are kept, and the private EAC seal is never
 vendored. `npm run vendor:original -- /path/to/original-checkout` regenerates the
 snapshot from pinned Git blobs. See `scripts/upstream-patches.mjs` and
 `service/vendor/ofm/UPSTREAM.json` for exact provenance.
 
-**New in 0.5.8:** upstream v2.5.2 sync, folding in v2.5.0, v2.5.1 and v2.5.2.
-The headline fix is the free lane's **session-id encoding gate**: since
+**New in 0.5.9:** upstream v2.5.3 hotfix. v2.5.2 added a rule that ended an EAC
+request after 60 seconds without text, reasoning or tool progress; that rule
+aborted legitimate queuing, silent reasoning, heartbeat-only waits and long
+post-answer silences with `NO_PROGRESS`. v2.5.3 removes the cutoff entirely:
+`progressTimeoutMs` is gone from the recovery policy, the adapter no longer arms
+or renews a progress timer, and a legacy `progressTimeoutMs` setting no longer
+has any effect. User cancellation, transport idle detection and the overall
+recovery deadline keep their previous behaviour. Upstream also stops copying
+`packages/` (standalone product sources and the Rust `target` cache) into
+rollback backups during in-app upgrades; that fix is in upstream's own updater,
+which this adapter does not use, so it is vendored but inactive here.
+
+The vendored set stays at 91 files and the served web assets are unchanged
+(`channels-Bo15uddV.js` and friends), so all twelve CPA console patches and all
+17 console labels still match exactly once without re-anchoring. Only
+`src/adapter.js`, `src/recovery.js`, `src/updater.js` and the upstream package
+manifests changed. Both CPA-patched files
+(`packages/standalone/eac.mjs`, `packages/standalone/channels/business.mjs`)
+still apply byte-for-byte, and the pinned EAC seal digests are unchanged.
+
+**Previously in 0.5.8:** upstream v2.5.2 sync, folding in v2.5.0, v2.5.1 and
+v2.5.2. The headline fix was the free lane's **session-id encoding gate**: since
 2026-10-17 the gateway decodes the twelve hex digits after `ses_` and accepts
 only the descending layout `~(ms << 12 | counter)` with counter 1-63, whose
 tenth digit is `f`. An ascending `ms << 12` id or a hash digest gets
@@ -31,18 +51,6 @@ by this adapter), domestic manifest mirrors for the in-app updater, WorkBuddy
 session/system-prompt fixes, bounded account rotation for Raccoon/Loomy, real
 model IDs on the aggregate lane, protocol error classification through all three
 forwarding shapes, and a large batch of channel-adapter fixes.
-
-The vendored set grows to 91 files: `src/deferred-response.js`, `src/failure.js`,
-`src/open-external.js` and `packages/standalone/open-external.mjs` are new, and
-the served web assets are regenerated (channel bundle
-`channels-Dyod_rQn.js` -> `channels-Bo15uddV.js`, plus renamed models, settings
-and usage bundles and a new `visibility-data` chunk). The importer's explicit
-standalone allow-list now includes `open-external.mjs`, which the new `eac.mjs`
-imports; without it the service would fail to start. Eight of the twelve CPA
-console patches no longer matched the rebuilt bundle and were re-anchored; all
-twelve are verified to match exactly once. Both CPA-patched files
-(`packages/standalone/eac.mjs`, `packages/standalone/channels/business.mjs`)
-still apply byte-for-byte, and the pinned EAC seal digests are unchanged.
 
 **New in 0.5.4:** model sync scope: the plugin settings page can now sync only
 chosen models instead of the whole upstream catalog. Unchecked models leave the
@@ -98,14 +106,14 @@ runtime fixes remain in place. The plugin ID remains `our-free-model`.
 
 Since v0.5.0, prebuilt GitHub Releases are published; since v0.5.3 they cover
 Windows amd64, Linux amd64/arm64 and macOS amd64/arm64. Download
-`our-free-model_0.5.8_<os>_<arch>.zip` from
+`our-free-model_0.5.9_<os>_<arch>.zip` from
 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases) and verify it
 against `checksums.txt`, or clone this repository and follow **Development** to
 build the native library yourself. Generated `dist/` files are not committed.
 
 1. Use a plugin-enabled CLIProxyAPI build. Validated against **CPA 8.0.23**.
 2. Copy the matching binary into CPA's configured `plugins` directory:
-   `our-free-model-v0.5.8.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
+   `our-free-model-v0.5.9.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
 3. Merge `config.example.yaml` into CPA's configuration and restart CPA:
 
 ```yaml

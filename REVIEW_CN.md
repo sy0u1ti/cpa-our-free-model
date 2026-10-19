@@ -10,6 +10,28 @@
 圆角覆盖的样式微调；`src/`、控制台 JS、渠道代码与 `assets.json` 均未变化。
 新增的 Tauri 桌面版与未被引用的 `splash.html` 不进入本插件包。
 
+## v0.5.9：同步上游 OFM v2.5.3
+
+上游发布了 v2.5.3 热修（`f0b979f`，自 v2.5.2 起共 7 个提交），本轮把 vendored
+快照从 `8c2c0f1` 重取到该提交。文件数仍是 91，前端资源完全未变，因此 12 条
+`eacConsolePatches` 与 17 条 `consoleLabels` 全部继续单次命中，无需重新定位。
+实际变化只有 `src/adapter.js`、`src/recovery.js`、`src/updater.js` 与上游包清单。
+
+- **移除 EAC 无进度截止**：v2.5.2 新增的规则会在 EAC 连续 60 秒没有正文、思考或
+  工具增量时终止请求并报 `NO_PROGRESS`，误伤了排队、静默思考、只有心跳/用量帧的
+  等待，以及正文输出后的长静默。v2.5.3 把 `progressTimeoutMs` 从
+  `RECOVERY_DEFAULTS` 删除，适配器不再启动或续期进度计时器，也不再在失败路径上
+  合成 `NO_PROGRESS`；旧配置里的该字段不再生效。用户取消、传输层空闲检测与恢复
+  总时限保持原行为。
+- **升级备份缓存排除**：上游自己的更新器把 `packages` 加入
+  `REPOSITORY_SCAFFOLDING`，并在恢复旧回滚凭据时过滤掉 `packages/` 下的文件，
+  避免把独立产品源码与 Rust `target` 编译缓存复制进回滚目录占满系统盘。该逻辑位于
+  `src/updater.js`，CPA 使用 `scripts/update.mjs` 自己的安装器，因此仅作为
+  vendored 代码保留，在 CPA 下不生效。
+- **补丁与密封**：两个 CPA 补丁文件（`eac.mjs`、`business.mjs`）本轮上游未改动，
+  锚点仍各单次命中。EAC 密封材料未变，`service/upstream-eac.json` 的摘要与
+  v2.2.0 时一致；`collect-web-licenses.mjs` 重跑后依赖版本无变化，只更新 commit。
+
 ## v0.5.8：同步上游 OFM v2.5.2
 
 上游发布了 v2.5.0 / v2.5.1 / v2.5.2（自 v2.4.0 起共 35 个提交），本轮把 vendored

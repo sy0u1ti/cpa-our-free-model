@@ -12,7 +12,7 @@ test('vendored OFM has the original repository as its sole source and explicit C
   const manifest = JSON.parse(fs.readFileSync(new URL('UPSTREAM.json', root)));
   assert.equal(manifest.repository, 'https://github.com/Ebony-Vinyl/dsh-our-free-model');
   assert.equal(manifest.schema, 'cpa-ofm-original-source/v1');
-  assert.equal(manifest.commit, '8c2c0f1e3a1caf5cb682704a576d36a449a6780d');
+  assert.equal(manifest.commit, 'f0b979fdf48d3915504f5f20e0a105596712f3c8');
   for (const file of manifest.files) {
     const bytes = fs.readFileSync(new URL(file.path, root));
     assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'), file.sha256, file.path);
