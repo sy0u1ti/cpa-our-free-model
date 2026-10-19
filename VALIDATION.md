@@ -9,9 +9,53 @@ plugin directories and data directories inside `.test-output/`.
 
 | Component | Revision |
 | --- | --- |
-| OFM | `f0b979fdf48d3915504f5f20e0a105596712f3c8` (upstream v2.5.3) |
+| OFM | `25151bab43ff28bfc0eef5a3dbec4443ecc6d2f2` (upstream v2.5.5) |
 | Official CPA | v8.0.23 / `d318bcc3afb9ea8782862f5e8cdb541afdc9dfa5` |
 | Native contract | C ABI 1, negotiated RPC schema up to 6 |
+
+## Upstream v2.5.5 Sync: 0.5.10
+
+Re-vendored the original OFM runtime from `f0b979f` to `25151ba` (upstream
+v2.5.5, 14 commits covering v2.5.4 and v2.5.5). The retained set grows from 91
+to 93 files: `src/sponsor.js` and `src/sponsor.css` are new. The importer now
+also selects `.css` under `src/` so the sponsor stylesheet stays reproducible,
+and `assets.go` embeds it. The served web assets were regenerated: the channel
+bundle moves from `channels-Bo15uddV.js` to `channels-kEN3gKhj.js`, and
+`app.js`/`app.css` grew with the sponsor page.
+
+v2.5.4 adds a sponsor page plus a once-per-local-day sponsor notice to the
+standalone console, then reworks the desktop shell around it. v2.5.5 removes the
+community-group details from the sponsor copy and stops the desktop plugin from
+auto-opening the sponsor notice at startup, keeping the page entry and invitation
+code. In this adapter the page and the "来自赞助商的广告" menu entry appear
+because they are part of the embedded upstream console. The existing console
+sandbox already allows popups (`allow-popups`,
+`allow-popups-to-escape-sandbox`) and the management key never enters that
+frame; the sandbox's in-memory Storage bridge handles the notice's storage
+access.
+
+Ten of the twelve CPA console patches no longer matched after upstream rebuilt
+the channel bundle with a new minifier output. All twelve were re-anchored
+against the new bytes and are verified to match exactly once by
+`TestEACUIHooksMatchOnlyThePinnedBundle` and `tests/eac-ui.test.mjs`; that
+test's login-factory stubs were re-pointed at the new minified names. All
+seventeen console labels still match without changes.
+
+Both CPA-patched files (`packages/standalone/eac.mjs`,
+`packages/standalone/channels/business.mjs`) are unchanged upstream this round,
+so both patches still apply byte-for-byte, and the pinned EAC seal digests are
+unchanged from v2.2.0. The web dependency versions in the original lockfile are
+also unchanged, so re-recording the license sources only moved the commit.
+
+Verified on Windows x64 against official CPA 8.0.23:
+
+- `npm run check` (115 JavaScript files), `npm test` (44 tests), `go test ./...`,
+  `go vet ./...`.
+- `scripts/cpa-smoke.mjs` against the real plugin binary: 24 checks, including
+  the free-lane v2.5 wire assertions (path, four session headers, descending
+  session encoding, read/shell fingerprint, no `tool_choice: 'none'`).
+- Provenance audit of all 93 vendored files against the original Git blobs
+  (0 mismatches), including the two CPA patches.
 
 ## Upstream v2.5.3 Sync: 0.5.9
 

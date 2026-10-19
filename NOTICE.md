@@ -8,7 +8,7 @@ binary Release is implied.
 ## Our Free Model
 
 - Source: https://github.com/Ebony-Vinyl/dsh-our-free-model
-- Commit: `f0b979fdf48d3915504f5f20e0a105596712f3c8` (upstream v2.5.3)
+- Commit: `25151bab43ff28bfc0eef5a3dbec4443ecc6d2f2` (upstream v2.5.5)
 - Runtime, providers, console, usage accounting, authentication flows and model
   policy are upstream functionality, not newly authored by this adapter.
 - License: `service/vendor/ofm/LICENSE` (MIT).

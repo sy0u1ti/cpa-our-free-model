@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { PATCHES, patchOriginal } from './upstream-patches.mjs';
 
 export const ORIGINAL_REPOSITORY = 'https://github.com/Ebony-Vinyl/dsh-our-free-model';
-export const ORIGINAL_COMMIT = 'f0b979fdf48d3915504f5f20e0a105596712f3c8';
+export const ORIGINAL_COMMIT = '25151bab43ff28bfc0eef5a3dbec4443ecc6d2f2';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const checkout = path.resolve(process.argv[2] || path.join(root, '.reference/ofm'));
 const destination = path.join(root, 'service/vendor/ofm');
@@ -30,7 +30,7 @@ const selected = [
   ...webAssets.map(file => `packages/standalone/web/${file}`),
   // Everything under src/ except the seal, so a new upstream module cannot be
   // missed by an allow-list that silently forgets to name it.
-  ...tree.filter(file => /^src\/.*\.(js|json)$/.test(file) && !withheld.has(file)),
+  ...tree.filter(file => /^src\/.*\.(js|json|css)$/.test(file) && !withheld.has(file)),
   'vendor/channel-pack/qoder-auth-wasm.wasm', 'vendor/channel-pack/LICENSE', 'vendor/channel-pack/NOTICE.md',
 ].sort();
 if (new Set(selected).size !== selected.length) throw new Error('Duplicate entry in the vendored file list');

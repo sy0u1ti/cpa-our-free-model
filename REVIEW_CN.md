@@ -10,6 +10,29 @@
 圆角覆盖的样式微调；`src/`、控制台 JS、渠道代码与 `assets.json` 均未变化。
 新增的 Tauri 桌面版与未被引用的 `splash.html` 不进入本插件包。
 
+## v0.5.10：同步上游 OFM v2.5.5
+
+上游发布了 v2.5.4 与 v2.5.5（`25151ba`，自 v2.5.3 起共 14 个提交），本轮把
+vendored 快照从 `f0b979f` 重取到该提交。文件数由 91 增至 93：新增
+`src/sponsor.js` 与 `src/sponsor.css`；前端资源整体重新生成，渠道 bundle
+`channels-Bo15uddV.js` → `channels-kEN3gKhj.js`，`app.js` / `app.css` 同步变化。
+
+- **赞助页与每日公告**：v2.5.4 在独立控制台新增「来自赞助商的广告」页面与每日一次
+  的公告弹窗，并重做桌面端围绕它的导航、深浅色与窄窗口表现；v2.5.5 删掉赞助说明里
+  的交流群、群号与复制按钮，关闭桌面插件启动时自动弹出的开屏，保留页面入口与邀请码。
+  本适配器嵌入上游控制台，因此页面与菜单入口随之上线；外链在既有沙盒
+  （`allow-popups`）内可正常打开，管理密钥仍不会进入该帧。
+- **赞助样式纳入取源**：导入脚本原先只选取 `src/` 下的 `.js|.json`，本轮把 `.css`
+  一并纳入，确保 `src/sponsor.css` 可复现；`assets.go` 的 embed 清单同步加入该文件。
+- **控制台补丁重定位**：新 bundle 的压缩标识符又一次整体重排，12 条
+  `eacConsolePatches` 中有 10 条不再命中；已按新 bundle 逐条重新定位，全部恢复单次
+  命中。`tests/eac-ui.test.mjs` 的桩同步更新为新的工厂名（`Na`）与 React 辅助名
+  （`A`/`L`/`ee`/`Z`），断言改用新的变量名。17 条 `consoleLabels` 全部继续命中，
+  无需修改。Go 侧 `TestEACUIHooksMatchOnlyThePinnedBundle` 仍要求每条补丁恰好命中一次。
+- **补丁与密封**：两个 CPA 补丁文件（`eac.mjs`、`business.mjs`）本轮上游未改动，
+  锚点仍各单次命中。`src/vault.js` 未变，EAC 密封材料 `vault-data` / `vault-anchor`
+  摘要与 v2.2.0 时一致；`collect-web-licenses.mjs` 重跑后依赖版本无变化，只更新 commit。
+
 ## v0.5.9：同步上游 OFM v2.5.3
 
 上游发布了 v2.5.3 热修（`f0b979f`，自 v2.5.2 起共 7 个提交），本轮把 vendored

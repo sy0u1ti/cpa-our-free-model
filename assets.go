@@ -28,13 +28,15 @@ import (
 //go:embed service/vendor/ofm/packages/standalone/package.json service/vendor/ofm/packages/standalone/service.mjs
 //go:embed service/vendor/ofm/packages/standalone/web/_ofm-provider-list-D9WP3xjp.js service/vendor/ofm/packages/standalone/web/app.css
 //go:embed service/vendor/ofm/packages/standalone/web/app.js service/vendor/ofm/packages/standalone/web/assets.json
-//go:embed service/vendor/ofm/packages/standalone/web/channels-Bo15uddV.js service/vendor/ofm/packages/standalone/web/index.html
+//go:embed service/vendor/ofm/packages/standalone/web/channels-kEN3gKhj.js service/vendor/ofm/packages/standalone/web/index.html
 //go:embed service/vendor/ofm/packages/standalone/web/models-ishsHIe7.js service/vendor/ofm/packages/standalone/web/search-RZVy3Eoo.js
 //go:embed service/vendor/ofm/packages/standalone/web/settings-DYjyfDI2.js service/vendor/ofm/packages/standalone/web/usage-BOibUWax.js
 //go:embed service/vendor/ofm/packages/standalone/web/visibility-data-9WWAmLOB.js service/vendor/ofm/packages/standalone/web/x-CzfajR1e.js
 //go:embed service/vendor/ofm/scripts/standalone-third-party.txt service/vendor/ofm/src/adapter.js service/vendor/ofm/src/aggregate.js
 //go:embed service/vendor/ofm/src/anthropic.js service/vendor/ofm/src/catalog.js service/vendor/ofm/src/chan-relay.js
 //go:embed service/vendor/ofm/src/channel.js service/vendor/ofm/src/combos.js service/vendor/ofm/src/core/completion.js
+//go:embed service/vendor/ofm/src/sponsor.css
+//go:embed service/vendor/ofm/src/sponsor.js
 //go:embed service/vendor/ofm/src/core/runtime.js service/vendor/ofm/src/core/stats.js service/vendor/ofm/src/deferred-response.js
 //go:embed service/vendor/ofm/src/eac-login.js
 //go:embed service/vendor/ofm/src/eac-user.js service/vendor/ofm/src/eac.js service/vendor/ofm/src/effort.js service/vendor/ofm/src/egress.js
