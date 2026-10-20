@@ -9,9 +9,48 @@ plugin directories and data directories inside `.test-output/`.
 
 | Component | Revision |
 | --- | --- |
-| OFM | `25151bab43ff28bfc0eef5a3dbec4443ecc6d2f2` (upstream v2.5.5) |
+| OFM | `49171b9904b44d27d11b2a1d65b302ba9177556a` (upstream v2.5.6) |
 | Official CPA | v8.0.23 / `d318bcc3afb9ea8782862f5e8cdb541afdc9dfa5` |
 | Native contract | C ABI 1, negotiated RPC schema up to 6 |
+
+## Upstream v2.5.6 Sync: 0.5.11
+
+Re-vendored the original OFM runtime from `25151ba` to `49171b9` (upstream
+v2.5.6, 5 commits). The retained set stays at 93 files and the served web
+assets are byte-identical to 0.5.10, so all twelve CPA console patches and all
+seventeen console labels still match exactly once without re-anchoring. Only
+`src/reload.js` changed inside the vendored set.
+
+v2.5.6 is a DSH-plugin-only release. It unifies the Beichen API sponsor card
+above the free-model and EAC pages, shrinks its spacing and copy, standardises
+the branding to "北辰 API × OFM" with a 10% referral rebate line, and removes
+the standalone "来自赞助商的广告" nav item and detail route while keeping the
+card and its "立即查看" link. That UI lives in upstream's `client.js` (the DSH
+plugin entry), which this adapter does not vendor, so it does not reach the
+embedded CPA console; the standalone sponsor page added in v2.5.4/v2.5.5 keeps
+its upstream v2.5.5 shape.
+
+The other fix is macOS hot reload: `src/reload.js` used URL-prefix checks to
+decide whether a dependency belonged to the current plugin generation, but
+temporary-directory paths such as `/var` versus `/private/var` did not match,
+so old modules kept running. The resolver now compares `realpathSync` results
+for both the parent module and the resolved URL.
+
+Both CPA-patched files (`packages/standalone/eac.mjs`,
+`packages/standalone/channels/business.mjs`) are unchanged upstream this round,
+so both patches still apply byte-for-byte, and the pinned EAC seal digests are
+unchanged from v2.2.0. The web dependency versions in the original lockfile are
+also unchanged, so re-recording the license sources only moved the commit.
+
+Verified on Windows x64 against official CPA 8.0.23:
+
+- `npm run check` (116 JavaScript files), `npm test` (44 tests), `go test ./...`,
+  `go vet ./...`.
+- `scripts/cpa-smoke.mjs` against the real plugin binary: 24 checks, including
+  the free-lane v2.5 wire assertions (path, four session headers, descending
+  session encoding, read/shell fingerprint, no `tool_choice: 'none'`).
+- Provenance audit of all 93 vendored files against the original Git blobs
+  (0 mismatches), including the two CPA patches.
 
 ## Upstream v2.5.5 Sync: 0.5.10
 

@@ -1,7 +1,7 @@
 {
   "schema": "cpa-ofm-original-source/v1",
   "repository": "https://github.com/Ebony-Vinyl/dsh-our-free-model",
-  "commit": "25151bab43ff28bfc0eef5a3dbec4443ecc6d2f2",
+  "commit": "49171b9904b44d27d11b2a1d65b302ba9177556a",
   "method": "git show <original-commit>:<path>; no working-tree bytes and no secondary fork",
   "files": [
     {
@@ -12,9 +12,9 @@
     },
     {
       "path": "package.json",
-      "gitBlob": "a87e055ad90ad58e888675cc724b576da70f3dcf",
-      "originalSha256": "a749c87b783ecd8adf28d788ae11c61e0d6550d2aa8d8fe817d2dd08c54109c7",
-      "sha256": "a749c87b783ecd8adf28d788ae11c61e0d6550d2aa8d8fe817d2dd08c54109c7"
+      "gitBlob": "79f2b97c6f168081ec12f14ce2a8977630fefca6",
+      "originalSha256": "a9be5668d37d7c08adf1e6c2837e8ec8863c3b44049d10e317bf050236d8b303",
+      "sha256": "a9be5668d37d7c08adf1e6c2837e8ec8863c3b44049d10e317bf050236d8b303"
     },
     {
       "path": "packages/standalone/README.md",
@@ -368,9 +368,9 @@
     },
     {
       "path": "src/reload.js",
-      "gitBlob": "529a80f509523f1b2addd9f6a45e030ad7cc5334",
-      "originalSha256": "2666804abe42b1bf96d35ce7b028204436f8b259989196732970c22e2cfa2b3b",
-      "sha256": "2666804abe42b1bf96d35ce7b028204436f8b259989196732970c22e2cfa2b3b"
+      "gitBlob": "c835e304b05d177a09a90ac838d2839879417c9e",
+      "originalSha256": "d6918993538bd1e35576594c1140bb41420e2499c19c96a8c4d9a04601efda02",
+      "sha256": "d6918993538bd1e35576594c1140bb41420e2499c19c96a8c4d9a04601efda02"
     },
     {
       "path": "src/route/classify.js",
