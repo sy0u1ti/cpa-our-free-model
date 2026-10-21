@@ -28,8 +28,8 @@ import (
 //go:embed service/vendor/ofm/packages/standalone/package.json service/vendor/ofm/packages/standalone/service.mjs
 //go:embed service/vendor/ofm/packages/standalone/web/_ofm-provider-list-D9WP3xjp.js service/vendor/ofm/packages/standalone/web/app.css
 //go:embed service/vendor/ofm/packages/standalone/web/app.js service/vendor/ofm/packages/standalone/web/assets.json
-//go:embed service/vendor/ofm/packages/standalone/web/channels-kEN3gKhj.js service/vendor/ofm/packages/standalone/web/index.html
-//go:embed service/vendor/ofm/packages/standalone/web/models-ishsHIe7.js service/vendor/ofm/packages/standalone/web/search-RZVy3Eoo.js
+//go:embed service/vendor/ofm/packages/standalone/web/channels-CfC6--A6.js service/vendor/ofm/packages/standalone/web/index.html
+//go:embed service/vendor/ofm/packages/standalone/web/models-CEvvPVd6.js service/vendor/ofm/packages/standalone/web/search-RZVy3Eoo.js
 //go:embed service/vendor/ofm/packages/standalone/web/settings-DYjyfDI2.js service/vendor/ofm/packages/standalone/web/usage-BOibUWax.js
 //go:embed service/vendor/ofm/packages/standalone/web/visibility-data-9WWAmLOB.js service/vendor/ofm/packages/standalone/web/x-CzfajR1e.js
 //go:embed service/vendor/ofm/scripts/standalone-third-party.txt service/vendor/ofm/src/adapter.js service/vendor/ofm/src/aggregate.js
@@ -42,6 +42,7 @@ import (
 //go:embed service/vendor/ofm/src/eac-user.js service/vendor/ofm/src/eac.js service/vendor/ofm/src/effort.js service/vendor/ofm/src/egress.js
 //go:embed service/vendor/ofm/src/failure.js service/vendor/ofm/src/feed.js service/vendor/ofm/src/forward.js service/vendor/ofm/src/http.js service/vendor/ofm/src/image-pricing.js
 //go:embed service/vendor/ofm/src/kilo.js service/vendor/ofm/src/local-optimize.js service/vendor/ofm/src/messages.js
+//go:embed service/vendor/ofm/src/model-test.js
 //go:embed service/vendor/ofm/src/open-external.js
 //go:embed service/vendor/ofm/src/picks.js service/vendor/ofm/src/probe.js service/vendor/ofm/src/providers/index.js service/vendor/ofm/src/providers/registry.json
 //go:embed service/vendor/ofm/src/push.js service/vendor/ofm/src/recovery.js service/vendor/ofm/src/reload.js

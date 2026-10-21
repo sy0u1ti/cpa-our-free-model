@@ -9,24 +9,36 @@
 服务生命周期、安全边界及宿主兼容测试，不把上游功能声明为独立原创。
 
 **唯一产品源码上游是原项目，不使用参考项目的源码快照或辅助模块。**
-通过 `git show` 直接读取原仓库固定提交的文件（当前 93 个），除 2 个独立可追溯的
+通过 `git show` 直接读取原仓库固定提交的文件（当前 94 个），除 2 个独立可追溯的
 CPA 补丁（接入私有 EAC 来源、外置内置 OAuth 配置）外逐字节不变，包括独立服务与
 完整控制台。来源、原始 Git blob、前后 SHA-256、补丁说明均记录在
 `service/vendor/ofm/UPSTREAM.json`。`scripts/import-upstream.mjs` 和
 `scripts/upstream-patches.mjs` 可以重现整个取源过程。
 
-**当前版本 v0.5.11**：同步上游 OFM **v2.5.6**（`49171b9`，5 个提交）。这是只发布
-DSH 插件的版本：把北辰 API 赞助卡片统一放到免费模型页与 EAC 页上方，缩小卡片尺寸并
-精简间距、图标和文案，品牌统一为「北辰 API × OFM」、优惠说明改为「邀请可获百分之十
-的返现」，同时移除「来自赞助商的广告」导航与详情路由，只保留卡片和「立即查看」链接。
-另外修复了 macOS 临时目录路径下热重载依赖未刷新、旧模块继续运行的问题：
-`src/reload.js` 现在对父子模块都先做 `realpathSync`，再比较真实路径前缀。
+**当前版本 v0.5.12**：同步上游 OFM **v2.5.7**（`4e44d45`，28 个提交）。主要变化：
+CodeArts 改用独立签名传输，避免其它插件改写全局 `fetch` 破坏签名，同时保留代理、
+超时与取消，积分和签到绑定所属插件实例的出口；字符串与数字形式的 CodeArts `4004`
+都能识别，最多去掉 `benefit` 请求头并重新签名重试一次；托管安装会禁用不适用的插件内
+升级与热重载；模型手动测速重做——只有收到非空正文且正常结束才算成功，后台总预算
+300 秒、前端等待 330 秒，成功与失败结果都会保存，取消不会覆盖旧结果、旧探测不能覆盖
+新实测，并区分「清单已收录」「实测可用」「实测失败」。低性能模式已移除，正常动画、
+主题切换与赞助卡片保留。北辰 API PNG Logo 与多模态用量修正也一并合入：Kilo
+`kilo-auto/free` 被上游夸大的输入/总量计数会被丢弃，保留解码计数，让宿主回退到本地
+输入估算，而不是误报 `CONTEXT_WINDOW_EXCEEDED`。
 
-在 CPA 适配器的 vendored 范围内，本轮只有 `src/reload.js` 变化；赞助卡片位于上游
-自己的 `client.js`（DSH 插件入口），本插件不 vendor 该文件，所以卡片改版不会进入
-嵌入控制台。独立控制台的前端资源与 v0.5.10 逐字节相同，12 条控制台补丁与 17 条界面
-文案全部继续单次命中，无需重新定位。两个 CPA 补丁文件（`eac.mjs`、`business.mjs`）
-仍逐字节适用；EAC 密封材料未变，`service/upstream-eac.json` 的摘要与 v2.2.0 时一致。
+vendored 快照由 93 增至 94 个文件（新增 `src/model-test.js`），前端资源重新生成：
+渠道 bundle `channels-kEN3gKhj.js` → `channels-CfC6--A6.js`，models bundle
+`models-ishsHIe7.js` → `models-CEvvPVd6.js`。CPA 的 12 条控制台补丁中有 10 条因
+压缩标识符重排失效，已逐条重新定位，全部恢复单次命中；17 条界面文案全部继续命中。
+`/models/test` 仍在 CPA 白名单内，返回上游新的测速结果结构。两个 CPA 补丁文件
+（`eac.mjs`、`business.mjs`）本轮上游未改动，仍逐字节适用；EAC 密封材料未变，
+`service/upstream-eac.json` 的摘要与 v2.2.0 时一致。
+
+**上一版 v0.5.11**：同步上游 OFM **v2.5.6**（`49171b9`，5 个提交）。该版只发布
+DSH 插件：把北辰 API 赞助卡片统一放到免费模型页与 EAC 页上方，精简文案并移除
+「来自赞助商的广告」导航与详情路由，同时修复 macOS 临时目录下热重载按 URL 前缀判断
+失效的问题（改用 `realpathSync` 比较真实路径）。vendored 范围内只有 `src/reload.js`
+变化，赞助卡片位于上游 `client.js`，不会进入 CPA 嵌入控制台。
 
 **上一版 v0.5.10**：同步上游 OFM **v2.5.5**（`25151ba`，含 v2.5.4 / v2.5.5）。
 v2.5.4 在独立控制台里新增「来自赞助商的广告」页面与每日一次的赞助公告；v2.5.5 删掉
@@ -85,16 +97,16 @@ Linux 源码备用更新器创建的安装目录改为可遍历权限，备份�
 **v0.5.0 起提供预编译 Release；v0.5.3 起覆盖 Windows amd64、Linux amd64/arm64
 与 macOS amd64/arm64。** `dist/` 不随源码提交：优先从
 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases)
-下载 `our-free-model_0.5.11_<系统>_<架构>.zip` 并核对 `checksums.txt`；从仓库克隆后
+下载 `our-free-model_0.5.12_<系统>_<架构>.zip` 并核对 `checksums.txt`；从仓库克隆后
 也可按第 7 节自行构建，产物位于：
 
 | 系统 | 文件 |
 | --- | --- |
-| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.11.dll` |
-| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.11.so` |
-| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.11.so` |
-| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.11.dylib` |
-| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.11.dylib` |
+| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.12.dll` |
+| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.12.so` |
+| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.12.so` |
+| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.12.dylib` |
+| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.12.dylib` |
 
 1. 把对应动态库复制到 CPA 配置的插件目录，例如 `plugins/` 或 `plugins/windows/amd64/`。
    **不要改掉 `our-free-model` 这一文件名 ID**；文件名和配置键必须一致。
@@ -116,7 +128,7 @@ plugins:
 首次使用时释放到私有数据目录，以内容哈希命名并逐文件校验，损坏时拒绝执行。
 
 CPA 适配源码仓库为 [sy0u1ti/cpa-our-free-model](https://github.com/sy0u1ti/cpa-our-free-model)。
-v0.5.0 起已发布二进制 Release（当前 v0.5.11，覆盖五个平台）；公共插件商店的上架申请
+v0.5.0 起已发布二进制 Release（当前 v0.5.12，覆盖五个平台）；公共插件商店的上架申请
 仍在审核中，通过后即可在 CPA 插件商店里直接安装，在那之前请先手动放置动态库，
 之后可直接用页面一键更新（见第 7 节）。
 
@@ -333,7 +345,7 @@ https://raw.githubusercontent.com/sy0u1ti/cpa-our-free-model/main/registry.json
 不会自动重启整个 CPA，也不声称所有 CPA 版本都支持无中断热更新。使用反代路径前缀时，
 要把同前缀下的 `/v8/management/` 也转发到 CPA。
 
-**v0.5.0 是首个正式 Release**（当前 v0.5.11），根目录 `registry.json` 已发布。
+**v0.5.0 是首个正式 Release**（当前 v0.5.12），根目录 `registry.json` 已发布。
 v0.5.0 之前的版本不含更新器，需要手动安装一次；从 v0.5.0 起可直接在页面更新到
 后续正式版本。尚无 Release、平台安装包缺失、GitHub 请求失败或本地开发构建，
 都会显示对应状态并禁用安装按钮。

@@ -9,9 +9,59 @@ plugin directories and data directories inside `.test-output/`.
 
 | Component | Revision |
 | --- | --- |
-| OFM | `49171b9904b44d27d11b2a1d65b302ba9177556a` (upstream v2.5.6) |
+| OFM | `4e44d453183ca2b60a424c190e501a192078308a` (upstream v2.5.7) |
 | Official CPA | v8.0.23 / `d318bcc3afb9ea8782862f5e8cdb541afdc9dfa5` |
 | Native contract | C ABI 1, negotiated RPC schema up to 6 |
+
+## Upstream v2.5.7 Sync: 0.5.12
+
+Re-vendored the original OFM runtime from `49171b9` to `4e44d45` (upstream
+v2.5.7, 28 commits). The retained set grows from 93 to 94 files
+(`src/model-test.js` is new). The served web assets were regenerated: the
+channel bundle moves from `channels-kEN3gKhj.js` to `channels-CfC6--A6.js` and
+the models bundle from `models-ishsHIe7.js` to `models-CEvvPVd6.js`.
+
+The headline changes are CodeArts' dedicated signed transport (a new
+`direct-fetch.ts` plus an `egressFetch` sender seam, so another plugin rewriting
+global `fetch` cannot break the signature; proxy, timeout and cancellation are
+kept and credits/check-in stay bound to their own plugin instance), a signed
+retry that recognises both string and numeric CodeArts `4004` after dropping the
+`benefit` header once, managed-install mode disabling in-app upgrade and hot
+reload, and a rebuilt manual model test. The test now succeeds only on a
+nonempty, normally finished answer, uses a 300s backend budget with a 330s UI
+wait, persists success and failure results without letting a cancellation or an
+older probe overwrite a newer measurement, and distinguishes "listed",
+"verified available" and "verified failed". Low-performance mode is removed
+while normal animation, theme switching and the sponsor cards stay.
+
+The multimodal usage fix lands in `src/stream.js`/`src/adapter.js`: inflated
+input and total stamps from the Kilo `kilo-auto/free` router are dropped while
+output and reasoning counts remain, and once one attempt's input is unknown the
+accumulator no longer fabricates an exact prompt/total, so the host can fall
+back to its own estimate instead of failing with `CONTEXT_WINDOW_EXCEEDED`.
+
+Ten of the twelve CPA console patches no longer matched after upstream rebuilt
+the channel bundle with a new minifier output. All twelve were re-anchored
+against the new bytes and are verified to match exactly once by
+`TestEACUIHooksMatchOnlyThePinnedBundle` and `tests/eac-ui.test.mjs`; that
+test's login-factory stubs were re-pointed at the new minified names. All
+seventeen console labels still match without changes. The `/models/test` route
+stays on the CPA allowlist and now returns the upstream test result shape.
+
+Both CPA-patched files (`packages/standalone/eac.mjs`,
+`packages/standalone/channels/business.mjs`) still match exactly once and apply
+byte-for-byte, and the pinned EAC seal digests are unchanged from v2.2.0. The
+web dependency versions in the original lockfile are also unchanged, so
+re-recording the license sources only moved the commit.
+
+Verified on Windows x64 against official CPA 8.0.23:
+
+- `npm run check` (117 JavaScript files), `npm test` (44 tests), `go test ./...`,
+  `go vet ./...`.
+- `scripts/cpa-smoke.mjs` against the real plugin binary: 24 checks, including
+  the free-lane v2.5 wire assertions and the rebuilt `/models/test` route.
+- Provenance audit of all 94 vendored files against the original Git blobs
+  (0 mismatches), including the two CPA patches.
 
 ## Upstream v2.5.6 Sync: 0.5.11
 

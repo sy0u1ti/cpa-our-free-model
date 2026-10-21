@@ -10,6 +10,36 @@
 圆角覆盖的样式微调；`src/`、控制台 JS、渠道代码与 `assets.json` 均未变化。
 新增的 Tauri 桌面版与未被引用的 `splash.html` 不进入本插件包。
 
+## v0.5.12：同步上游 OFM v2.5.7
+
+上游发布了 v2.5.7（`4e44d45`，自 v2.5.6 起共 28 个提交），本轮把 vendored 快照
+从 `49171b9` 重取到该提交。文件数由 93 增至 94（新增 `src/model-test.js`），前端
+资源重新生成：渠道 bundle `channels-kEN3gKhj.js` → `channels-CfC6--A6.js`，
+models bundle `models-ishsHIe7.js` → `models-CEvvPVd6.js`。
+
+- **CodeArts 独立签名传输**：新增 `vendor/channel-pack/src/direct-fetch.ts` 与
+  `src/egress.js` 的 `send` 参数，签名请求不再经过可能被其它插件改写的全局
+  `fetch`；代理、超时、取消照旧，积分与签到绑定所属插件实例出口。字符串与数字形式的
+  CodeArts `4004` 都可识别，最多去掉 `benefit` 请求头并重新签名重试一次。
+- **手动测速重做**：新增 `src/model-test.js`，只有收到非空正文且正常结束才判成功；
+  后台预算 300 秒、前端等待 330 秒。成功与失败结果写入 `availability.manualResults`，
+  取消不覆盖旧结果，旧探测不能覆盖新实测；区分「清单已收录」「实测可用」「实测失败」。
+  `src/core/runtime.js` 暴露 `testModel`，`management.mjs` 的 `/models/test` 改用它；
+  CPA 白名单无需新增路由，返回结构随上游更新。
+- **用量修正**：`src/stream.js` 新增 `sanitizeUsage`，`src/adapter.js` 只对
+  `kilo-auto/free` 丢弃超过声明上下文窗口的输入/总量计数，保留输出与思考计数；
+  一旦某次尝试的输入不可信，累计值不再拼出虚假的精确 prompt/total。
+- **赞助与界面**：保留北辰 API PNG Logo 与赞助卡片，移除低性能模式；渠道包新增
+  `channel-pack-rpc.ts`、`codearts-credits.ts`、`models.ts`、`service.ts` 等修正，
+  EAC DeepSeek Flash 的显示名与卡片标签加上 `1017` 版本标记。
+- **控制台补丁重定位**：新 bundle 的压缩标识符再次整体重排，12 条
+  `eacConsolePatches` 中有 10 条不再命中；已逐条重新定位，全部恢复单次命中。
+  `tests/eac-ui.test.mjs` 的桩同步更新为新的工厂名（`ba`）与 React 辅助名
+  （`y`/`F`/`te`/`Q`）。17 条 `consoleLabels` 全部继续命中。
+- **补丁与密封**：两个 CPA 补丁文件（`eac.mjs`、`business.mjs`）锚点仍各单次命中。
+  EAC 密封材料未变，`service/upstream-eac.json` 的摘要与 v2.2.0 时一致；
+  `collect-web-licenses.mjs` 重跑后依赖版本无变化，只更新 commit。
+
 ## v0.5.11：同步上游 OFM v2.5.6
 
 上游发布了 v2.5.6（`49171b9`，5 个提交），本轮把 vendored 快照从 `25151ba`
