@@ -9,9 +9,56 @@ plugin directories and data directories inside `.test-output/`.
 
 | Component | Revision |
 | --- | --- |
-| OFM | `4e44d453183ca2b60a424c190e501a192078308a` (upstream v2.5.7) |
+| OFM | `1f92730b388d2ac142f15ddc3bd11d52b807ca71` (upstream v2.5.8) |
 | Official CPA | v8.0.23 / `d318bcc3afb9ea8782862f5e8cdb541afdc9dfa5` |
 | Native contract | C ABI 1, negotiated RPC schema up to 6 |
+
+## Upstream v2.5.8 Sync: 0.5.13
+
+Re-vendored the original OFM runtime from `4e44d45` to `1f92730` (upstream
+v2.5.8, 37 commits). The retained set stays at 94 files. The served web assets
+were regenerated: the channel bundle is now `channels-DmI_2lp3.js`, models
+`models-DXpb3t6q.js`, settings `settings-BbcpaUEV.js`, the old
+`_ofm-provider-list` chunk is gone and `sliders-horizontal-DNbjUrIs.js` is new.
+
+Upstream removed the WorkBuddy (CodeBuddy) domestic and international channels
+entirely, along with the Huawei Cloud/CodeArts channel and its `jose`
+dependency, leaving ten account channels. Historical WorkBuddy credentials and
+user data stay on disk but the channels no longer have a call entry. Because the
+WorkBuddy adapter is gone, this adapter's former "lead WorkBuddy wire messages
+with a system entry" patch no longer has an anchor and was dropped; the
+remaining CPA patch (now `cpa-private-oauth-settings`) still removes the built-in
+Google OAuth defaults and externalises the Loomy app ID.
+`tests/buddy-system-prompt.test.mjs` was deleted with the channel.
+
+Reasoning round-trips are fixed: `src/core/completion.js` keeps an assistant
+`reasoning_content` string from forwarded Chat history, and `src/messages.js`
+projects it back including explicit empty strings. `src/updater.js` now retries
+Windows backup-directory renames through `renameWithRetry` and reuses a staging
+copy that already hashes clean against the current manifest, so a retry after a
+later-phase failure does not re-download the release. Qoder effort levels are
+ordered by real strength with original IDs and unknown levels last, and the EAC
+DeepSeek Flash display name carries the `1017` marker.
+
+Eight of the twelve CPA console patches no longer matched after upstream rebuilt
+the channel bundle with a new minifier output. All twelve were re-anchored
+against the new bytes and are verified to match exactly once by
+`TestEACUIHooksMatchOnlyThePinnedBundle` and `tests/eac-ui.test.mjs`; that
+test's login-factory stubs were re-pointed at the new minified names. All
+seventeen console labels still match without changes.
+
+Both remaining CPA-patched files still apply byte-for-byte, and the pinned EAC
+seal digests are unchanged from v2.2.0. The web dependency versions in the
+original lockfile are unchanged, so re-recording the license sources only moved
+the commit.
+
+Verified on Windows x64 against official CPA 8.0.23:
+
+- `npm run check` (116 JavaScript files), `npm test` (43 tests),
+  `go test ./...`, `go vet ./...`.
+- `scripts/cpa-smoke.mjs` against the real plugin binary: 24 checks.
+- Provenance audit of all 94 vendored files against the original Git blobs
+  (0 mismatches), including the remaining CPA patches.
 
 ## Upstream v2.5.7 Sync: 0.5.12
 

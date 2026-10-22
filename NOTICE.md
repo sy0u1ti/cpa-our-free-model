@@ -8,7 +8,7 @@ binary Release is implied.
 ## Our Free Model
 
 - Source: https://github.com/Ebony-Vinyl/dsh-our-free-model
-- Commit: `4e44d453183ca2b60a424c190e501a192078308a` (upstream v2.5.7)
+- Commit: `1f92730b388d2ac142f15ddc3bd11d52b807ca71` (upstream v2.5.8)
 - Runtime, providers, console, usage accounting, authentication flows and model
   policy are upstream functionality, not newly authored by this adapter.
 - License: `service/vendor/ofm/LICENSE` (MIT).
@@ -32,11 +32,9 @@ count. Two CPA-only changes are reproducible in `scripts/upstream-patches.mjs`:
    supplier. The original login, Star validation, signing and authorization
    logic in `eac.mjs` is otherwise unchanged.
 2. Remove the channel bundle's built-in Google OAuth defaults and Loomy app ID
-   (use explicit private configuration, with a clear missing-config error), and
-   lead WorkBuddy/CodeBuddy wire messages with a system entry. The Tencent
-   gateway rejects any request whose first message is not a system prompt with
-   `400 + code 11128`, and the OpenAI gateway path only forwarded one when the
-   caller supplied it.
+   (use explicit private configuration, with a clear missing-config error).
+   Upstream removed the WorkBuddy/CodeBuddy channels in v2.5.8, so the former
+   leading-system-message patch no longer applies and was dropped.
 
 `service/vendor/ofm/UPSTREAM.json` records original Git blob IDs, original
 SHA-256 hashes, resulting hashes, patch IDs and omitted optional credential

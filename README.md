@@ -10,38 +10,46 @@ repository**. The [Magpie adaptation](https://github.com/mu-zi-lee/magpie-our-fr
 is an architectural reference only, not a code source or dependency. The CPA
 C ABI integration is separate. Original authorship and MIT licenses are retained.
 
-Version **0.5.12** vendors OFM `4e44d45` (upstream v2.5.7). Only the files the
+Version **0.5.13** vendors OFM `1f92730` (upstream v2.5.8). Only the files the
 served UI actually references are kept, and the private EAC seal is never
 vendored. `npm run vendor:original -- /path/to/original-checkout` regenerates the
 snapshot from pinned Git blobs. See `scripts/upstream-patches.mjs` and
 `service/vendor/ofm/UPSTREAM.json` for exact provenance.
 
-**New in 0.5.12:** upstream v2.5.7 sync (28 commits). The headline changes are
-CodeArts' dedicated signed transport (so another plugin rewriting global
-`fetch` cannot break the signature; proxy, timeout and cancellation are kept,
-and credits/check-in stay bound to their own plugin instance), a signed retry
-that recognises both string and numeric CodeArts `4004` after dropping the
-`benefit` header once, managed-install mode disabling in-app upgrade and hot
-reload, and a rebuilt manual model test. The test now succeeds only on a
-nonempty, normally finished answer, uses a 300s backend budget with a 330s UI
-wait, persists both success and failure results without letting a cancellation
-or an older probe overwrite a newer measurement, and distinguishes "listed",
-"verified available" and "verified failed". Low-performance mode is removed
-while normal animation, theme switching and the sponsor cards stay. The
-Beichen API PNG logo and the multimodal usage correction also land: inflated
-Kilo `kilo-auto/free` input/total stamps are dropped while decode counts remain,
-so the host falls back to its own input estimate instead of failing with
-`CONTEXT_WINDOW_EXCEEDED`.
+**New in 0.5.13:** upstream v2.5.8 sync (37 commits). Upstream removed the
+WorkBuddy (CodeBuddy) domestic and international channels entirely, along with
+the Huawei Cloud/CodeArts channel and its `jose` dependency, leaving ten account
+channels. Historical WorkBuddy credentials and user data are kept on disk but
+the channels no longer have a call entry. Because the WorkBuddy adapter is gone,
+this adapter's former "lead WorkBuddy wire messages with a system entry" patch
+no longer applies and was dropped; the remaining CPA patch still removes the
+built-in Google OAuth defaults and externalises the Loomy app ID. Reasoning
+round-trips are fixed: forwarded Chat assistant `reasoning_content` is preserved
+including explicit empty strings, and local OpenAI-gateway Chat history keeps
+`reasoning_content`/`reasoning` (including a single-space placeholder) so tool
+follow-ups no longer lose reasoning. The updater retries Windows backup-directory
+renames on transient sharing violations and reuses an already verified staging
+copy instead of re-downloading the release. Qoder effort levels are now ordered
+by real strength with original IDs and unknown levels last, and the EAC DeepSeek
+Flash display name carries the `1017` marker.
 
-The vendored set grows from 93 to 94 files (`src/model-test.js` is new) and the
-served web assets are regenerated: the channel bundle moves from
-`channels-kEN3gKhj.js` to `channels-CfC6--A6.js` and the models bundle from
-`models-ishsHIe7.js` to `models-CEvvPVd6.js`. Ten of the twelve CPA console
-patches no longer matched and were re-anchored; all twelve are verified to match
-exactly once, and all seventeen console labels still match. The `/models/test`
-route is still on the CPA allowlist and now returns the upstream test result
-shape. Both CPA-patched files are unchanged upstream this round and still apply
-byte-for-byte; the pinned EAC seal digests are unchanged.
+The vendored set stays at 94 files. The served web assets are regenerated: the
+channel bundle moves to `channels-DmI_2lp3.js`, the models bundle to
+`models-DXpb3t6q.js`, settings to `settings-BbcpaUEV.js`, the old
+`_ofm-provider-list` chunk is gone and `sliders-horizontal-DNbjUrIs.js` is new.
+Eight of the twelve CPA console patches no longer matched and were re-anchored;
+all twelve are verified to match exactly once, and all seventeen console labels
+still match. `tests/buddy-system-prompt.test.mjs` was removed because its
+channel no longer exists upstream. Both remaining CPA-patched files still apply
+byte-for-byte, and the pinned EAC seal digests are unchanged.
+
+**Previously in 0.5.12:** upstream v2.5.7 sync. It added CodeArts' dedicated
+signed transport, a signed `4004` retry, managed-install mode disabling in-app
+upgrade and hot reload, and a rebuilt manual model test that only succeeds on a
+nonempty, normally finished answer and persists success/failure without letting
+cancellation or an older probe overwrite a newer measurement. It also dropped
+inflated Kilo `kilo-auto/free` input/total usage stamps while keeping decode
+counts, and removed low-performance mode.
 
 **Previously in 0.5.11:** upstream v2.5.6 sync. This was a DSH-plugin-only
 release: it unified the Beichen API sponsor card above the free-model and EAC
@@ -156,14 +164,14 @@ runtime fixes remain in place. The plugin ID remains `our-free-model`.
 
 Since v0.5.0, prebuilt GitHub Releases are published; since v0.5.3 they cover
 Windows amd64, Linux amd64/arm64 and macOS amd64/arm64. Download
-`our-free-model_0.5.12_<os>_<arch>.zip` from
+`our-free-model_0.5.13_<os>_<arch>.zip` from
 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases) and verify it
 against `checksums.txt`, or clone this repository and follow **Development** to
 build the native library yourself. Generated `dist/` files are not committed.
 
 1. Use a plugin-enabled CLIProxyAPI build. Validated against **CPA 8.0.23**.
 2. Copy the matching binary into CPA's configured `plugins` directory:
-   `our-free-model-v0.5.12.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
+   `our-free-model-v0.5.13.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
 3. Merge `config.example.yaml` into CPA's configuration and restart CPA:
 
 ```yaml

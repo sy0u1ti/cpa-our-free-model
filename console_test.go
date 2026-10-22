@@ -121,11 +121,11 @@ func TestRemoteConsoleLinkIsRelativeWithoutPublicPort(t *testing.T) {
 }
 
 func TestEACUIHooksMatchOnlyThePinnedBundle(t *testing.T) {
-	original, err := serviceAssets.ReadFile("service/vendor/ofm/packages/standalone/web/channels-CfC6--A6.js")
+	original, err := serviceAssets.ReadFile("service/vendor/ofm/packages/standalone/web/channels-DmI_2lp3.js")
 	if err != nil {
 		t.Fatal(err)
 	}
-	response, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/app-assets/channels-CfC6--A6.js"})
+	response, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/app-assets/channels-DmI_2lp3.js"})
 	if !ok {
 		t.Fatal("missing adapted EAC module")
 	}

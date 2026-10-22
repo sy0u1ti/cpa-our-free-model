@@ -1,7 +1,7 @@
 {
   "schema": "cpa-ofm-original-source/v1",
   "repository": "https://github.com/Ebony-Vinyl/dsh-our-free-model",
-  "commit": "4e44d453183ca2b60a424c190e501a192078308a",
+  "commit": "1f92730b388d2ac142f15ddc3bd11d52b807ca71",
   "method": "git show <original-commit>:<path>; no working-tree bytes and no secondary fork",
   "files": [
     {
@@ -12,22 +12,22 @@
     },
     {
       "path": "package.json",
-      "gitBlob": "0e3b712d3ea5a3c4dc597e3b914c0bf084a02440",
-      "originalSha256": "f05ac255bcefc7095f006ebcfad5426d486d0c4aba3b4c54f7bc24783bc8f223",
-      "sha256": "f05ac255bcefc7095f006ebcfad5426d486d0c4aba3b4c54f7bc24783bc8f223"
+      "gitBlob": "44eff24bdc802612e2e0b60046e83a60712a0d73",
+      "originalSha256": "f21a1d30ef907fe6a7d77c3722f71f8b86140fb53fb93ebc67a1bca3f5b5970e",
+      "sha256": "f21a1d30ef907fe6a7d77c3722f71f8b86140fb53fb93ebc67a1bca3f5b5970e"
     },
     {
       "path": "packages/standalone/README.md",
-      "gitBlob": "94607a486583ca6f34140fbe4203d17b63ce0417",
-      "originalSha256": "0e6150f7639c871c55040a4343768ee353174c5f51e40c1893f0c33c5740a523",
-      "sha256": "0e6150f7639c871c55040a4343768ee353174c5f51e40c1893f0c33c5740a523"
+      "gitBlob": "86e7223dcc378e65f863e266993aa28b224fbfb2",
+      "originalSha256": "0e7d4d0adb0a5a511e3e2487beb21cbc02e466314d5103a105b0baf43a516c1d",
+      "sha256": "0e7d4d0adb0a5a511e3e2487beb21cbc02e466314d5103a105b0baf43a516c1d"
     },
     {
       "path": "packages/standalone/channels/business.mjs",
-      "gitBlob": "e6acbce2f74a6826be72a69973bfe197126579b7",
-      "originalSha256": "e014457d7dc513755ad0bbf93aeb4ada5ef9614f0f146ab299e1f2a97f88521b",
-      "sha256": "6f7abac58e1f31a2ef5113b917cdc682c98f4782d11af985c3e102ba61f21429",
-      "patch": "cpa-private-oauth-settings-and-buddy-system-prompt"
+      "gitBlob": "26742e51a58c0a7a3b277e94f07e5688ab0940a3",
+      "originalSha256": "edc51fc951a63bd0f9b84d0450935103c79e80873ae4688b0f1416f0d4726d3b",
+      "sha256": "044a800ff3b609c67d301fb7b1ab89333dc8252062138d7831dc9f9441150a33",
+      "patch": "cpa-private-oauth-settings"
     },
     {
       "path": "packages/standalone/channels/contracts.mjs",
@@ -49,9 +49,9 @@
     },
     {
       "path": "packages/standalone/channels/runtime.mjs",
-      "gitBlob": "86b948aa828adf5e3f8b4dd4e89725de9f0a9878",
-      "originalSha256": "58b21b7b21780c3450d4181d78f4dede141e45d236f4efce6a772a11f9bd71fd",
-      "sha256": "58b21b7b21780c3450d4181d78f4dede141e45d236f4efce6a772a11f9bd71fd"
+      "gitBlob": "4bb2e56fd4f233d688a4f90dc4e937e7b778b414",
+      "originalSha256": "c9e4392ac3c2cd0106f42d5a5dc52bb6c898b5fa26292e93d42a2deaf1847841",
+      "sha256": "c9e4392ac3c2cd0106f42d5a5dc52bb6c898b5fa26292e93d42a2deaf1847841"
     },
     {
       "path": "packages/standalone/channels/worker.mjs",
@@ -103,12 +103,6 @@
       "sha256": "a1a90b952bb4d3d09fb35665f3a1c5acdd2983bb44618883e3859e969bcbf866"
     },
     {
-      "path": "packages/standalone/web/_ofm-provider-list-D9WP3xjp.js",
-      "gitBlob": "d18fb97ad83ec9b13f006eeb7bf8dd29cbb5f421",
-      "originalSha256": "f2bd02817e6c8cc527bf75f28daddeb7d54bf8f9330eca3958910e614e743fb5",
-      "sha256": "f2bd02817e6c8cc527bf75f28daddeb7d54bf8f9330eca3958910e614e743fb5"
-    },
-    {
       "path": "packages/standalone/web/app.css",
       "gitBlob": "b91efa73d1e539f2efabc387fb1547866fe28c5c",
       "originalSha256": "e98cd0c6b23d2340b00e6ee46e40195835fc5d2cc7b56b1b4651d586266814c3",
@@ -116,21 +110,21 @@
     },
     {
       "path": "packages/standalone/web/app.js",
-      "gitBlob": "c4c8267f0616bc9f7cf895236c943833548c7c73",
-      "originalSha256": "a79b2b288e657009414a9beeb85c57bf063832331cadd4dffcdd5763343a56da",
-      "sha256": "a79b2b288e657009414a9beeb85c57bf063832331cadd4dffcdd5763343a56da"
+      "gitBlob": "e1c0e24ae2ad6fe33977fec9e9355a320c84d6d2",
+      "originalSha256": "20bdb8c429418943d5d6514e3ef25f2bd68fe6151cfb74d20f373331f095978c",
+      "sha256": "20bdb8c429418943d5d6514e3ef25f2bd68fe6151cfb74d20f373331f095978c"
     },
     {
       "path": "packages/standalone/web/assets.json",
-      "gitBlob": "f86390498c5253dd3b8804bc8d52ecbbcbefa7dd",
-      "originalSha256": "9a51e4d5b77f091e75b902aa874f6b25a93a4e5db3e763dd120aa4657f984747",
-      "sha256": "9a51e4d5b77f091e75b902aa874f6b25a93a4e5db3e763dd120aa4657f984747"
+      "gitBlob": "06cadd615bbd27e59321aa9cc76fe195332fd27b",
+      "originalSha256": "6296ecb7b8cc9dcb5ec16e6c4624b8b14cc628fda7c35a2a5c020617d5dbcc83",
+      "sha256": "6296ecb7b8cc9dcb5ec16e6c4624b8b14cc628fda7c35a2a5c020617d5dbcc83"
     },
     {
-      "path": "packages/standalone/web/channels-CfC6--A6.js",
-      "gitBlob": "c44e5a14104957320eda8c40a5df9805099739c4",
-      "originalSha256": "803ea87203dedf757bd01e34e9cda6fe16175720289baf523ebf0b9d94ab81b8",
-      "sha256": "803ea87203dedf757bd01e34e9cda6fe16175720289baf523ebf0b9d94ab81b8"
+      "path": "packages/standalone/web/channels-DmI_2lp3.js",
+      "gitBlob": "8bc77fb3e7819588615fda5de4c6c2019859b6d2",
+      "originalSha256": "54c8bdf90de7d539fea3d47fc6f4ab8479acb3b7fb8aedc21236a09712842edf",
+      "sha256": "54c8bdf90de7d539fea3d47fc6f4ab8479acb3b7fb8aedc21236a09712842edf"
     },
     {
       "path": "packages/standalone/web/index.html",
@@ -139,10 +133,10 @@
       "sha256": "d0f978104a66a5ee9d5ed3e5a50e89312f49075cc8a33fc120aab2170e4460f7"
     },
     {
-      "path": "packages/standalone/web/models-CEvvPVd6.js",
-      "gitBlob": "352fcdfa0414e097dfd75ee8904470b7bb471bf7",
-      "originalSha256": "72acf6d6a24093b5337dd3fd63a4a277d19ee05ace88450d3b8a91f966d0093a",
-      "sha256": "72acf6d6a24093b5337dd3fd63a4a277d19ee05ace88450d3b8a91f966d0093a"
+      "path": "packages/standalone/web/models-DXpb3t6q.js",
+      "gitBlob": "6a93d2f07eb1727e1d1767c67f7cf775f19ac50b",
+      "originalSha256": "36d182a751e4ee0c4a6214c6b58c38d2590d4bc3393790eec0f1bbcc764e142a",
+      "sha256": "36d182a751e4ee0c4a6214c6b58c38d2590d4bc3393790eec0f1bbcc764e142a"
     },
     {
       "path": "packages/standalone/web/search-RZVy3Eoo.js",
@@ -151,10 +145,16 @@
       "sha256": "389ba9f896a477ae440e011a0ee7c2b8299fe1feef8651280ab02c3d978b4ec4"
     },
     {
-      "path": "packages/standalone/web/settings-DYjyfDI2.js",
-      "gitBlob": "061a6e08141a646a04e913e0436adc66781b0ba9",
-      "originalSha256": "fb4d96b6d942b28fa7d91ac8dbecb969b6f1c23bb2bb318bbaaa705e3e00cea7",
-      "sha256": "fb4d96b6d942b28fa7d91ac8dbecb969b6f1c23bb2bb318bbaaa705e3e00cea7"
+      "path": "packages/standalone/web/settings-BbcpaUEV.js",
+      "gitBlob": "88afa7151b515326ddd56cc37db98727ee58726b",
+      "originalSha256": "1a7486c4368e14cea93602cbb0b100139edf9a39581dfa1fcfd0185fa7d3217f",
+      "sha256": "1a7486c4368e14cea93602cbb0b100139edf9a39581dfa1fcfd0185fa7d3217f"
+    },
+    {
+      "path": "packages/standalone/web/sliders-horizontal-DNbjUrIs.js",
+      "gitBlob": "361cc3649e6cab3a8ac1cf8bc3ac0b377884e3ab",
+      "originalSha256": "96976caec2d1d513e20bc19b58754ffbdadf51bf717ada0a09bf8c89c46e0e7c",
+      "sha256": "96976caec2d1d513e20bc19b58754ffbdadf51bf717ada0a09bf8c89c46e0e7c"
     },
     {
       "path": "packages/standalone/web/usage-BOibUWax.js",
@@ -176,9 +176,9 @@
     },
     {
       "path": "scripts/standalone-third-party.txt",
-      "gitBlob": "079051116db11635487e62d2c1ff8a3a9ac91bf3",
-      "originalSha256": "50fbea421b6b6669b0df0d003f5366ca8c1efc91a5b674b38f268bef73b90d8b",
-      "sha256": "50fbea421b6b6669b0df0d003f5366ca8c1efc91a5b674b38f268bef73b90d8b"
+      "gitBlob": "b64062420897474c2feb325e594b23cd7d5b4771",
+      "originalSha256": "b555cf12374d2551b5e390e7ddb912ef06f774f1162c2cf92427e12127af8128",
+      "sha256": "b555cf12374d2551b5e390e7ddb912ef06f774f1162c2cf92427e12127af8128"
     },
     {
       "path": "src/adapter.js",
@@ -224,9 +224,9 @@
     },
     {
       "path": "src/core/completion.js",
-      "gitBlob": "ee3b84faffbedb80ce767f451278c334dba99e85",
-      "originalSha256": "2e551e671cce92d988079b768aebd0f20db6636861fc4aceb26e96622c42808d",
-      "sha256": "2e551e671cce92d988079b768aebd0f20db6636861fc4aceb26e96622c42808d"
+      "gitBlob": "6faa8f952ac6371cb485a8baea58185236adbaf4",
+      "originalSha256": "b2ea4e3fe00e833b5609f60badac657297932de9fe82dd90565e082f153a4509",
+      "sha256": "b2ea4e3fe00e833b5609f60badac657297932de9fe82dd90565e082f153a4509"
     },
     {
       "path": "src/core/runtime.js",
@@ -272,9 +272,9 @@
     },
     {
       "path": "src/egress.js",
-      "gitBlob": "09841e8f415164e382ba3569bb317c0c10b4dd08",
-      "originalSha256": "3ec85ab5865498469a372dc9a1f3436b879c8f219ad9f7f867c9bca1ce23ec7a",
-      "sha256": "3ec85ab5865498469a372dc9a1f3436b879c8f219ad9f7f867c9bca1ce23ec7a"
+      "gitBlob": "c7b0a8da027f9fe13c309e42c391b1e1a6ef663c",
+      "originalSha256": "2a444aea0a59a8dce1cbd85c72e6d1fa97c6a289934018fdaea997edebfd692d",
+      "sha256": "2a444aea0a59a8dce1cbd85c72e6d1fa97c6a289934018fdaea997edebfd692d"
     },
     {
       "path": "src/failure.js",
@@ -320,9 +320,9 @@
     },
     {
       "path": "src/messages.js",
-      "gitBlob": "4cefed3558a306c84cfb1f2733d0c6017f7f5148",
-      "originalSha256": "8c350c9905e8f69a9621efef5405a44b0a48ca28ead7b3f44a2703cad595ce76",
-      "sha256": "8c350c9905e8f69a9621efef5405a44b0a48ca28ead7b3f44a2703cad595ce76"
+      "gitBlob": "4732f7bc984244e9189d5988949b0c28fd60140f",
+      "originalSha256": "217fd90273824f135ed0b5417c8ea48089f5f78cdcf2cc6436008cb017997421",
+      "sha256": "217fd90273824f135ed0b5417c8ea48089f5f78cdcf2cc6436008cb017997421"
     },
     {
       "path": "src/model-test.js",
@@ -542,9 +542,9 @@
     },
     {
       "path": "src/updater.js",
-      "gitBlob": "b1b64f1cb4a3e7ebbc71609c03cc6ee5c7d767b6",
-      "originalSha256": "825813e80c343e1bf1107f3c18e0b443472e2157da73f9c5a48e6a0ca76355c7",
-      "sha256": "825813e80c343e1bf1107f3c18e0b443472e2157da73f9c5a48e6a0ca76355c7"
+      "gitBlob": "3bd9bf308831924284c0becdb2d019df36e0165b",
+      "originalSha256": "6dbbd82b6dab3788bead5f1792c825bf2f979b6802848ce566143ea14aef123d",
+      "sha256": "6dbbd82b6dab3788bead5f1792c825bf2f979b6802848ce566143ea14aef123d"
     },
     {
       "path": "src/upstream.js",
@@ -560,9 +560,9 @@
     },
     {
       "path": "vendor/channel-pack/NOTICE.md",
-      "gitBlob": "87c3279b9aa3a60a59605c24f037ef6956ff8221",
-      "originalSha256": "a6cad78e702a992511f24863350eef53bda78773c868d933f3dc44dbb5931ab9",
-      "sha256": "a6cad78e702a992511f24863350eef53bda78773c868d933f3dc44dbb5931ab9"
+      "gitBlob": "d201cfb6fee83414b9197704a61c9a7c532e7125",
+      "originalSha256": "e943ad8a7aa09b5fdbcba63ca9e8bfa90a38b6653bdcf1db37b9370f2a3dff3d",
+      "sha256": "e943ad8a7aa09b5fdbcba63ca9e8bfa90a38b6653bdcf1db37b9370f2a3dff3d"
     },
     {
       "path": "vendor/channel-pack/qoder-auth-wasm.wasm",
@@ -579,8 +579,8 @@
     },
     {
       "file": "packages/standalone/channels/business.mjs",
-      "id": "cpa-private-oauth-settings-and-buddy-system-prompt",
-      "reason": "Remove distributed Google OAuth defaults and the Loomy WeChat app identifier (use explicit private configuration instead), and always lead the WorkBuddy/CodeBuddy wire messages with a system entry."
+      "id": "cpa-private-oauth-settings",
+      "reason": "Remove distributed Google OAuth defaults and the Loomy WeChat app identifier (use explicit private configuration instead)."
     }
   ],
   "omitted": [

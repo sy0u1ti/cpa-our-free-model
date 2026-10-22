@@ -10,6 +10,40 @@
 圆角覆盖的样式微调；`src/`、控制台 JS、渠道代码与 `assets.json` 均未变化。
 新增的 Tauri 桌面版与未被引用的 `splash.html` 不进入本插件包。
 
+## v0.5.13：同步上游 OFM v2.5.8
+
+上游发布了 v2.5.8（`1f92730`，自 v2.5.7 起共 37 个提交），本轮把 vendored 快照
+从 `4e44d45` 重取到该提交。文件数仍是 94，前端资源重新生成：渠道 bundle
+`channels-DmI_2lp3.js`、models `models-DXpb3t6q.js`、settings
+`settings-BbcpaUEV.js`，旧的 `_ofm-provider-list` 分块消失，新增
+`sliders-horizontal-DNbjUrIs.js`。
+
+- **渠道移除**：上游彻底移除 WorkBuddy（CodeBuddy）国内版与国际版渠道，以及华为云/
+  CodeArts 渠道及其 `jose` 依赖，账号渠道剩十个；历史 WorkBuddy 凭据与用户数据保留
+  在磁盘上，但不再有调用入口。`vendor/channel-pack` 删除了 `buddy-*.ts`、
+  `codearts-credits.ts`、`direct-fetch.ts` 等实现，并新增 `credential-expiry.ts`、
+  `credit-expiry-window.ts`、`open-browser.ts`、`rate-limit.ts` 等公共工具。
+- **CPA 补丁调整**：WorkBuddy 适配器已不存在，原先「让 WorkBuddy 线缆首条消息为
+  system」的补丁锚点消失，本轮从 `scripts/upstream-patches.mjs` 删除该逻辑，补丁 ID
+  改为 `cpa-private-oauth-settings`；剩余部分仍移除内置 Google OAuth 默认值并外置
+  Loomy app ID。`tests/buddy-system-prompt.test.mjs` 同步删除。
+- **推理回传**：`src/core/completion.js` 在 Chat 历史中保留 assistant 的
+  `reasoning_content`（含显式空字符串），`src/messages.js` 在投影到 OpenAI Chat 时
+  同样保留该字段；本地网关的工具后续请求不再丢失推理内容。
+- **更新器**：`src/updater.js` 的 `backupPackage` 改为异步，备份目录重命名走
+  `renameWithRetry`，Windows 临时占用不再直接失败；`stageRelease` 复用已按当前
+  manifest 校验通过的暂存副本，避免重试时重复下载。
+- **其它**：Qoder 思考档位按强度排序并保留原始 ID，未知档位排末尾；EAC DeepSeek
+  Flash 显示名与卡片标签带 `1017`；`packages/standalone/channels/runtime.mjs` 去掉
+  CodeArts 缓存目录环境变量。
+- **控制台补丁重定位**：新 bundle 的压缩标识符再次整体重排，12 条
+  `eacConsolePatches` 中有 8 条不再命中；已逐条重新定位，全部恢复单次命中。
+  `tests/eac-ui.test.mjs` 的桩同步更新为新的工厂名（`ba`）与 React 辅助名
+  （`y`/`B`/`te`/`K`）。17 条 `consoleLabels` 全部继续命中。
+- **密封与许可证**：两个 CPA 补丁文件仍逐字节适用；EAC 密封材料未变，
+  `service/upstream-eac.json` 的摘要与 v2.2.0 时一致。`collect-web-licenses.mjs`
+  重跑后依赖版本无变化，只更新 commit。
+
 ## v0.5.12：同步上游 OFM v2.5.7
 
 上游发布了 v2.5.7（`4e44d45`，自 v2.5.6 起共 28 个提交），本轮把 vendored 快照
