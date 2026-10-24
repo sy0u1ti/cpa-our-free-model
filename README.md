@@ -10,38 +10,39 @@ repository**. The [Magpie adaptation](https://github.com/mu-zi-lee/magpie-our-fr
 is an architectural reference only, not a code source or dependency. The CPA
 C ABI integration is separate. Original authorship and MIT licenses are retained.
 
-Version **0.5.13** vendors OFM `1f92730` (upstream v2.5.8). Only the files the
+Version **0.5.14** vendors OFM `eb2aaca` (upstream v2.5.9). Only the files the
 served UI actually references are kept, and the private EAC seal is never
 vendored. `npm run vendor:original -- /path/to/original-checkout` regenerates the
 snapshot from pinned Git blobs. See `scripts/upstream-patches.mjs` and
 `service/vendor/ofm/UPSTREAM.json` for exact provenance.
 
-**New in 0.5.13:** upstream v2.5.8 sync (37 commits). Upstream removed the
-WorkBuddy (CodeBuddy) domestic and international channels entirely, along with
-the Huawei Cloud/CodeArts channel and its `jose` dependency, leaving ten account
-channels. Historical WorkBuddy credentials and user data are kept on disk but
-the channels no longer have a call entry. Because the WorkBuddy adapter is gone,
-this adapter's former "lead WorkBuddy wire messages with a system entry" patch
-no longer applies and was dropped; the remaining CPA patch still removes the
-built-in Google OAuth defaults and externalises the Loomy app ID. Reasoning
-round-trips are fixed: forwarded Chat assistant `reasoning_content` is preserved
-including explicit empty strings, and local OpenAI-gateway Chat history keeps
-`reasoning_content`/`reasoning` (including a single-space placeholder) so tool
-follow-ups no longer lose reasoning. The updater retries Windows backup-directory
-renames on transient sharing violations and reuses an already verified staging
-copy instead of re-downloading the release. Qoder effort levels are now ordered
-by real strength with original IDs and unknown levels last, and the EAC DeepSeek
-Flash display name carries the `1017` marker.
+**New in 0.5.14:** upstream v2.5.9 sync (23 commits). The owner has disabled
+automatic availability probing: `refreshCatalog` now defaults to `probe: false`,
+boot and periodic refreshes only reload the listing, and a region refusal from a
+real turn no longer triggers a background probe. The manual "probe availability"
+action still sends explicit probes. When the egress IP or country changes, the
+old automatic and manual verdicts are kept on disk but marked `stale`, so they
+no longer decide current availability; late probe results from the previous
+egress generation are discarded. The aggregate registry gains FleetRelay Gateway
+(76 providers) and the console adds a visual-effects toggle that defaults off
+while keeping the fish tank and functional UI. Shared storage/backup names were
+made neutral while old preferences, locks, stats and valid backups stay readable.
 
 The vendored set stays at 94 files. The served web assets are regenerated: the
-channel bundle moves to `channels-DmI_2lp3.js`, the models bundle to
-`models-DXpb3t6q.js`, settings to `settings-BbcpaUEV.js`, the old
-`_ofm-provider-list` chunk is gone and `sliders-horizontal-DNbjUrIs.js` is new.
-Eight of the twelve CPA console patches no longer matched and were re-anchored;
-all twelve are verified to match exactly once, and all seventeen console labels
-still match. `tests/buddy-system-prompt.test.mjs` was removed because its
-channel no longer exists upstream. Both remaining CPA-patched files still apply
-byte-for-byte, and the pinned EAC seal digests are unchanged.
+channel bundle moves to `channels-HdJ7rqdl.js` and settings to
+`settings-KkHf6c81.js`. Ten of the twelve CPA console patches no longer matched
+and were re-anchored; all twelve are verified to match exactly once, and all
+seventeen console labels still match. In this CPA adapter the
+`refresh-models` option still means "reload the upstream listing"; it no longer
+implies automatic probe requests, and the manual reprobe path remains available.
+Both CPA-patched files still apply byte-for-byte, and the pinned EAC seal digests
+are unchanged.
+
+**Previously in 0.5.13:** upstream v2.5.8 sync. It removed the WorkBuddy and
+Huawei Cloud/CodeArts channels (ten account channels remain), dropped this
+adapter's now-unanchored WorkBuddy leading-system patch, preserved forwarded
+Chat `reasoning_content`, retried Windows backup-directory renames and reused a
+verified staging copy, and ordered Qoder effort levels by real strength.
 
 **Previously in 0.5.12:** upstream v2.5.7 sync. It added CodeArts' dedicated
 signed transport, a signed `4004` retry, managed-install mode disabling in-app
@@ -164,14 +165,14 @@ runtime fixes remain in place. The plugin ID remains `our-free-model`.
 
 Since v0.5.0, prebuilt GitHub Releases are published; since v0.5.3 they cover
 Windows amd64, Linux amd64/arm64 and macOS amd64/arm64. Download
-`our-free-model_0.5.13_<os>_<arch>.zip` from
+`our-free-model_0.5.14_<os>_<arch>.zip` from
 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases) and verify it
 against `checksums.txt`, or clone this repository and follow **Development** to
 build the native library yourself. Generated `dist/` files are not committed.
 
 1. Use a plugin-enabled CLIProxyAPI build. Validated against **CPA 8.0.23**.
 2. Copy the matching binary into CPA's configured `plugins` directory:
-   `our-free-model-v0.5.13.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
+   `our-free-model-v0.5.14.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
 3. Merge `config.example.yaml` into CPA's configuration and restart CPA:
 
 ```yaml

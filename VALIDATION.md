@@ -9,9 +9,53 @@ plugin directories and data directories inside `.test-output/`.
 
 | Component | Revision |
 | --- | --- |
-| OFM | `1f92730b388d2ac142f15ddc3bd11d52b807ca71` (upstream v2.5.8) |
+| OFM | `eb2aaca75f9753edf35d690806f4cdace55e5980` (upstream v2.5.9) |
 | Official CPA | v8.0.23 / `d318bcc3afb9ea8782862f5e8cdb541afdc9dfa5` |
 | Native contract | C ABI 1, negotiated RPC schema up to 6 |
+
+## Upstream v2.5.9 Sync: 0.5.14
+
+Re-vendored the original OFM runtime from `1f92730` to `eb2aaca` (upstream
+v2.5.9, 23 commits). The retained set stays at 94 files. The served web assets
+were regenerated: the channel bundle is now `channels-HdJ7rqdl.js` and settings
+`settings-KkHf6c81.js`.
+
+Automatic availability probing is disabled by owner policy. `refreshCatalog`
+now defaults to `probe: false`, boot and periodic refreshes only reload the
+listing, and a region refusal from a real turn no longer schedules a background
+probe; only an explicit manual reprobe asks for probes. When the egress IP or
+country changes, the runtime bumps an egress generation, marks the previous
+automatic and manual verdicts `stale` (keeping them on disk), clears the round
+timestamp, and discards late probe results from the old generation. Manual model
+tests that span an egress change also refuse to persist.
+
+The aggregate provider registry gains FleetRelay Gateway (76 providers), which
+advertises `deepseek-v4.1-flash-free` and `gpt-6-astra`; its third-party T1 pool
+stays disabled. The console adds a visual-effects toggle that defaults off while
+keeping the fish tank and functional UI. Shared storage/backup names were made
+neutral while old preferences, locks, stats and valid backups remain readable.
+
+Ten of the twelve CPA console patches no longer matched after upstream rebuilt
+the channel bundle with a new minifier output. All twelve were re-anchored
+against the new bytes and are verified to match exactly once by
+`TestEACUIHooksMatchOnlyThePinnedBundle` and `tests/eac-ui.test.mjs`; that
+test's login-factory stubs were re-pointed at the new minified names. All
+seventeen console labels still match without changes.
+
+In this adapter `refresh-models` still means "reload the upstream listing"; it no
+longer implies automatic probe requests, and the manual reprobe path remains
+available. Both CPA-patched files still apply byte-for-byte, and the pinned EAC
+seal digests are unchanged from v2.2.0. The web dependency versions in the
+original lockfile are unchanged, so re-recording the license sources only moved
+the commit.
+
+Verified on Windows x64 against official CPA 8.0.23:
+
+- `npm run check` (116 JavaScript files), `npm test` (43 tests),
+  `go test ./...`, `go vet ./...`.
+- `scripts/cpa-smoke.mjs` against the real plugin binary: 24 checks.
+- Provenance audit of all 94 vendored files against the original Git blobs
+  (0 mismatches), including the remaining CPA patches.
 
 ## Upstream v2.5.8 Sync: 0.5.13
 

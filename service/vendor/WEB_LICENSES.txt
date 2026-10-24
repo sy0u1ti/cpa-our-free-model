@@ -1,5 +1,5 @@
 Web dependency licenses for the original OFM standalone UI
-Original lock commit: 1f92730b388d2ac142f15ddc3bd11d52b807ca71
+Original lock commit: eb2aaca75f9753edf35d690806f4cdace55e5980
 
 ========================================================================
 react 19.1.1

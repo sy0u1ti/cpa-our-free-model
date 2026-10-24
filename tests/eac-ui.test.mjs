@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const feedback = fs.readFileSync(new URL('../web/eac-feedback.js', import.meta.url), 'utf8');
-const bundle = fs.readFileSync(new URL('../service/vendor/ofm/packages/standalone/web/channels-DmI_2lp3.js', import.meta.url), 'utf8');
+const bundle = fs.readFileSync(new URL('../service/vendor/ofm/packages/standalone/web/channels-HdJ7rqdl.js', import.meta.url), 'utf8');
 const adapter = fs.readFileSync(new URL('../console.go', import.meta.url), 'utf8');
 const patches = [...adapter.slice(adapter.indexOf('var eacConsolePatches'), adapter.indexOf('func validateConsoleRequest')).matchAll(/\{`([^`]+)`,\s*`([^`]+)`\}/g)]
   .map(([, before, after]) => [before, after]);
@@ -18,8 +18,8 @@ for (const [before, after] of patches) served = served.replaceAll(before, after)
 assert.ok(!served.includes('导入会合并备份'), 'the merge wording must not survive');
 assert.ok(!served.includes('replace("{reason}","unreachable")'), 'the pinned unreachable fallbacks must not survive');
 assert.ok(!served.includes('eac.pollFailed").replace("{reason}",P)'), 'polling must not keep its own unreachable fallback');
-assert.match(served, /dt!==!0&&K\("已保存。"\)/, 'the import summary must suppress the generic saved line');
-assert.doesNotMatch(served, /ie==null\?F\("p",null,ie===void 0\?"正在查询资源池…":"资源池暂时无法查询/,
+assert.match(served, /dt!==!0&&V\("已保存。"\)/, 'the import summary must suppress the generic saved line');
+assert.doesNotMatch(served, /le==null\?F\("p",null,le===void 0\?"正在查询资源池…":"资源池暂时无法查询/,
   'the EAC page must surface the pool reason instead of a hardcoded fallback');
 
   // The pinned login factory is a closure over its own state helpers. These stubs
@@ -28,22 +28,22 @@ assert.doesNotMatch(served, /ie==null\?F\("p",null,ie===void 0\?"正在查询资
     const states = [];
     const useState = value => { const index = states.length; states.push(typeof value === 'function' ? value() : value); return [states[index], next => { states[index] = next; }]; };
     // The pinned factory destructures its React helpers by minified name:
-    // y=useState, B=useEffect, te=useCallback, K=useRef.
+    // w=useState, B=useEffect, ne=useCallback, V=useRef.
     const context = {
-      window: {}, y: useState,
-      B() {}, te: fn => fn, K: value => ({ current: value }),
-      G: async () => { throw new Error(failure); },
+      window: {}, w: useState,
+      B() {}, ne: fn => fn, V: value => ({ current: value }),
+      J: async () => { throw new Error(failure); },
       W: async () => { throw new Error('unused'); },
-      St: () => null, Wa() {}, ja: 600000, ha: 'ofm.eac.pending:test',
+      Et: () => null, Da() {}, qa: 600000, wa: 'ofm.eac.pending:test',
     };
     vm.createContext(context);
     vm.runInContext(feedback, context);
-    const start = source.indexOf('function ba({t:n,summary:a,onAuth:t})');
-    const end = source.indexOf('function va(n){');
+    const start = source.indexOf('function xa({t:o,summary:a,onAuth:t})');
+    const end = source.indexOf('function ka(o){');
     if (start < 0 || end < 0) throw new Error('pinned EAC login factory not found');
     const hook = source.slice(start, end);
-    vm.runInContext(hook + ';this.login=ba({t:key=>key==="eac.startFailed"?"Unable to start ({reason})":key,summary:{},onAuth(){}}).login;', context);
-    // `ba()` allocates [busy, notice, pending, copied]; the notice is slot 1.
+    vm.runInContext(hook + ';this.login=xa({t:key=>key==="eac.startFailed"?"Unable to start ({reason})":key,summary:{},onAuth(){}}).login;', context);
+    // `xa()` allocates [busy, notice, pending, copied]; the notice is slot 1.
     return { run: context.login, notice: () => states[1], feedback: context.window.ofmEacFeedback };
   }
 
@@ -77,6 +77,6 @@ test('unknown EAC error details cannot expose upstream secrets or be mislabeled 
 });
 
 test('EAC page starts in a loading state instead of presenting stale summary authorization', () => {
-  assert.match(served, /function oo\(\{summary:X\}\)\{const\[ee,\$\]=Q\.useState\(void 0\)/);
-  assert.doesNotMatch(served, /function oo\(\{summary:X\}\)\{const\[ee,\$\]=Q\.useState\(X\.eacAuth\)/);
+  assert.match(served, /function rn\(\{summary:Z\}\)\{const\[ae,ee\]=G\.useState\(void 0\)/);
+  assert.doesNotMatch(served, /function rn\(\{summary:Z\}\)\{const\[ae,ee\]=G\.useState\(Z\.eacAuth\)/);
 });

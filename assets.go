@@ -28,9 +28,9 @@ import (
 //go:embed service/vendor/ofm/packages/standalone/package.json service/vendor/ofm/packages/standalone/service.mjs
 //go:embed service/vendor/ofm/packages/standalone/web/app.css
 //go:embed service/vendor/ofm/packages/standalone/web/app.js service/vendor/ofm/packages/standalone/web/assets.json
-//go:embed service/vendor/ofm/packages/standalone/web/channels-DmI_2lp3.js service/vendor/ofm/packages/standalone/web/index.html
+//go:embed service/vendor/ofm/packages/standalone/web/channels-HdJ7rqdl.js service/vendor/ofm/packages/standalone/web/index.html
 //go:embed service/vendor/ofm/packages/standalone/web/models-DXpb3t6q.js service/vendor/ofm/packages/standalone/web/search-RZVy3Eoo.js
-//go:embed service/vendor/ofm/packages/standalone/web/settings-BbcpaUEV.js service/vendor/ofm/packages/standalone/web/sliders-horizontal-DNbjUrIs.js
+//go:embed service/vendor/ofm/packages/standalone/web/settings-KkHf6c81.js service/vendor/ofm/packages/standalone/web/sliders-horizontal-DNbjUrIs.js
 //go:embed service/vendor/ofm/packages/standalone/web/usage-BOibUWax.js
 //go:embed service/vendor/ofm/packages/standalone/web/visibility-data-9WWAmLOB.js service/vendor/ofm/packages/standalone/web/x-CzfajR1e.js
 //go:embed service/vendor/ofm/scripts/standalone-third-party.txt service/vendor/ofm/src/adapter.js service/vendor/ofm/src/aggregate.js

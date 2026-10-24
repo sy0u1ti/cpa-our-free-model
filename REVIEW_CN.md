@@ -10,6 +10,35 @@
 圆角覆盖的样式微调；`src/`、控制台 JS、渠道代码与 `assets.json` 均未变化。
 新增的 Tauri 桌面版与未被引用的 `splash.html` 不进入本插件包。
 
+## v0.5.14：同步上游 OFM v2.5.9
+
+上游发布了 v2.5.9（`eb2aaca`，自 v2.5.8 起共 23 个提交），本轮把 vendored 快照
+从 `1f92730` 重取到该提交。文件数仍是 94，前端资源重新生成：渠道 bundle
+`channels-HdJ7rqdl.js`，settings `settings-KkHf6c81.js`。
+
+- **自动探测停用**：`src/core/runtime.js` 的 `refreshCatalog` 默认改为
+  `probe: false`，启动、周期刷新与真实对话中的地区拒绝都不再触发后台探测；只有手动
+  「探测可用性」显式传 `probe: true`。`packages/standalone/service.mjs` 的自动刷新
+  固定传 `probe: false`，CLI `--probe` 保留兼容但不再产生请求。
+- **出口变化隔离**：出口 IP/国家变化时递增 `egressGeneration`，把旧的
+  `results`/`manualResults` 标记 `stale` 并清空 `at`，不再自动重探；上一代出口的
+  迟到探测结果被丢弃，手动测速跨代完成也不写入。`src/model-test.js` 读取判定时
+  忽略 `stale` 行。
+- **聚合渠道**：`src/providers/registry.json` 新增 FleetRelay Gateway（76 家），
+  公开 `deepseek-v4.1-flash-free` 与 `gpt-6-astra`，其第三方 T1 池保持禁用。
+- **视觉特效开关**：控制台设置页新增「视觉特效」开关，默认关闭，鱼缸与业务功能
+  保留；`app.css`/`app.js` 与 settings 分块同步更新。
+- **共享存储中性化**：`src/store.js` 的偏好、锁定、统计与备份命名改为中性名称，旧
+  文件仍可读取与导入。
+- **控制台补丁重定位**：新 bundle 的压缩标识符再次整体重排，12 条
+  `eacConsolePatches` 中有 10 条不再命中；已逐条重新定位，全部恢复单次命中。
+  `tests/eac-ui.test.mjs` 的桩同步更新为新的工厂名（`xa`）与 React 辅助名
+  （`w`/`B`/`ne`/`V`）。17 条 `consoleLabels` 全部继续命中。
+- **CPA 语义**：`refresh-models` 仍表示重新拉取上游模型清单，不再隐含自动探测请求；
+  手动重新探测入口保留。两个 CPA 补丁文件仍逐字节适用；EAC 密封材料未变，
+  `service/upstream-eac.json` 的摘要与 v2.2.0 时一致。`collect-web-licenses.mjs`
+  重跑后依赖版本无变化，只更新 commit。
+
 ## v0.5.13：同步上游 OFM v2.5.8
 
 上游发布了 v2.5.8（`1f92730`，自 v2.5.7 起共 37 个提交），本轮把 vendored 快照

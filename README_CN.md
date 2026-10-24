@@ -15,25 +15,25 @@ CPA 补丁（接入私有 EAC 来源、外置内置 OAuth 配置）外逐字节�
 `service/vendor/ofm/UPSTREAM.json`。`scripts/import-upstream.mjs` 和
 `scripts/upstream-patches.mjs` 可以重现整个取源过程。
 
-**当前版本 v0.5.13**：同步上游 OFM **v2.5.8**（`1f92730`，37 个提交）。上游彻底
-移除了 WorkBuddy（CodeBuddy）国内版与国际版渠道，以及华为云/CodeArts 渠道及其
-`jose` 依赖，账号渠道剩十个；历史 WorkBuddy 凭据与用户数据仍保留在磁盘上，但渠道
-不再提供调用入口。由于 WorkBuddy 适配器已不存在，本插件原先「让 WorkBuddy 线缆首条
-消息为 system」的补丁不再适用，已删除；剩下的 CPA 补丁仍负责移除内置 Google OAuth
-默认值并外置 Loomy app ID。推理回传也修好了：转发的 Chat assistant
-`reasoning_content` 会保留（包括显式空字符串），本地 OpenAI 网关接收 Chat 历史时
-保留 `reasoning_content`/`reasoning`（包括单个空格占位），工具后续请求不再丢失推理
-内容。更新器在 Windows 备份目录重命名遇到临时占用时会重试，并复用已校验的暂存副本，
-不再重复下载整个版本。Qoder 思考档位按真实强度排序、保留原始 ID，未知档位排在末尾；
-EAC DeepSeek Flash 显示名带 `1017` 标记。
+**当前版本 v0.5.14**：同步上游 OFM **v2.5.9**（`eb2aaca`，23 个提交）。上游所有者
+停用了自动可用性探测：`refreshCatalog` 默认 `probe: false`，启动与周期刷新只重新
+拉取模型清单，真实对话遇到地区拒绝也不会再触发后台探测；手动「探测可用性」仍会显式
+发请求。出口 IP 或国家变化时，旧的自动与手动判定会保留在磁盘上但标记为 `stale`，
+不再作为当前出口的可用性依据；上一代出口的迟到探测结果会被丢弃。聚合渠道新增
+FleetRelay Gateway（76 家提供商）；控制台新增「视觉特效」开关，默认关闭，鱼缸与业务
+功能保留。共享存储与备份改用中性命名，旧版偏好、锁定、统计与有效备份仍可读取。
 
 vendored 快照仍是 94 个文件。前端资源重新生成：渠道 bundle 改为
-`channels-DmI_2lp3.js`，models 改为 `models-DXpb3t6q.js`，settings 改为
-`settings-BbcpaUEV.js`，旧的 `_ofm-provider-list` 分块消失，新增
-`sliders-horizontal-DNbjUrIs.js`。CPA 的 12 条控制台补丁中有 8 条因压缩标识符重排
-失效，已逐条重新定位，全部恢复单次命中；17 条界面文案全部继续命中。
-`tests/buddy-system-prompt.test.mjs` 随渠道移除而删除。两个 CPA 补丁文件仍逐字节
-适用；EAC 密封材料未变，`service/upstream-eac.json` 的摘要与 v2.2.0 时一致。
+`channels-HdJ7rqdl.js`，settings 改为 `settings-KkHf6c81.js`。CPA 的 12 条控制台
+补丁中有 10 条因压缩标识符重排失效，已逐条重新定位，全部恢复单次命中；17 条界面
+文案全部继续命中。在 CPA 适配器里，`refresh-models` 仍表示「重新拉取上游模型清单」，
+不再隐含自动探测请求，手动重新探测入口仍保留。两个 CPA 补丁文件仍逐字节适用；
+EAC 密封材料未变，`service/upstream-eac.json` 的摘要与 v2.2.0 时一致。
+
+**上一版 v0.5.13**：同步上游 OFM **v2.5.8**（`1f92730`，37 个提交）。该版移除
+WorkBuddy 与华为云/CodeArts 渠道（账号渠道剩十个），删除本插件已失去锚点的
+WorkBuddy 前置 system 补丁，保留转发的 Chat `reasoning_content`，Windows 备份目录
+重命名改为重试并复用已校验暂存副本，Qoder 思考档位按真实强度排序。
 
 **上一版 v0.5.12**：同步上游 OFM **v2.5.7**（`4e44d45`，28 个提交）。该版让
 CodeArts 改用独立签名传输，识别字符串/数字形式的 `4004` 并重签重试，托管安装禁用
@@ -103,16 +103,16 @@ Linux 源码备用更新器创建的安装目录改为可遍历权限，备份�
 **v0.5.0 起提供预编译 Release；v0.5.3 起覆盖 Windows amd64、Linux amd64/arm64
 与 macOS amd64/arm64。** `dist/` 不随源码提交：优先从
 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases)
-下载 `our-free-model_0.5.13_<系统>_<架构>.zip` 并核对 `checksums.txt`；从仓库克隆后
+下载 `our-free-model_0.5.14_<系统>_<架构>.zip` 并核对 `checksums.txt`；从仓库克隆后
 也可按第 7 节自行构建，产物位于：
 
 | 系统 | 文件 |
 | --- | --- |
-| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.13.dll` |
-| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.13.so` |
-| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.13.so` |
-| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.13.dylib` |
-| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.13.dylib` |
+| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.14.dll` |
+| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.14.so` |
+| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.14.so` |
+| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.14.dylib` |
+| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.14.dylib` |
 
 1. 把对应动态库复制到 CPA 配置的插件目录，例如 `plugins/` 或 `plugins/windows/amd64/`。
    **不要改掉 `our-free-model` 这一文件名 ID**；文件名和配置键必须一致。
@@ -134,7 +134,7 @@ plugins:
 首次使用时释放到私有数据目录，以内容哈希命名并逐文件校验，损坏时拒绝执行。
 
 CPA 适配源码仓库为 [sy0u1ti/cpa-our-free-model](https://github.com/sy0u1ti/cpa-our-free-model)。
-v0.5.0 起已发布二进制 Release（当前 v0.5.13，覆盖五个平台）；公共插件商店的上架申请
+v0.5.0 起已发布二进制 Release（当前 v0.5.14，覆盖五个平台）；公共插件商店的上架申请
 仍在审核中，通过后即可在 CPA 插件商店里直接安装，在那之前请先手动放置动态库，
 之后可直接用页面一键更新（见第 7 节）。
 
@@ -351,7 +351,7 @@ https://raw.githubusercontent.com/sy0u1ti/cpa-our-free-model/main/registry.json
 不会自动重启整个 CPA，也不声称所有 CPA 版本都支持无中断热更新。使用反代路径前缀时，
 要把同前缀下的 `/v8/management/` 也转发到 CPA。
 
-**v0.5.0 是首个正式 Release**（当前 v0.5.13），根目录 `registry.json` 已发布。
+**v0.5.0 是首个正式 Release**（当前 v0.5.14），根目录 `registry.json` 已发布。
 v0.5.0 之前的版本不含更新器，需要手动安装一次；从 v0.5.0 起可直接在页面更新到
 后续正式版本。尚无 Release、平台安装包缺失、GitHub 请求失败或本地开发构建，
 都会显示对应状态并禁用安装按钮。
