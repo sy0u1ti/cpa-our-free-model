@@ -15,7 +15,12 @@ CPA 补丁（接入私有 EAC 来源、外置内置 OAuth 配置）外逐字节�
 `service/vendor/ofm/UPSTREAM.json`。`scripts/import-upstream.mjs` 和
 `scripts/upstream-patches.mjs` 可以重现整个取源过程。
 
-**当前版本 v0.5.14**：同步上游 OFM **v2.5.9**（`eb2aaca`，23 个提交）。上游所有者
+**当前版本 v0.5.15**：同步上游 main 的 `f3ecb7a`（最新正式 tag 仍为 **v2.5.9**）。
+本轮两个文档 PR（共四个提交）只更新 README 与 QQ 交流群图片，vendored 源码、lockfile、前端资源、
+CPA 补丁与控制台锚点均未变化，快照仍为 94 个文件。上游尚无 v2.5.9 之后的正式 tag，
+因此最新已发布的插件二进制仍为 v0.5.14。
+
+**上一版 v0.5.14**：同步上游 OFM **v2.5.9**（`eb2aaca`，23 个提交）。上游所有者
 停用了自动可用性探测：`refreshCatalog` 默认 `probe: false`，启动与周期刷新只重新
 拉取模型清单，真实对话遇到地区拒绝也不会再触发后台探测；手动「探测可用性」仍会显式
 发请求。出口 IP 或国家变化时，旧的自动与手动判定会保留在磁盘上但标记为 `stale`，
@@ -134,7 +139,7 @@ plugins:
 首次使用时释放到私有数据目录，以内容哈希命名并逐文件校验，损坏时拒绝执行。
 
 CPA 适配源码仓库为 [sy0u1ti/cpa-our-free-model](https://github.com/sy0u1ti/cpa-our-free-model)。
-v0.5.0 起已发布二进制 Release（当前 v0.5.14，覆盖五个平台）；公共插件商店的上架申请
+v0.5.0 起已发布二进制 Release（最新 v0.5.14，覆盖五个平台）；公共插件商店的上架申请
 仍在审核中，通过后即可在 CPA 插件商店里直接安装，在那之前请先手动放置动态库，
 之后可直接用页面一键更新（见第 7 节）。
 
@@ -351,7 +356,7 @@ https://raw.githubusercontent.com/sy0u1ti/cpa-our-free-model/main/registry.json
 不会自动重启整个 CPA，也不声称所有 CPA 版本都支持无中断热更新。使用反代路径前缀时，
 要把同前缀下的 `/v8/management/` 也转发到 CPA。
 
-**v0.5.0 是首个正式 Release**（当前 v0.5.14），根目录 `registry.json` 已发布。
+**v0.5.0 是首个正式 Release**（最新已发布 v0.5.14），根目录 `registry.json` 已发布。
 v0.5.0 之前的版本不含更新器，需要手动安装一次；从 v0.5.0 起可直接在页面更新到
 后续正式版本。尚无 Release、平台安装包缺失、GitHub 请求失败或本地开发构建，
 都会显示对应状态并禁用安装按钮。

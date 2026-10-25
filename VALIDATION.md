@@ -9,9 +9,28 @@ plugin directories and data directories inside `.test-output/`.
 
 | Component | Revision |
 | --- | --- |
-| OFM | `eb2aaca75f9753edf35d690806f4cdace55e5980` (upstream v2.5.9) |
+| OFM | `f3ecb7abcf5a0351645cfcbd638b9c7fbbcb3e97` (upstream main after v2.5.9) |
 | Official CPA | v8.0.23 / `d318bcc3afb9ea8782862f5e8cdb541afdc9dfa5` |
 | Native contract | C ABI 1, negotiated RPC schema up to 6 |
+
+## Upstream Main Documentation Sync: 0.5.15
+
+Pinned the vendored source to upstream `f3ecb7a`, four commits across two
+documentation-only merges after v2.5.9. Upstream changed only `README.md`,
+`README_EN.md`, and the QQ
+community images; no retained source, lockfile, or served web asset changed.
+The 94 vendored files, two CPA patches, twelve console patches, and seventeen
+console labels remain byte- and anchor-identical. License collection was rerun;
+dependency versions and license text are unchanged, so only the recorded lock
+commit moved. Upstream has not published a tag after v2.5.9, so no new plugin
+release tag was created.
+
+Verified on Windows x64 against official CPA 8.0.23: `npm run check` (116
+JavaScript files), `npm test` (43 tests), `npm run build`, `go test ./...`,
+`go vet ./...`, and `npm run smoke` (24 checks). The provenance audit compared
+all 94 retained files with upstream Git blobs plus the two explicit patches and
+reported 0 mismatches. Targeted Go tests also confirmed all twelve console hooks
+and all seventeen console labels still match the pinned bundle.
 
 ## Upstream v2.5.9 Sync: 0.5.14
 

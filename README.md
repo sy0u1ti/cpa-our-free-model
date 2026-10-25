@@ -10,14 +10,20 @@ repository**. The [Magpie adaptation](https://github.com/mu-zi-lee/magpie-our-fr
 is an architectural reference only, not a code source or dependency. The CPA
 C ABI integration is separate. Original authorship and MIT licenses are retained.
 
-Version **0.5.14** vendors OFM `eb2aaca` (upstream v2.5.9). Only the files the
-served UI actually references are kept, and the private EAC seal is never
+Version **0.5.15** vendors OFM `f3ecb7a` (upstream main after v2.5.9). Only the
+files the served UI actually references are kept, and the private EAC seal is never
 vendored. `npm run vendor:original -- /path/to/original-checkout` regenerates the
 snapshot from pinned Git blobs. See `scripts/upstream-patches.mjs` and
 `service/vendor/ofm/UPSTREAM.json` for exact provenance.
 
-**New in 0.5.14:** upstream v2.5.9 sync (23 commits). The owner has disabled
-automatic availability probing: `refreshCatalog` now defaults to `probe: false`,
+**New in 0.5.15:** upstream documentation sync only. The pin advances by two
+merges that update the project README and QQ community images; no vendored
+source, lockfile, served web asset, CPA patch, or console anchor changed. The
+vendored set remains at 94 files. Upstream has not published a tag after v2.5.9,
+so the latest published plugin binary remains 0.5.14.
+
+**Previously in 0.5.14:** upstream v2.5.9 sync (23 commits). The owner has
+disabled automatic availability probing: `refreshCatalog` now defaults to `probe: false`,
 boot and periodic refreshes only reload the listing, and a region refusal from a
 real turn no longer triggers a background probe. The manual "probe availability"
 action still sends explicit probes. When the egress IP or country changes, the
