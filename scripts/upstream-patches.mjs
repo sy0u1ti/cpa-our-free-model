@@ -29,6 +29,20 @@ export const PATCHES = Object.freeze({
       return source;
     },
   },
+  'src/subscriptions.js': {
+    id: 'cpa-private-gemini-subscription-oauth',
+    reason: 'Remove the distributed Gemini CLI OAuth client credentials from the private subscription sidecar; use explicit CPA-local configuration instead.',
+    apply(source) {
+      for (const name of ['GEMINI_CLIENT_ID', 'GEMINI_CLIENT_SECRET']) {
+        source = replaceOne(source, new RegExp(`const ${name} = '[^'\\r\\n]*'`), `const ${name} = ''`, name);
+      }
+      source = replaceOne(source,
+        /      const form = \{\n        grant_type: 'refresh_token', refresh_token: c\.refreshToken,\n        client_id: account\.provider === 'codex' \? 'app_EMoamEEZ73f0CkXaXp7hrann' : GEMINI_CLIENT_ID,\n        \.\.\.\(account\.provider === 'gemini' \? \{ client_secret: GEMINI_CLIENT_SECRET \} : \{\}\),\n      \}/,
+        `      const form = {\n        grant_type: 'refresh_token', refresh_token: c.refreshToken,\n        client_id: account.provider === 'codex' ? 'app_EMoamEEZ73f0CkXaXp7hrann' : GEMINI_CLIENT_ID,\n        client_secret: account.provider === 'gemini' ? GEMINI_CLIENT_SECRET : undefined,\n      }\n      if (account.provider === 'gemini' && (!form.client_id || !form.client_secret)) {\n        throw fail('AUTH_REQUIRED', 'Gemini OAuth client credentials are not configured in CPA', 401)\n      }`,
+        'Gemini subscription OAuth configuration');
+      return source;
+    },
+  },
 });
 
 export function patchOriginal(file, bytes) {

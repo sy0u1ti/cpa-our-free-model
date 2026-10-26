@@ -1,0 +1,13 @@
+.who{min-width:0}
+.who .name,.nm .n,.lib-path{white-space:normal!important;overflow-wrap:anywhere;overflow:visible!important;text-overflow:clip!important}
+.lib-path{height:auto!important;max-width:100%;text-align:left}
+.sheet .grid{grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr))!important}
+.sheet .tile{height:auto;min-height:34px;padding-top:6px;padding-bottom:6px}
+.sheet .kind,.row-head{flex-wrap:wrap}
+.row-head .label{min-width:0;white-space:normal;overflow-wrap:anywhere}
+input,select,textarea{min-width:0;max-width:100%;box-sizing:border-box}
+@media(max-width:440px){
+  .row{flex-wrap:wrap;align-items:flex-start}
+  button.text{white-space:normal;overflow-wrap:anywhere;max-width:100%}
+  #view-sessions .who{flex:1 1 140px}
+}

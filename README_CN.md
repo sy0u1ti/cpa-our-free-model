@@ -7,18 +7,29 @@
 仅供思路参考：[mu-zi-lee/magpie-our-free-model](https://github.com/mu-zi-lee/magpie-our-free-model)。
 模型运行时、账号渠道、管理控制台和用量统计来自原作者；本项目新增 CPA 原生接入、
 服务生命周期、安全边界及宿主兼容测试，不把上游功能声明为独立原创。
+本轮内嵌的模型工作台引擎支持 Windows x64；其他平台保留原生 OFM 页面，并将工作台显示为不可用。
 
 **唯一产品源码上游是原项目，不使用参考项目的源码快照或辅助模块。**
-通过 `git show` 直接读取原仓库固定提交的文件（当前 94 个），除 2 个独立可追溯的
-CPA 补丁（接入私有 EAC 来源、外置内置 OAuth 配置）外逐字节不变，包括独立服务与
+通过 `git show` 直接读取原仓库固定提交的文件（当前 121 个），除 2 个独立可追溯的
+CPA 补丁（接入私有 EAC 来源、外置内置 OAuth 配置、移除订阅 Gemini OAuth 凭据）外逐字节不变，包括独立服务与
 完整控制台。来源、原始 Git blob、前后 SHA-256、补丁说明均记录在
 `service/vendor/ofm/UPSTREAM.json`。`scripts/import-upstream.mjs` 和
 `scripts/upstream-patches.mjs` 可以重现整个取源过程。
 
-**当前版本 v0.5.15**：同步上游 main 的 `f3ecb7a`（最新正式 tag 仍为 **v2.5.9**）。
-本轮两个文档 PR（共四个提交）只更新 README 与 QQ 交流群图片，vendored 源码、lockfile、前端资源、
-CPA 补丁与控制台锚点均未变化，快照仍为 94 个文件。上游尚无 v2.5.9 之后的正式 tag，
-因此最新已发布的插件二进制仍为 v0.5.14。
+**当前版本 v0.5.16**：同步上游 **v2.7.2**（`e1b347a`，包含 v2.6.0、v2.7.0、
+v2.7.1 与 v2.7.2，共 28 个提交）。新增与桌面端相同的模型工作台及内嵌 Magpie
+引擎、订阅车道与原生 Gemini、供应商/资源库/路由管理、新版免责声明、Kilo
+免费池统计和上游旧版升级器的 2.7.2 兼容载荷。快照由 94 个文件增至 121 个；
+引擎二进制按九个分片校验后还原。
+
+工作台继续运行在不含 `allow-same-origin` 的沙盒中。CPA 只提供静态引擎资源与
+严格白名单 API 代理，消息只接受来自精确子窗口对象的请求；代理不转发 Cookie、
+拒绝重定向并保留 `204`。静态入口只接受引擎根页和校验后的资源路径，其他路径、
+目录穿越与异常 MIME 一律拒绝。3 条 CPA 源码补丁仍单次命中；12 条控制台补丁中重新
+锚定后保留 10 条，17 条界面文案全部继续命中。
+
+**上一版 v0.5.15**：同步上游 main 的文档提交，只更新 README 与 QQ 交流群图片，
+快照仍为 94 个文件；没有新的正式 tag。
 
 **上一版 v0.5.14**：同步上游 OFM **v2.5.9**（`eb2aaca`，23 个提交）。上游所有者
 停用了自动可用性探测：`refreshCatalog` 默认 `probe: false`，启动与周期刷新只重新
@@ -108,16 +119,16 @@ Linux 源码备用更新器创建的安装目录改为可遍历权限，备份�
 **v0.5.0 起提供预编译 Release；v0.5.3 起覆盖 Windows amd64、Linux amd64/arm64
 与 macOS amd64/arm64。** `dist/` 不随源码提交：优先从
 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases)
-下载 `our-free-model_0.5.14_<系统>_<架构>.zip` 并核对 `checksums.txt`；从仓库克隆后
+下载 `our-free-model_0.5.16_<系统>_<架构>.zip` 并核对 `checksums.txt`；从仓库克隆后
 也可按第 7 节自行构建，产物位于：
 
 | 系统 | 文件 |
 | --- | --- |
-| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.14.dll` |
-| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.14.so` |
-| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.14.so` |
-| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.14.dylib` |
-| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.14.dylib` |
+| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.16.dll` |
+| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.16.so` |
+| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.16.so` |
+| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.16.dylib` |
+| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.16.dylib` |
 
 1. 把对应动态库复制到 CPA 配置的插件目录，例如 `plugins/` 或 `plugins/windows/amd64/`。
    **不要改掉 `our-free-model` 这一文件名 ID**；文件名和配置键必须一致。
@@ -139,7 +150,7 @@ plugins:
 首次使用时释放到私有数据目录，以内容哈希命名并逐文件校验，损坏时拒绝执行。
 
 CPA 适配源码仓库为 [sy0u1ti/cpa-our-free-model](https://github.com/sy0u1ti/cpa-our-free-model)。
-v0.5.0 起已发布二进制 Release（最新 v0.5.14，覆盖五个平台）；公共插件商店的上架申请
+v0.5.0 起已发布二进制 Release（最新 v0.5.16，覆盖五个平台）；公共插件商店的上架申请
 仍在审核中，通过后即可在 CPA 插件商店里直接安装，在那之前请先手动放置动态库，
 之后可直接用页面一键更新（见第 7 节）。
 
@@ -356,7 +367,7 @@ https://raw.githubusercontent.com/sy0u1ti/cpa-our-free-model/main/registry.json
 不会自动重启整个 CPA，也不声称所有 CPA 版本都支持无中断热更新。使用反代路径前缀时，
 要把同前缀下的 `/v8/management/` 也转发到 CPA。
 
-**v0.5.0 是首个正式 Release**（最新已发布 v0.5.14），根目录 `registry.json` 已发布。
+**v0.5.0 是首个正式 Release**（最新已发布 v0.5.16），根目录 `registry.json` 已发布。
 v0.5.0 之前的版本不含更新器，需要手动安装一次；从 v0.5.0 起可直接在页面更新到
 后续正式版本。尚无 Release、平台安装包缺失、GitHub 请求失败或本地开发构建，
 都会显示对应状态并禁用安装按钮。

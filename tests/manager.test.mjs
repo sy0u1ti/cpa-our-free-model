@@ -128,6 +128,39 @@ test('workspace theme synchronization accepts only the owned child and known the
   assert.equal(p.element('#workspace').dataset.theme, 'light');
 });
 
+test('nested engine requests use the console frame identity and never receive the CPA key', async () => {
+  const p = page(); await p.element('#open').onclick();
+  const handler = p.events.get('message'), source = p.element('#console-frame').contentWindow;
+  const data = { kind: 'ofm-engine-request', id: 'c'.repeat(32), path: '/api/state', method: 'GET' };
+  const before = p.requests.length;
+  handler({ origin: 'null', source: {}, data });
+  await setImmediate(); assert.equal(p.requests.length, before);
+  handler({ origin: 'null', source, data });
+  await setImmediate(); await setImmediate();
+  const call = p.requests.at(-1);
+  assert.ok(call.url.endsWith('/ofm/console-api'));
+  const { kind, ...engineCall } = data;
+  assert.equal(kind, 'ofm-engine-request');
+  assert.deepEqual(JSON.parse(call.options.body), { ...engineCall, engine: true });
+  assert.equal(call.options.headers.Authorization, 'Bearer management-fixture-only');
+  assert.equal(p.replies.length, 1);
+  assert.equal(p.replies[0][0].kind, 'ofm-engine-response');
+  assert.equal(p.replies[0][0].status, 200);
+  assert.ok(!JSON.stringify(p.replies).includes('management-fixture-only'));
+});
+
+test('engine responses only return to the console frame and are not accepted from an unrelated window', async () => {
+  const p = page(); await p.element('#open').onclick();
+  const handler = p.events.get('message');
+  const source = p.element('#console-frame').contentWindow;
+  const request = { kind: 'ofm-engine-request', id: 'd'.repeat(32), path: '/api/providers', method: 'GET' };
+  handler({ origin: 'null', source, data: request });
+  await setImmediate(); await setImmediate();
+  p.element('#logout').onclick();
+  assert.equal(p.element('#workspace').hidden, true);
+  assert.equal(p.element('#key').value, '');
+});
+
 test('manager accepts requests only from its own same-origin console frame and never sends it the key', async () => {
   const p = page(); await p.element('#open').onclick();
   const handler = p.events.get('message');

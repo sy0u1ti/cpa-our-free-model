@@ -9,11 +9,44 @@ plugin directories and data directories inside `.test-output/`.
 
 | Component | Revision |
 | --- | --- |
-| OFM | `f3ecb7abcf5a0351645cfcbd638b9c7fbbcb3e97` (upstream main after v2.5.9) |
+| OFM | `e1b347aec9cc956eda70a766219f028a811078e2` (upstream v2.7.2) |
 | Official CPA | v8.0.23 / `d318bcc3afb9ea8782862f5e8cdb541afdc9dfa5` |
 | Native contract | C ABI 1, negotiated RPC schema up to 6 |
 
-## Upstream Main Documentation Sync: 0.5.15
+## Upstream v2.7.2 Sync: 0.5.16
+
+Re-vendored the original OFM runtime from `f3ecb7a` to `e1b347a` (upstream
+v2.7.2, 28 commits spanning v2.6.0 through v2.7.2). The retained set grows to
+121 files. New upstream work includes the model workbench and bundled Magpie
+engine, subscriptions and native Gemini support, provider/library/routing
+management, a revised disclaimer, Kilo free-pool accounting, and the legacy
+updater's 2.7.2 compatibility payload. The served bundles are now
+`channels-CwUJPBXI.js`, `models-CCoW-2uM.js`, `settings-CdBN6B3K.js`, and
+`usage-JY1Fq3E5.js`.
+
+The three CPA source patches still match exactly once. The console bundle was
+re-anchored to ten EAC patches, and all seventeen console labels still match.
+The model workbench stays inside the existing opaque-origin sandbox: a
+CPA-owned resource/API bridge serves only static engine assets, proxies a
+strict read/write allowlist with the private management session, strips
+redirects/cookies, preserves `204`, and relays opaque-frame messages only by
+exact `contentWindow` identity. Engine HTML drops upstream's `<base>` and
+same-origin browser bridge, loads the CPA bridge, and no longer weakens the
+iframe with `allow-same-origin`.
+
+The static route accepts only the engine entry point plus a validated `path`
+query and the fixed `mode=window&view=providers` view. It rejects absolute or
+API paths, fragments, backslashes/control chars, encoded traversal, duplicate
+parameters, redirects, `Set-Cookie`, unexpected MIME types and responses over
+8 MiB. HTML/CSS references are rewritten back through the same route.
+
+The embedded engine payload is restored from nine verified gzip parts. Magpie's
+MIT license and third-party notice are retained in source and release packages.
+`npm run vendor:original` generated the 121-file manifest; the provenance audit
+compares every retained file against the original Git blobs plus the three
+declared patches.
+
+## Prior Release: Upstream Main Documentation Sync: 0.5.15
 
 Pinned the vendored source to upstream `f3ecb7a`, four commits across two
 documentation-only merges after v2.5.9. Upstream changed only `README.md`,

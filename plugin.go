@@ -186,6 +186,11 @@ func (p *plugin) Handle(method string, raw []byte) (any, error) {
 		if err := decodeRequest(raw, &request); err != nil {
 			return nil, err
 		}
+		// The workbench's static shell is public code, but its bytes are fetched
+		// from the private loopback service with the internal management session.
+		if response, ok := p.engineResource(request); ok {
+			return response, nil
+		}
 		// Resource routes contain static code only; all data operations require CPA auth.
 		if response, ok := consoleResource(request); ok {
 			return response, nil

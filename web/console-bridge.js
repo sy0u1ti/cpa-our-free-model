@@ -45,7 +45,38 @@
   const prefix = '/api/management';
   const messageJSON = (status, error) => new Response(JSON.stringify({ error }), { status, headers: { 'content-type': 'application/json' } });
 
+  // The upstream console nests the model workspace in a second iframe. Both
+  // documents are opaque-origin, so the engine cannot call the parent service
+  // directly. Relay its allowlisted API calls through this document; the
+  // manager then uses the same CPA-authenticated path as console calls.
   window.addEventListener('message', event => {
+    const engine = document.querySelector('.ofm_engineframe');
+    if (!engine || event.source !== engine.contentWindow || event.origin !== 'null') return;
+    const message = event.data;
+    if (message?.kind === 'ofm-engine-ready') {
+      engine.contentWindow?.postMessage({ kind: 'ofm-engine-ready' }, '*');
+      return;
+    }
+    if (message?.kind === 'ofm-engine-request') {
+      if (!/^[a-f0-9]{32}$/.test(message.id ?? '') || !['GET', 'POST'].includes(message.method) ||
+        typeof message.path !== 'string') return;
+      parent.postMessage({
+        kind: 'ofm-engine-request', id: message.id, path: message.path,
+        method: message.method, body: message.body,
+      }, parentTarget);
+      return;
+    }
+    if (message?.kind === 'ofm-engine-cancel' && /^[a-f0-9]{32}$/.test(message.id ?? '')) {
+      parent.postMessage({ kind: 'ofm-engine-cancel', id: message.id }, parentTarget);
+    }
+  });
+
+  window.addEventListener('message', event => {
+    if (fromParent(event) && event.data?.kind === 'ofm-engine-change') {
+      const engine = document.querySelector('.ofm_engineframe');
+      engine?.contentWindow?.postMessage({ type: 'ofm:engine-changed' }, '*');
+      return;
+    }
     if (!fromParent(event) || event.data?.kind !== 'ofm-response') return;
     const entry = pending.get(event.data.id);
     if (!entry) return;
@@ -68,10 +99,20 @@
   window.fetch = async (input, options = {}) => {
     const request = new Request(input, options);
     const url = new URL(request.url, location.href);
+    // The upstream console serves the model workspace as a nested same-origin
+    // engine page. Route every management and engine request through the parent
+    // so the server can attach the privileged OFM session without exposing it to
+    // this sandboxed document.
     if (url.origin !== location.origin || !url.pathname.startsWith(prefix + '/')) return nativeFetch(request);
     if (parent === window) return messageJSON(401, '请从 CPA 侧栏的“免费模型管理”进入控制台。');
     if (url.pathname === prefix + '/logout') {
       parent.postMessage({ kind: 'ofm-logout' }, parentTarget);
+      return new Response('{"ok":true}', { headers: { 'content-type': 'application/json' } });
+    }
+    // CPA has already authenticated the host page with its privileged credential. The
+    // OFM page's local-key login screen is therefore redundant; the server-side
+    // bridge creates the privileged OFM session for its allowlisted API calls.
+    if (url.pathname === prefix + '/session' && request.method === 'POST') {
       return new Response('{"ok":true}', { headers: { 'content-type': 'application/json' } });
     }
     if (!['GET', 'POST'].includes(request.method)) return messageJSON(405, '不支持此操作。');

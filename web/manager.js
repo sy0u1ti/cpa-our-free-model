@@ -247,6 +247,48 @@
     if (event.source !== frame.contentWindow || $('#workspace').hidden) return;
     if (event.origin !== 'null' && event.origin !== location.origin) return;
     const message = event.data;
+    if (message?.kind === 'ofm-engine-request' || message?.kind === 'ofm-engine-cancel' ||
+      message?.kind === 'ofm-engine-ready' || message?.type === 'ofm:engine-changed') {
+      if (message.kind === 'ofm-engine-ready') return;
+      if (message.type === 'ofm:engine-changed') {
+        frame.contentWindow?.postMessage({ kind: 'ofm-engine-change' }, '*');
+        return;
+      }
+      if (!/^[a-f0-9]{32}$/.test(message.id ?? '')) return;
+      if (message.kind === 'ofm-engine-cancel') {
+        calls.get(message.id)?.abort();
+        void request('ofm/console-cancel', 'POST', { id: message.id }, AbortSignal.timeout(5000)).catch(() => {});
+        return;
+      }
+      if (message.kind !== 'ofm-engine-request' || calls.has(message.id)) return;
+      if (!['GET', 'POST'].includes(message.method) || typeof message.path !== 'string') return;
+      const controller = new AbortController();
+      calls.set(message.id, controller);
+      const source = event.source;
+      (async () => {
+        try {
+          const response = await request('ofm/console-api', 'POST', {
+            id: message.id, path: message.path, method: message.method, body: message.body,
+            engine: true,
+          }, controller.signal);
+          const text = await response.text();
+          const headers = {};
+          for (const name of ['retry-after', 'x-magpie-reading', 'x-request-id']) {
+            const value = response.headers.get(name);
+            if (value !== null) headers[name] = value;
+          }
+          if (!$('#workspace').hidden) source.postMessage({
+            kind: 'ofm-engine-response', id: message.id, status: response.status, text, headers,
+          }, '*');
+        } catch {
+          if (!$('#workspace').hidden) source.postMessage({
+            kind: 'ofm-engine-response', id: message.id, status: 502,
+            text: JSON.stringify({ error: '工作台请求失败、已取消或连接中断。' }), headers: {},
+          }, '*');
+        } finally { calls.delete(message.id); }
+      })();
+      return;
+    }
     if (message?.kind === 'ofm-theme' && ['light', 'dark'].includes(message.theme)) {
       $('#workspace').dataset.theme = message.theme;
       return;

@@ -15,52 +15,138 @@ import (
 
 // Keep private or ignored files in service/ out of published binaries.
 //
-//go:embed service/package.json service/runner.mjs service/src/catalog.mjs service/src/console-tickets.mjs service/src/eac-provider.mjs
-//go:embed service/upstream-eac.json service/vendor/CPA_LICENSE service/vendor/WEB_LICENSES.txt service/vendor/WEB_LICENSE_SOURCES.json
+//go:embed service/package.json
+//go:embed service/runner.mjs
+//go:embed service/src/catalog.mjs
+//go:embed service/src/console-tickets.mjs
+//go:embed service/src/eac-provider.mjs
+//go:embed service/upstream-eac.json
+//go:embed service/vendor/CPA_LICENSE
+//go:embed service/vendor/WEB_LICENSES.txt
+//go:embed service/vendor/WEB_LICENSE_SOURCES.json
+//go:embed service/vendor/YAML_LICENSE
+//go:embed service/vendor/ofm/LICENSE
 //go:embed service/vendor/ofm/UPSTREAM.json
-//go:embed service/vendor/YAML_LICENSE service/vendor/ofm/LICENSE service/vendor/ofm/package.json service/vendor/ofm/packages/standalone/README.md
-//go:embed service/vendor/ofm/packages/standalone/channels/business.mjs service/vendor/ofm/packages/standalone/channels/contracts.mjs
-//go:embed service/vendor/ofm/packages/standalone/channels/credentials.mjs service/vendor/ofm/packages/standalone/channels/images.mjs
-//go:embed service/vendor/ofm/packages/standalone/channels/runtime.mjs service/vendor/ofm/packages/standalone/channels/worker.mjs
-//go:embed service/vendor/ofm/packages/standalone/cli.mjs service/vendor/ofm/packages/standalone/eac.mjs
-//go:embed service/vendor/ofm/packages/standalone/login-terminal.mjs service/vendor/ofm/packages/standalone/management.mjs
+//go:embed service/vendor/ofm/icon.svg
+//go:embed service/vendor/ofm/package.json
+//go:embed service/vendor/ofm/packages/standalone/README.md
+//go:embed service/vendor/ofm/packages/standalone/channels/business.mjs
+//go:embed service/vendor/ofm/packages/standalone/channels/contracts.mjs
+//go:embed service/vendor/ofm/packages/standalone/channels/credentials.mjs
+//go:embed service/vendor/ofm/packages/standalone/channels/images.mjs
+//go:embed service/vendor/ofm/packages/standalone/channels/runtime.mjs
+//go:embed service/vendor/ofm/packages/standalone/channels/worker.mjs
+//go:embed service/vendor/ofm/packages/standalone/cli.mjs
+//go:embed service/vendor/ofm/packages/standalone/client-terminal.mjs
+//go:embed service/vendor/ofm/packages/standalone/eac.mjs
+//go:embed service/vendor/ofm/packages/standalone/library.mjs
+//go:embed service/vendor/ofm/packages/standalone/login-terminal.mjs
+//go:embed service/vendor/ofm/packages/standalone/management.mjs
 //go:embed service/vendor/ofm/packages/standalone/open-external.mjs
-//go:embed service/vendor/ofm/packages/standalone/package.json service/vendor/ofm/packages/standalone/service.mjs
+//go:embed service/vendor/ofm/packages/standalone/package.json
+//go:embed service/vendor/ofm/packages/standalone/providers.mjs
+//go:embed service/vendor/ofm/packages/standalone/routing.mjs
+//go:embed service/vendor/ofm/packages/standalone/service.mjs
 //go:embed service/vendor/ofm/packages/standalone/web/app.css
-//go:embed service/vendor/ofm/packages/standalone/web/app.js service/vendor/ofm/packages/standalone/web/assets.json
-//go:embed service/vendor/ofm/packages/standalone/web/channels-HdJ7rqdl.js service/vendor/ofm/packages/standalone/web/index.html
-//go:embed service/vendor/ofm/packages/standalone/web/models-DXpb3t6q.js service/vendor/ofm/packages/standalone/web/search-RZVy3Eoo.js
-//go:embed service/vendor/ofm/packages/standalone/web/settings-KkHf6c81.js service/vendor/ofm/packages/standalone/web/sliders-horizontal-DNbjUrIs.js
-//go:embed service/vendor/ofm/packages/standalone/web/usage-BOibUWax.js
-//go:embed service/vendor/ofm/packages/standalone/web/visibility-data-9WWAmLOB.js service/vendor/ofm/packages/standalone/web/x-CzfajR1e.js
-//go:embed service/vendor/ofm/scripts/standalone-third-party.txt service/vendor/ofm/src/adapter.js service/vendor/ofm/src/aggregate.js
-//go:embed service/vendor/ofm/src/anthropic.js service/vendor/ofm/src/catalog.js service/vendor/ofm/src/chan-relay.js
-//go:embed service/vendor/ofm/src/channel.js service/vendor/ofm/src/combos.js service/vendor/ofm/src/core/completion.js
-//go:embed service/vendor/ofm/src/sponsor.css
-//go:embed service/vendor/ofm/src/sponsor.js
-//go:embed service/vendor/ofm/src/core/runtime.js service/vendor/ofm/src/core/stats.js service/vendor/ofm/src/deferred-response.js
+//go:embed service/vendor/ofm/packages/standalone/web/app.js
+//go:embed service/vendor/ofm/packages/standalone/web/assets.json
+//go:embed service/vendor/ofm/packages/standalone/web/channels-CwUJPBXI.js
+//go:embed service/vendor/ofm/packages/standalone/web/index.html
+//go:embed service/vendor/ofm/packages/standalone/web/models-CCoW-2uM.js
+//go:embed service/vendor/ofm/packages/standalone/web/settings-CdBN6B3K.js
+//go:embed service/vendor/ofm/packages/standalone/web/sliders-horizontal-DNbjUrIs.js
+//go:embed service/vendor/ofm/packages/standalone/web/usage-JY1Fq3E5.js
+//go:embed service/vendor/ofm/packages/standalone/web/visibility-data-9WWAmLOB.js
+//go:embed service/vendor/ofm/packages/standalone/workbench.mjs
+//go:embed service/vendor/ofm/scripts/standalone-third-party.txt
+//go:embed service/vendor/ofm/src/adapter.js
+//go:embed service/vendor/ofm/src/aggregate.js
+//go:embed service/vendor/ofm/src/anthropic.js
+//go:embed service/vendor/ofm/src/catalog.js
+//go:embed service/vendor/ofm/src/chan-relay.js
+//go:embed service/vendor/ofm/src/channel.js
+//go:embed service/vendor/ofm/src/combos.js
+//go:embed service/vendor/ofm/src/core/completion.js
+//go:embed service/vendor/ofm/src/core/runtime.js
+//go:embed service/vendor/ofm/src/core/stats.js
+//go:embed service/vendor/ofm/src/deferred-response.js
+//go:embed service/vendor/ofm/src/disclaimer.js
 //go:embed service/vendor/ofm/src/eac-login.js
-//go:embed service/vendor/ofm/src/eac-user.js service/vendor/ofm/src/eac.js service/vendor/ofm/src/effort.js service/vendor/ofm/src/egress.js
-//go:embed service/vendor/ofm/src/failure.js service/vendor/ofm/src/feed.js service/vendor/ofm/src/forward.js service/vendor/ofm/src/http.js service/vendor/ofm/src/image-pricing.js
-//go:embed service/vendor/ofm/src/kilo.js service/vendor/ofm/src/local-optimize.js service/vendor/ofm/src/messages.js
+//go:embed service/vendor/ofm/src/eac-user.js
+//go:embed service/vendor/ofm/src/eac.js
+//go:embed service/vendor/ofm/src/effort.js
+//go:embed service/vendor/ofm/src/egress.js
+//go:embed service/vendor/ofm/src/engine-parts/win32-x64.000.part
+//go:embed service/vendor/ofm/src/engine-parts/win32-x64.001.part
+//go:embed service/vendor/ofm/src/engine-parts/win32-x64.002.part
+//go:embed service/vendor/ofm/src/engine-parts/win32-x64.003.part
+//go:embed service/vendor/ofm/src/engine-parts/win32-x64.004.part
+//go:embed service/vendor/ofm/src/engine-parts/win32-x64.005.part
+//go:embed service/vendor/ofm/src/engine-parts/win32-x64.006.part
+//go:embed service/vendor/ofm/src/engine-parts/win32-x64.007.part
+//go:embed service/vendor/ofm/src/engine-parts/win32-x64.008.part
+//go:embed service/vendor/ofm/src/engine-payload.js
+//go:embed service/vendor/ofm/src/failure.js
+//go:embed service/vendor/ofm/src/feed.js
+//go:embed service/vendor/ofm/src/forward.js
+//go:embed service/vendor/ofm/src/gemini.js
+//go:embed service/vendor/ofm/src/http.js
+//go:embed service/vendor/ofm/src/image-pricing.js
+//go:embed service/vendor/ofm/src/kilo.js
+//go:embed service/vendor/ofm/src/local-optimize.js
+//go:embed service/vendor/ofm/src/loopback-fetch.js
+//go:embed service/vendor/ofm/src/magpie-engine.js
+//go:embed service/vendor/ofm/src/magpie-models.js
+//go:embed service/vendor/ofm/src/magpie-policy.js
+//go:embed service/vendor/ofm/src/messages.js
 //go:embed service/vendor/ofm/src/model-test.js
 //go:embed service/vendor/ofm/src/open-external.js
-//go:embed service/vendor/ofm/src/picks.js service/vendor/ofm/src/probe.js service/vendor/ofm/src/providers/index.js service/vendor/ofm/src/providers/registry.json
-//go:embed service/vendor/ofm/src/push.js service/vendor/ofm/src/recovery.js service/vendor/ofm/src/reload.js
-//go:embed service/vendor/ofm/src/route/classify.js service/vendor/ofm/src/store.js service/vendor/ofm/src/stream.js
-//go:embed service/vendor/ofm/src/token-saver/index.js service/vendor/ofm/src/token-saver/inject.js service/vendor/ofm/src/token-saver/prompts.js
-//go:embed service/vendor/ofm/src/token-saver/rtk/applyFilter.js service/vendor/ofm/src/token-saver/rtk/autodetect.js
-//go:embed service/vendor/ofm/src/token-saver/rtk/constants.js service/vendor/ofm/src/token-saver/rtk/filters/buildOutput.js
+//go:embed service/vendor/ofm/src/picks.js
+//go:embed service/vendor/ofm/src/probe.js
+//go:embed service/vendor/ofm/src/providers/index.js
+//go:embed service/vendor/ofm/src/providers/registry.json
+//go:embed service/vendor/ofm/src/push.js
+//go:embed service/vendor/ofm/src/recovery.js
+//go:embed service/vendor/ofm/src/reload.js
+//go:embed service/vendor/ofm/src/route/classify.js
+//go:embed service/vendor/ofm/src/sponsor.css
+//go:embed service/vendor/ofm/src/sponsor.js
+//go:embed service/vendor/ofm/src/store.js
+//go:embed service/vendor/ofm/src/stream.js
+//go:embed service/vendor/ofm/src/subscription-adapter.js
+//go:embed service/vendor/ofm/src/subscription-completion.js
+//go:embed service/vendor/ofm/src/subscriptions.js
+//go:embed service/vendor/ofm/src/token-saver.js
+//go:embed service/vendor/ofm/src/token-saver/index.js
+//go:embed service/vendor/ofm/src/token-saver/inject.js
+//go:embed service/vendor/ofm/src/token-saver/prompts.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/applyFilter.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/autodetect.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/constants.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/buildOutput.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/dedupLog.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/find.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/gitDiff.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/gitLog.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/gitStatus.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/grep.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/ls.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/readNumbered.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/searchList.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/smartTruncate.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/filters/tree.js
 //go:embed service/vendor/ofm/src/token-saver/rtk/hitLine.js
-//go:embed service/vendor/ofm/src/token-saver/rtk/filters/dedupLog.js service/vendor/ofm/src/token-saver/rtk/filters/find.js
-//go:embed service/vendor/ofm/src/token-saver/rtk/filters/gitDiff.js service/vendor/ofm/src/token-saver/rtk/filters/gitLog.js
-//go:embed service/vendor/ofm/src/token-saver/rtk/filters/gitStatus.js service/vendor/ofm/src/token-saver/rtk/filters/grep.js
-//go:embed service/vendor/ofm/src/token-saver/rtk/filters/ls.js service/vendor/ofm/src/token-saver/rtk/filters/readNumbered.js
-//go:embed service/vendor/ofm/src/token-saver/rtk/filters/searchList.js service/vendor/ofm/src/token-saver/rtk/filters/smartTruncate.js
-//go:embed service/vendor/ofm/src/token-saver/rtk/filters/tree.js service/vendor/ofm/src/token-saver/rtk/index.js
-//go:embed service/vendor/ofm/src/token-saver/rtk/registry.js service/vendor/ofm/src/trust.js service/vendor/ofm/src/updater.js
-//go:embed service/vendor/ofm/src/upstream.js service/vendor/ofm/vendor/channel-pack/LICENSE service/vendor/ofm/vendor/channel-pack/NOTICE.md
+//go:embed service/vendor/ofm/src/token-saver/rtk/index.js
+//go:embed service/vendor/ofm/src/token-saver/rtk/registry.js
+//go:embed service/vendor/ofm/src/trust.js
+//go:embed service/vendor/ofm/src/updater.js
+//go:embed service/vendor/ofm/src/upstream.js
+//go:embed service/vendor/ofm/vendor/channel-pack/LICENSE
+//go:embed service/vendor/ofm/vendor/channel-pack/NOTICE.md
 //go:embed service/vendor/ofm/vendor/channel-pack/qoder-auth-wasm.wasm
+//go:embed service/vendor/ofm/vendor/magpie/LICENSE
+//go:embed service/vendor/ofm/vendor/magpie/NOTICE.md
+//go:embed service/vendor/ofm/vendor/magpie/engine.json
 var serviceAssets embed.FS
 
 //go:embed web/index.html
@@ -80,6 +166,12 @@ var consoleLayoutStyle []byte
 
 //go:embed web/console-bridge.js
 var consoleBridgeScript []byte
+
+//go:embed web/engine-bridge.js
+var engineBridgeScript []byte
+
+//go:embed web/engine-workspace.css
+var engineWorkspaceStyle []byte
 
 func assetFiles() ([]string, string, error) {
 	var files []string

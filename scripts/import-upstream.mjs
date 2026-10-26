@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { PATCHES, patchOriginal } from './upstream-patches.mjs';
 
 export const ORIGINAL_REPOSITORY = 'https://github.com/Ebony-Vinyl/dsh-our-free-model';
-export const ORIGINAL_COMMIT = 'f3ecb7abcf5a0351645cfcbd638b9c7fbbcb3e97';
+export const ORIGINAL_COMMIT = 'e1b347aec9cc956eda70a766219f028a811078e2';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const checkout = path.resolve(process.argv[2] || path.join(root, '.reference/ofm'));
 const destination = path.join(root, 'service/vendor/ofm');
@@ -20,8 +20,9 @@ const tree = git(['ls-tree', '-r', '--name-only', ORIGINAL_COMMIT]).toString().t
 const withheld = new Set(['src/vault.js', 'src/vault-data.js', 'src/vault-anchor.js']);
 const webAssets = JSON.parse(git(['show', `${ORIGINAL_COMMIT}:packages/standalone/web/assets.json`]).toString('utf8'));
 const selected = [
-  'LICENSE', 'package.json', 'scripts/standalone-third-party.txt', 'packages/standalone/README.md',
-  ...['package.json', 'cli.mjs', 'service.mjs', 'management.mjs', 'login-terminal.mjs', 'open-external.mjs', 'eac.mjs'].map(file => 'packages/standalone/' + file),
+  'LICENSE', 'icon.svg', 'package.json', 'scripts/standalone-third-party.txt', 'packages/standalone/README.md',
+  ...['package.json', 'cli.mjs', 'service.mjs', 'management.mjs', 'login-terminal.mjs', 'open-external.mjs', 'eac.mjs',
+    'client-terminal.mjs', 'workbench.mjs', 'providers.mjs', 'library.mjs', 'routing.mjs'].map(file => 'packages/standalone/' + file),
   ...['business', 'contracts', 'credentials', 'images', 'runtime', 'worker'].map(file => `packages/standalone/channels/${file}.mjs`),
   // Only the files the served index.html and assets.json actually reference:
   // the original repo keeps superseded bundles around, and shipping dead code
@@ -30,8 +31,9 @@ const selected = [
   ...webAssets.map(file => `packages/standalone/web/${file}`),
   // Everything under src/ except the seal, so a new upstream module cannot be
   // missed by an allow-list that silently forgets to name it.
-  ...tree.filter(file => /^src\/.*\.(js|json|css)$/.test(file) && !withheld.has(file)),
+  ...tree.filter(file => /^src\/.*\.(js|json|css|part)$/.test(file) && !withheld.has(file)),
   'vendor/channel-pack/qoder-auth-wasm.wasm', 'vendor/channel-pack/LICENSE', 'vendor/channel-pack/NOTICE.md',
+  'vendor/magpie/LICENSE', 'vendor/magpie/NOTICE.md', 'vendor/magpie/engine.json',
 ].sort();
 if (new Set(selected).size !== selected.length) throw new Error('Duplicate entry in the vendored file list');
 const manifest = { schema: 'cpa-ofm-original-source/v1', repository: ORIGINAL_REPOSITORY, commit: ORIGINAL_COMMIT,

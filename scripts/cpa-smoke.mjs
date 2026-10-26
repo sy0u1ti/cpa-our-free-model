@@ -17,6 +17,7 @@ const arch = process.arch === 'x64' ? 'amd64' : process.arch;
 const ext = process.platform === 'win32' ? 'dll' : process.platform === 'darwin' ? 'dylib' : 'so';
 const version = JSON.parse(fs.readFileSync(path.join(root, 'package.json'))).version;
 const plugin = process.env.CPA_PLUGIN || path.join(root, `dist/${platform}/${arch}/our-free-model-v${version}.${ext}`);
+const workbenchTarget = platform === 'windows' && arch === 'amd64';
 assert.ok(fs.existsSync(plugin), 'Build the plugin first.');
 const directory = privateTestDirectory(root, 'cpa-smoke');
 const plugins = path.join(directory, 'plugins');
@@ -65,9 +66,32 @@ try {
   assert.equal(page.status, 200);
   const html = await page.text();
   assert.ok(!html.includes(managementKey) && !html.includes('/open/fixture'));
+  assert.ok(!html.includes('allow-same-origin'));
+  if (workbenchTarget) {
+    const start = await api('/v0/management/ofm/console-api', {
+      id: crypto.randomBytes(16).toString('hex'), path: '/api/management/engine/start', method: 'POST', body: {},
+    }, managementKey);
+    assert.equal(start.status, 200, await start.clone().text());
+    const engineRoot = await fetch(base + '/v0/resource/plugins/our-free-model/engine?mode=window&view=providers');
+    assert.equal(engineRoot.status, 200, await engineRoot.clone().text());
+    assert.match(engineRoot.headers.get('content-type') ?? '', /^text\/html/);
+    const engineHTML = await engineRoot.text();
+    assert.ok(!engineHTML.includes(`<base `) && !engineHTML.includes('browserBridge'));
+    assert.ok(engineHTML.includes('./engine-bridge.js') && engineHTML.includes('./engine-workspace.css'));
+    const bridge = await fetch(base + '/v0/resource/plugins/our-free-model/engine-bridge.js');
+    assert.equal(bridge.status, 200);
+    assert.match(await bridge.text(), /ofm-engine-request/);
+  }
+  for (const unsafe of [
+    '/v0/resource/plugins/our-free-model/engine?path=../service/runner.mjs',
+    '/v0/resource/plugins/our-free-model/engine?path=%2e%2e/service/runner.mjs',
+    '/v0/resource/plugins/our-free-model/engine?path=api/state',
+    '/v0/resource/plugins/our-free-model/engine?mode=window&mode=panel',
+    '/v0/resource/plugins/our-free-model/engine?path=app.js&extra=1',
+  ]) assert.equal((await fetch(base + unsafe)).status, 404);
   assert.equal((await fetch(base + '/v0/management/ofm/console', { method: 'POST' })).status, 401);
   assert.equal((await fetch(base + '/v0/management/ofm/releases')).status, 401);
-  pass('Public menu does not reveal private credentials; console API requires CPA management auth');
+  pass('Public menu/workbench expose only static resources; traversal and console data require CPA management auth');
   const status = await (await api('/v0/management/ofm/status', undefined, managementKey)).json();
   ofmPid = status.pid;
   assert.equal(typeof ofmPid, 'number');

@@ -8,11 +8,12 @@ binary Release is implied.
 ## Our Free Model
 
 - Source: https://github.com/Ebony-Vinyl/dsh-our-free-model
-- Commit: `f3ecb7abcf5a0351645cfcbd638b9c7fbbcb3e97` (upstream main after v2.5.9; documentation-only commits)
+- Commit: `e1b347aec9cc956eda70a766219f028a811078e2` (upstream v2.7.2)
 - Runtime, providers, console, usage accounting, authentication flows and model
   policy are upstream functionality, not newly authored by this adapter.
 - License: `service/vendor/ofm/LICENSE` (MIT).
 - Original channel-pack attribution: `service/vendor/ofm/vendor/channel-pack/`.
+- Original bundled Magpie engine attribution: `service/vendor/ofm/vendor/magpie/`.
 - Original bundled third-party notices: `service/vendor/ofm/scripts/standalone-third-party.txt`.
 - Supplementary web package licenses: `service/vendor/WEB_LICENSES.txt`, fetched
   from versions pinned by the original OFM lockfile. Source URLs and digests are
@@ -25,8 +26,8 @@ files are read directly from that repository's pinned Git blobs by
 The import covers the whole `src/` tree plus the service entry points and only
 those web bundles `assets.json` actually serves, so superseded bundles are not
 shipped. Every retained file is byte-for-byte identical to the original except
-the two patched files below; `service/vendor/ofm/UPSTREAM.json` records the exact
-count. Two CPA-only changes are reproducible in `scripts/upstream-patches.mjs`:
+the patched files below; `service/vendor/ofm/UPSTREAM.json` records the exact
+count. Three CPA-only changes are reproducible in `scripts/upstream-patches.mjs`:
 
 1. Replace the standalone EAC credential-module import with the CPA private
    supplier. The original login, Star validation, signing and authorization
@@ -35,13 +36,17 @@ count. Two CPA-only changes are reproducible in `scripts/upstream-patches.mjs`:
    (use explicit private configuration, with a clear missing-config error).
    Upstream removed the WorkBuddy/CodeBuddy channels in v2.5.8, so the former
    leading-system-message patch no longer applies and was dropped.
+3. Remove the Gemini CLI OAuth client credentials from the subscription
+   sidecar; token refresh fails closed until CPA-local credentials are supplied.
 
 `service/vendor/ofm/UPSTREAM.json` records original Git blob IDs, original
 SHA-256 hashes, resulting hashes, patch IDs and omitted optional credential
 files. `service/upstream-eac.json` is generated directly from the original
-revision and pins the optional source download. `npm test` verifies retained
-hashes; with the original checkout available it also checks every file against
-`git show` plus the declared CPA patches.
+revision and pins the optional source download. The bundled Magpie engine's MIT
+license and third-party notice are retained under
+`service/vendor/ofm/vendor/magpie/`. `npm test` verifies retained hashes; with
+the original checkout available it also checks every file against `git show`
+plus the declared CPA patches.
 
 The original EAC credential module and two encrypted data files are not distributed. EAC is opt-in:
 the original pinned source may be installed in a private cache, with pinned

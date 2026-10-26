@@ -15,6 +15,7 @@ let initialized;
 let inputClosed = false;
 let initialReady;
 let settingsInUse;
+let managementSession;
 const input = createInterface({ input: process.stdin });
 // Stdout is a private control protocol, never a vendor logging sink.
 const send = value => process.stdout.write(JSON.stringify(value) + '\n');
@@ -96,11 +97,35 @@ function connection() {
   return { url: service.url, key: forwardKey };
 }
 
+async function consoleConnection() {
+  const value = connection();
+  const settings = JSON.parse(fs.readFileSync(service.keyFile, 'utf8'));
+  if (typeof settings.managementKey !== 'string' || !settings.managementKey) {
+    throw new Error('Missing local management key');
+  }
+  if (!managementSession || managementSession.expiresAt <= Date.now()) {
+    const response = await fetch(service.url + '/api/management/session', {
+      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(5000),
+      headers: { origin: service.url, 'content-type': 'application/json' },
+      body: JSON.stringify({ key: settings.managementKey }),
+    });
+    const header = response.headers.get('set-cookie') ?? '';
+    const cookie = header.split(';', 1)[0];
+    await response.text();
+    if (!response.ok || !cookie || !/HttpOnly/i.test(header)) throw new Error('Management session was refused');
+    // The upstream session lasts eight hours. Refresh one hour early so a
+    // long-lived management page never sends an expired cookie.
+    managementSession = { cookie, expiresAt: Date.now() + 7 * 60 * 60 * 1000 };
+  }
+  return { ...value, session: managementSession.cookie };
+}
+
 async function command(message) {
   await initialized;
   if (!service || inputClosed) throw new Error('Service is stopping');
   switch (message.type) {
     case 'connection': return connection();
+    case 'console-connection': return consoleConnection();
     case 'eac-warmup': return warmupEac();
     case 'console': {
       handoffPromise ??= openConsoleTickets(service, settingsInUse.consolePort).then(value => { handoff = value; return value; }, error => { handoffPromise = undefined; throw error; });

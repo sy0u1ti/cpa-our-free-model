@@ -23,6 +23,17 @@ test('real bundled OFM service: discovery, auth fences, key rotation, console, s
   assert.equal((await fetch(connection.url + '/v1/models')).status, 401);
   const models = await fetch(connection.url + '/v1/models', { headers: { authorization: 'Bearer ' + connection.key } });
   assert.equal(models.status, 200);
+  const consoleConnection = await runner.call('console-connection');
+  assert.equal(consoleConnection.key, connection.key);
+  assert.match(consoleConnection.session, /^ofm_management_\d+=/);
+  const providers = await fetch(connection.url + '/api/management/providers', {
+    headers: { cookie: consoleConnection.session, origin: connection.url },
+  });
+  assert.equal(providers.status, 200, await providers.text());
+  const bearerOnly = await fetch(connection.url + '/api/management/providers', {
+    headers: { authorization: 'Bearer ' + connection.key, origin: connection.url },
+  });
+  assert.equal(bearerOnly.status, 403);
   const prepared = await runner.call('prepare', { model: upstream.state.model, body: { messages: [{ role: 'user', content: 'hi' }], reasoning_effort: 'high' } });
   assert.equal(prepared.admitted, true);
   assert.equal(prepared.body.reasoning_effort, 'deep');

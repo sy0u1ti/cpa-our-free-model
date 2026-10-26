@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os/exec"
 	"strings"
 	"testing"
@@ -20,8 +21,23 @@ type consoleFixture struct {
 func (r *consoleFixture) close() {}
 func (r *consoleFixture) command(kind string, payload map[string]any, out any) error {
 	r.calls++
-	if kind == "connection" {
+	if kind == "connection" || kind == "console-connection" {
 		return assign(connection{Base: r.url, Key: "ofm-private-fixture-key"}, out)
+	}
+	return assign(map[string]any{"running": true}, out)
+}
+
+type engineStaticFixture struct {
+	consoleFixture
+}
+
+func (r *engineStaticFixture) command(kind string, payload map[string]any, out any) error {
+	r.calls++
+	if kind == "console-connection" {
+		return assign(connection{
+			Base: r.url, Key: "ofm-private-fixture-key",
+			Session: "ofm_management_fixture=session-token",
+		}, out)
 	}
 	return assign(map[string]any{"running": true}, out)
 }
@@ -48,6 +64,9 @@ func memoryStorageBlock(script []byte) string {
 func TestSameOriginConsoleAssetsArePublicCodeOnly(t *testing.T) {
 	p := newPlugin(nil)
 	for _, resource := range append(consoleResourcePaths(), "/console") {
+		if resource == "/engine" {
+			continue
+		}
 		value, err := p.Handle("management.handle", wire(t, managementRequest{Method: "GET", Path: consoleResourceBase + resource}))
 		if err != nil {
 			t.Fatal(err)
@@ -90,6 +109,38 @@ func TestSameOriginConsoleAssetsArePublicCodeOnly(t *testing.T) {
 	}
 }
 
+func TestEngineResourceIsNotPublicAndRequiresTheConsoleBridge(t *testing.T) {
+	if _, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/engine"}); ok {
+		t.Fatal("engine HTML was exposed outside the authenticated bridge")
+	}
+	if _, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/engine/app.js"}); ok {
+		t.Fatal("engine asset path leaked through the static console router")
+	}
+	if len(engineBridgeScript) == 0 || len(engineWorkspaceStyle) == 0 {
+		t.Fatal("engine bridge assets are not embedded")
+	}
+}
+
+func TestEngineResourcePathIsStrictlyConfined(t *testing.T) {
+	valid := managementRequest{Method: "GET", Path: consoleResourceBase + "/engine/boot.js"}
+	if name, ok := engineResourcePath(valid); !ok || name != "/boot.js" {
+		t.Fatalf("valid engine asset rejected: %q %v", name, ok)
+	}
+	root := managementRequest{Method: "GET", Path: consoleResourceBase + "/engine/"}
+	if name, ok := engineResourcePath(root); !ok || name != "/index.html" {
+		t.Fatalf("engine root did not map to index.html: %q %v", name, ok)
+	}
+	for _, suffix := range []string{
+		"../app.js", "%2e%2e/app.js", "%252e%252e/app.js", "plugins/../../app.js",
+		"api/state", "plugins/api/state", "app.js?path=x", "app.js#fragment",
+		"app.js\\x", "plugins//routing/routing.css",
+	} {
+		if name, ok := engineResourcePath(managementRequest{Method: "GET", Path: consoleResourceBase + "/engine/" + suffix}); ok {
+			t.Errorf("unsafe engine path accepted: %q -> %q", suffix, name)
+		}
+	}
+}
+
 func TestEmbeddedConsoleLayoutStaysScopedAndKeepsNavigation(t *testing.T) {
 	for _, selector := range []string{".sidebar", ".console-nav", ".console-sidebar-footer", ".page", ".topbar"} {
 		if !bytes.Contains(consoleLayoutStyle, []byte(`:root[data-cpa-embedded="true"] `+selector)) {
@@ -121,11 +172,11 @@ func TestRemoteConsoleLinkIsRelativeWithoutPublicPort(t *testing.T) {
 }
 
 func TestEACUIHooksMatchOnlyThePinnedBundle(t *testing.T) {
-	original, err := serviceAssets.ReadFile("service/vendor/ofm/packages/standalone/web/channels-HdJ7rqdl.js")
+	original, err := serviceAssets.ReadFile("service/vendor/ofm/packages/standalone/web/channels-CwUJPBXI.js")
 	if err != nil {
 		t.Fatal(err)
 	}
-	response, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/app-assets/channels-HdJ7rqdl.js"})
+	response, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/app-assets/channels-CwUJPBXI.js"})
 	if !ok {
 		t.Fatal("missing adapted EAC module")
 	}
@@ -140,6 +191,166 @@ func TestEACUIHooksMatchOnlyThePinnedBundle(t *testing.T) {
 	}
 }
 
+func TestEngineUIHooksMatchOnlyThePinnedBundle(t *testing.T) {
+	original, err := serviceAssets.ReadFile("service/vendor/ofm/packages/standalone/web/channels-CwUJPBXI.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/app-assets/channels-CwUJPBXI.js"})
+	if !ok {
+		t.Fatal("missing adapted engine console module")
+	}
+	for _, patch := range engineConsolePatches {
+		if count := bytes.Count(original, []byte(patch[0])); count != 1 {
+			t.Fatalf("engine hook must match exactly once, got %d for %s", count, patch[0])
+		}
+		if !bytes.Contains(response.Body, []byte(patch[1])) ||
+			!strings.Contains(patch[1], patch[0]) && bytes.Contains(response.Body, []byte(patch[0])) {
+			t.Fatalf("engine hook was not applied: %s", patch[0])
+		}
+	}
+}
+
+func TestEngineHTMLRemovesSameOriginBridgeAndAddsSandboxBridge(t *testing.T) {
+	source := []byte(`<html><head><base href="/api/management/engine/ui/"><script>browserBridge()</script><script src="boot.js"></script></head><body></body></html>`)
+	adapted := string(adaptEngineHTML(source))
+	if strings.Contains(adapted, "<base ") || strings.Contains(adapted, "browserBridge") ||
+		!strings.Contains(adapted, `<script src="./engine?path=boot.js"></script>`) ||
+		!strings.Contains(adapted, `src="./engine-bridge.js"`) || !strings.Contains(adapted, `href="./engine-workspace.css"`) {
+		t.Fatalf("engine HTML adaptation is incomplete: %s", adapted)
+	}
+}
+
+func TestEngineProxyForwardsThePrivilegedSessionAndSafeHeaders(t *testing.T) {
+	var seen http.Header
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seen = r.Header.Clone()
+		w.Header().Set("X-Magpie-Reading", "fixture-reading")
+		if r.URL.Path == "/api/provider/test" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		_, _ = io.WriteString(w, `{"ok":true}`)
+	}))
+	defer server.Close()
+	p := newPlugin(nil)
+	p.accepting = true
+	rt := &consoleFixture{url: server.URL}
+	response := p.proxyConsole(rt, wire(t, consoleProxyRequest{
+		ID: testConsoleID, Path: "/api/state", Method: "GET", Engine: true,
+	}))
+	if response.StatusCode != 200 || response.Headers.Get("X-Magpie-Reading") != "fixture-reading" ||
+		seen.Get("Referer") != server.URL+"/" || seen.Get("Accept-Encoding") != "identity" {
+		t.Fatalf("engine proxy headers/status are wrong: %+v %v", response, seen)
+	}
+	response = p.proxyConsole(rt, wire(t, consoleProxyRequest{
+		ID: testConsoleID, Path: "/api/provider/test", Method: "POST", Engine: true,
+		Body: json.RawMessage(`{"id":"fixture"}`),
+	}))
+	if response.StatusCode != http.StatusNoContent || len(response.Body) != 0 {
+		t.Fatalf("engine 204 was not preserved: %+v", response)
+	}
+}
+
+func TestEngineStaticResourceAddsSessionAndRewritesOnlyStaticReferences(t *testing.T) {
+	var seen http.Header
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seen = r.Header.Clone()
+		switch r.URL.Path {
+		case "/api/management/engine/ui/":
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = io.WriteString(w, `<html><head><meta charset="utf-8"><script src="boot.js"></script><link rel="stylesheet" href="app.css?v=1"></head></html>`)
+		case "/api/management/engine/ui/app.css":
+			w.Header().Set("Content-Type", "text/css; charset=utf-8")
+			_, _ = io.WriteString(w, `.x{background:url(icons/a.svg)}`)
+		default:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `{}`)
+		}
+	}))
+	defer server.Close()
+	p := newPlugin(nil)
+	p.accepting = true
+	p.runtime = &engineStaticFixture{consoleFixture{url: server.URL}}
+	result, err := p.Handle("management.handle", wire(t, managementRequest{Method: "GET", Path: consoleResourceBase + "/engine?mode=window&view=providers"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := result.(httpResponse)
+	if response.StatusCode != 200 || seen.Get("Cookie") != "ofm_management_fixture=session-token" || seen.Get("Referer") != server.URL+"/" {
+		t.Fatalf("engine HTML proxy mismatch: %+v %s", response, response.Body)
+	}
+	if !bytes.Contains(response.Body, []byte(`src="./engine?path=boot.js"`)) ||
+		!bytes.Contains(response.Body, []byte(`href="./engine?path=app.css"`)) ||
+		!bytes.Contains(response.Body, []byte(`src="./engine-bridge.js"`)) {
+		t.Fatalf("engine HTML references are not rewritten: %s", response.Body)
+	}
+	css, ok := p.engineResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/engine", Query: url.Values{"path": {"app.css"}}})
+	if !ok || css.StatusCode != 200 || !bytes.Contains(css.Body, []byte(`url(./engine?path=icons/a.svg)`)) {
+		t.Fatalf("engine CSS proxy mismatch: %+v %s", css, css.Body)
+	}
+}
+
+func TestEngineStaticResourceRejectsRedirectsAndUnexpectedTypes(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/icon.svg") {
+			w.Header().Set("Location", "/elsewhere")
+			w.WriteHeader(http.StatusFound)
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, ".svg") {
+			w.Header().Set("Content-Type", "image/svg+xml")
+			_, _ = io.WriteString(w, `<svg/>`)
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, ".woff2") {
+			w.Header().Set("Content-Type", "font/woff2")
+			_, _ = io.WriteString(w, `font`)
+			return
+		}
+		w.Header().Set("Location", "/elsewhere")
+		w.WriteHeader(http.StatusFound)
+	}))
+	defer server.Close()
+	p := newPlugin(nil)
+	p.accepting = true
+	p.runtime = &engineStaticFixture{consoleFixture{url: server.URL}}
+	response, ok := p.engineResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/engine/icon.svg"})
+	if !ok || response.StatusCode != 502 {
+		t.Fatalf("redirect not refused: %+v", response)
+	}
+	response, ok = p.engineResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/engine/font.js"})
+	if !ok || response.StatusCode != 502 {
+		t.Fatalf("unexpected MIME not refused: %+v", response)
+	}
+}
+
+func TestEngineProxyAllowlistRejectsPrivilegedRoutes(t *testing.T) {
+	valid := consoleProxyRequest{ID: testConsoleID, Path: "/api/state", Method: "GET", Engine: true}
+	if !validateEngineRequest(valid) {
+		t.Fatal("engine state read rejected")
+	}
+	for _, path := range []string{
+		"https://evil.invalid/api/state", "//evil.invalid/api/state", "/api/state#x",
+		"/api/../api/state", "/api/provider/%2e%2e/state", "/api/update", "/api/window/main",
+		"/api/plugin/install", "/api/archive/file", "/api/gateway/call?route=x",
+	} {
+		request := valid
+		request.Path = path
+		if validateEngineRequest(request) {
+			t.Errorf("privileged engine path accepted: %s", path)
+		}
+	}
+	valid.Path, valid.Method, valid.Body = "/api/provider/test", "POST", json.RawMessage(`{"id":"p","key":"k"}`)
+	if !validateEngineRequest(valid) {
+		t.Fatal("engine provider test rejected")
+	}
+	valid.Body = json.RawMessage(`[]`)
+	if validateEngineRequest(valid) {
+		t.Fatal("non-object engine body accepted")
+	}
+}
+
 type eacConsoleFixture struct {
 	consoleFixture
 	state      string
@@ -150,7 +361,7 @@ func (r *eacConsoleFixture) command(kind string, payload map[string]any, out any
 	if kind == "status" {
 		return assign(map[string]any{"eacSource": map[string]string{"state": r.state}}, out)
 	}
-	if kind == "connection" {
+	if kind == "connection" || kind == "console-connection" {
 		r.connection = true
 	}
 	return r.consoleFixture.command(kind, payload, out)

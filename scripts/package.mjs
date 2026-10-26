@@ -22,6 +22,8 @@ try {
     ['service/vendor/ofm/scripts/standalone-third-party.txt', 'OFM_THIRD_PARTY_NOTICES.txt'],
     ['service/vendor/ofm/vendor/channel-pack/LICENSE', 'CHANNEL_LICENSE'],
     ['service/vendor/ofm/vendor/channel-pack/NOTICE.md', 'CHANNEL_NOTICE.md'],
+    ['service/vendor/ofm/vendor/magpie/LICENSE', 'MAGPIE_LICENSE'],
+    ['service/vendor/ofm/vendor/magpie/NOTICE.md', 'MAGPIE_NOTICE.md'],
     ['service/vendor/YAML_LICENSE', 'YAML_LICENSE'],
     ['service/vendor/WEB_LICENSES.txt', 'WEB_LICENSES.txt'],
     ['service/vendor/WEB_LICENSE_SOURCES.json', 'WEB_LICENSE_SOURCES.json'],

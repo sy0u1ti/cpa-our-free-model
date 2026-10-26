@@ -16,8 +16,9 @@ import (
 )
 
 type connection struct {
-	Base string `json:"url"`
-	Key  string `json:"key"`
+	Base    string `json:"url"`
+	Key     string `json:"key"`
+	Session string `json:"session,omitempty"`
 }
 
 type runtimeReply struct {

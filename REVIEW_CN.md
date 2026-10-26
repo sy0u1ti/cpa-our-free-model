@@ -1,6 +1,6 @@
 # 插件整体审查与本轮修复
 
-日期：2026-10-12。起点提交：`eea5d2f`（v0.3.0）。
+日期：2026-10-26。起点提交：`eea5d2f`（v0.3.0）。
 本轮版本：v0.5.0，已提交并推送（`24d1dd6`），已发布 GitHub Release `v0.5.0`
 （Windows/Linux amd64 安装包与 `checksums.txt`）；尚未部署到用户服务器。
 上游同步：OFM `f9cdb664` → `7e3a1da`（v2.1.0），控制台随上游换成新面板。
@@ -9,6 +9,29 @@
 本次上游改动只有 `packages/standalone/web/app.css` 落在 vendored 范围内，是暗色主题
 圆角覆盖的样式微调；`src/`、控制台 JS、渠道代码与 `assets.json` 均未变化。
 新增的 Tauri 桌面版与未被引用的 `splash.html` 不进入本插件包。
+
+## v0.5.16：同步上游 OFM v2.7.2
+
+上游在 v2.5.9 之后发布了 v2.6.0、v2.7.0、v2.7.1 与 v2.7.2，本轮把 vendored
+快照从 `f3ecb7a` 重取到 `e1b347a`。文件数由 94 增至 121，新增模型工作台、
+Magpie 引擎载荷、订阅/Gemini 运行时、供应商/资源库/路由管理模块与免责声明。
+前端资源重新生成为 `channels-CwUJPBXI.js`、`models-CCoW-2uM.js`、
+`settings-CdBN6B3K.js` 与 `usage-JY1Fq3E5.js`。
+
+- **模型工作台**：上游把独立端的 Magpie 工作台带入插件。引擎二进制由九个 gzip
+  分片和固定 SHA-256 校验后还原到 CPA 私有目录；没有把平台二进制直接提交为
+  vendored 文件。
+- **沙箱兼容**：主控制台与工作台都是 opaque origin。没有放宽
+  `allow-same-origin`，而是新增 `/engine` 静态代理和工作台桥：HTML/CSS/JS/SVG/
+  字体请求经 CPA 白名单取回，API 请求只允许工作台所需的状态、供应商、路由和
+  测试接口，响应不携带 Set-Cookie，消息只接受精确的 `contentWindow`。静态入口
+  只接受根页和校验后的 `path`，拒绝目录穿越、API 路径、重定向与异常 MIME。
+- **补丁重锚**：3 条 CPA 源码补丁仍各单次命中；控制台 bundle 的 12 条 EAC 补丁
+  重新锚定后保留 10 条，17 条界面文案全部命中。新增的 engine 补丁单独计数，
+  避免把两类补丁混在同一测试断言里。
+- **许可与发布**：Magpie MIT 许可及 NOTICE 随源码和安装包分发；版本递增到
+  `0.5.16`。前端资源、Go 服务、CPA smoke 和 provenance 审计全部通过后提交并
+  创建 release tag。
 
 ## v0.5.15：同步上游 main 文档提交
 
