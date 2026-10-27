@@ -1,14 +1,15 @@
 /* Scoped to the nested CPA view; the standalone console keeps its own shell. */
-:root[data-cpa-embedded="true"] .app-shell {
+:root[data-cpa-embedded="true"] #app.app-shell {
   display: block;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
-:root[data-cpa-embedded="true"] .sidebar {
+:root[data-cpa-embedded="true"] #app.app-shell .sidebar {
   display: flex;
   flex-direction: row;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   position: sticky;
   top: 0;
@@ -21,31 +22,39 @@
   border-bottom: 1px solid var(--line);
 }
 
-:root[data-cpa-embedded="true"] .sidebar .console-brand,
-:root[data-cpa-embedded="true"] .workspace-switch,
-:root[data-cpa-embedded="true"] .sidebar-support,
-:root[data-cpa-embedded="true"] .nav-group-label,
-:root[data-cpa-embedded="true"] .console-nav-indicator,
-:root[data-cpa-embedded="true"] .console-sidebar-footer > div,
-:root[data-cpa-embedded="true"] .console-sidebar-footer [aria-label="退出管理"],
-:root[data-cpa-embedded="true"] .topbar {
-  display: none;
+:root[data-cpa-embedded="true"] #app.app-shell .sidebar .console-brand,
+:root[data-cpa-embedded="true"] #app.app-shell .workspace-switch,
+:root[data-cpa-embedded="true"] #app.app-shell .sidebar-support,
+:root[data-cpa-embedded="true"] #app.app-shell .nav-group-label,
+:root[data-cpa-embedded="true"] #app.app-shell .console-nav-indicator,
+:root[data-cpa-embedded="true"] #app.app-shell .console-sidebar-footer > div,
+:root[data-cpa-embedded="true"] #app.app-shell .console-sidebar-footer [aria-label="退出管理"],
+:root[data-cpa-embedded="true"] #app.app-shell .topbar {
+  display: none !important;
 }
 
-:root[data-cpa-embedded="true"] .console-nav {
+:root[data-cpa-embedded="true"] #app.app-shell .console-nav {
   display: flex;
-  flex-wrap: wrap;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
   gap: 4px;
   min-width: 0;
   padding: 0;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
 }
 
-:root[data-cpa-embedded="true"] .nav-group {
+:root[data-cpa-embedded="true"] #app.app-shell .console-nav::-webkit-scrollbar {
+  display: none;
+}
+
+:root[data-cpa-embedded="true"] #app.app-shell .nav-group {
   display: contents;
 }
 
-:root[data-cpa-embedded="true"] .console-nav-item {
+:root[data-cpa-embedded="true"] #app.app-shell .console-nav-item {
   flex: 0 0 auto;
   gap: 7px;
   width: auto;
@@ -56,16 +65,16 @@
   font-size: 12px;
 }
 
-:root[data-cpa-embedded="true"] .console-nav-item svg {
+:root[data-cpa-embedded="true"] #app.app-shell .console-nav-item svg {
   width: 16px;
   height: 16px;
 }
 
-:root[data-cpa-embedded="true"] .count-badge {
+:root[data-cpa-embedded="true"] #app.app-shell .count-badge {
   margin-left: 2px;
 }
 
-:root[data-cpa-embedded="true"] .console-sidebar-footer {
+:root[data-cpa-embedded="true"] #app.app-shell .console-sidebar-footer {
   display: flex;
   position: static;
   flex: 0 0 auto;
@@ -76,50 +85,64 @@
   border-left: 1px solid var(--line);
 }
 
-:root[data-cpa-embedded="true"] .page {
+:root[data-cpa-embedded="true"] #app.app-shell .sidebar-disclaimer {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+  padding: 8px 4px;
+  border: 0;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+:root[data-cpa-embedded="true"] #app.app-shell .page {
   width: 100%;
   max-width: 1480px;
   margin: 0 auto;
   padding: 26px clamp(16px, 2.4vw, 36px);
 }
 
-:root[data-cpa-embedded="true"] .dashboard-heading,
-:root[data-cpa-embedded="true"] .page-heading {
+:root[data-cpa-embedded="true"] #app.app-shell .dashboard-heading,
+:root[data-cpa-embedded="true"] #app.app-shell .page-heading {
   margin-bottom: 22px;
 }
 
-:root[data-cpa-embedded="true"] .heading-eyebrow {
+:root[data-cpa-embedded="true"] #app.app-shell .heading-eyebrow {
   display: none;
 }
 
-:root[data-cpa-embedded="true"] footer {
+:root[data-cpa-embedded="true"] #app.app-shell footer {
   max-width: 1480px;
   margin: 0 auto;
   padding: 8px clamp(16px, 2.4vw, 36px) 20px;
 }
 
 @media (max-width: 700px) {
-  :root[data-cpa-embedded="true"] .sidebar {
-    flex-wrap: nowrap;
+  :root[data-cpa-embedded="true"] #app.app-shell .sidebar {
     gap: 4px;
     padding: 8px 12px;
   }
 
-  :root[data-cpa-embedded="true"] .console-nav {
-    flex: 1;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: thin;
+  :root[data-cpa-embedded="true"] #app.app-shell .console-nav {
     padding: 2px 0;
   }
 
-  :root[data-cpa-embedded="true"] .console-nav-item {
+  :root[data-cpa-embedded="true"] #app.app-shell .console-nav-item {
     min-height: 38px;
     padding: 8px;
     font-size: 11px;
   }
 
-  :root[data-cpa-embedded="true"] .page {
+  :root[data-cpa-embedded="true"] #app.app-shell .sidebar-disclaimer {
+    font-size: 0;
+  }
+
+  :root[data-cpa-embedded="true"] #app.app-shell .sidebar-disclaimer::after {
+    content: "须知";
+    font-size: 11px;
+  }
+
+  :root[data-cpa-embedded="true"] #app.app-shell .page {
     padding: 20px 16px;
   }
 }

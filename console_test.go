@@ -143,9 +143,28 @@ func TestEngineResourcePathIsStrictlyConfined(t *testing.T) {
 
 func TestEmbeddedConsoleLayoutStaysScopedAndKeepsNavigation(t *testing.T) {
 	for _, selector := range []string{".sidebar", ".console-nav", ".console-sidebar-footer", ".page", ".topbar"} {
-		if !bytes.Contains(consoleLayoutStyle, []byte(`:root[data-cpa-embedded="true"] `+selector)) {
+		if !bytes.Contains(consoleLayoutStyle, []byte(`:root[data-cpa-embedded="true"] #app.app-shell `+selector)) {
 			t.Fatalf("missing scoped layout rule for %s", selector)
 		}
+	}
+	if !bytes.Contains(consoleLayoutStyle, []byte(`.workspace-switch,`)) ||
+		!bytes.Contains(consoleLayoutStyle, []byte(`display: none !important;`)) {
+		t.Fatal("embedded navigation must suppress upstream desktop-only chrome")
+	}
+	if !bytes.Contains(consoleLayoutStyle, []byte(`.sidebar-disclaimer {`)) ||
+		!bytes.Contains(consoleLayoutStyle, []byte(`white-space: nowrap;`)) {
+		t.Fatal("embedded navigation must keep the disclaimer accessible without wrapping")
+	}
+	// The bundled console now styles .app-shell descendants under
+	// :root.workbench-theme. Keep the embedded overrides in the same cascade
+	// subtree with a stronger selector so its fixed 222px sidebar cannot win.
+	if !bytes.Contains(consoleLayoutStyle, []byte(`#app.app-shell .sidebar {`)) ||
+		!bytes.Contains(consoleLayoutStyle, []byte(`width: 100%;`)) {
+		t.Fatal("embedded navigation must override the upstream fixed-width sidebar")
+	}
+	if !bytes.Contains(consoleLayoutStyle, []byte(`flex-wrap: nowrap;`)) ||
+		!bytes.Contains(consoleLayoutStyle, []byte(`overflow-x: auto;`)) {
+		t.Fatal("embedded navigation must stay on one row and scroll horizontally")
 	}
 	if bytes.Contains(managementPage, []byte("100dvh - 104px")) || bytes.Contains(managementPage, []byte("min-height: 560px")) {
 		t.Fatal("nested iframe still assumes a fixed toolbar height")
