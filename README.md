@@ -12,13 +12,34 @@ C ABI integration is separate. Original authorship and MIT licenses are retained
 The bundled model workbench engine supports Windows x64 in this release; other
 platforms keep the native OFM pages and show the workbench as unavailable.
 
-Version **0.5.16** vendors OFM `e1b347a` (upstream v2.7.2). Only the
+Version **0.5.17** vendors OFM `9d714bb` (upstream v2.8.3 plus the latest main
+documentation and release-check commits). Only the
 files the served UI actually references are kept, and the private EAC seal is never
 vendored. `npm run vendor:original -- /path/to/original-checkout` regenerates the
 snapshot from pinned Git blobs. See `scripts/upstream-patches.mjs` and
 `service/vendor/ofm/UPSTREAM.json` for exact provenance.
 
-**New in 0.5.16:** upstream v2.7.2 sync across v2.6.0, v2.7.0, v2.7.1 and
+**New in 0.5.17:** 193 upstream commits since v2.7.2. The free lane now uses
+provider-family endpoints, the OpenCode 2.2.3 request format, reversible client
+tool names and a quota breaker that honors `Retry-After`. Account channels gain
+queue-aware account rotation and credential-refresh fixes. The plugin center
+adds signed channel/enhancement packages, built-in capability listings, local
+development packages and sandboxed pages. The bundled Magpie engine includes
+the Claude Code onboarding/TUI fix and is restored from seven verified parts.
+The snapshot contains 137 files, including the new standalone dependency and
+the request-format text asset.
+
+The CPA console bridges the plugin center's explicit API routes, signed cover
+images and per-boot page capabilities. Relative HTML, CSS and module references
+retain the CPA reverse-proxy prefix. Page RPC stays scoped to the declared
+plugin, and disabled pages lose their capabilities. The workbench URL and
+nested-frame policy are corrected while preserving the opaque-origin sandbox.
+All three source patches, ten EAC hooks, ten workbench hooks and seventeen
+console labels are checked against the pinned bytes. Upstream's standalone
+package still reports `2.8.2`; its root package and engine snapshot belong to
+the v2.8.3 revision recorded in `UPSTREAM.json`.
+
+**Previously in 0.5.16:** upstream v2.7.2 sync across v2.6.0, v2.7.0, v2.7.1 and
 v2.7.2. It adds the same model workbench as the desktop build (its Magpie engine
 is embedded and restored from verified gzip parts), subscription and native
 Gemini lanes, provider/library/routing management, a revised disclaimer, Kilo
@@ -185,14 +206,15 @@ runtime fixes remain in place. The plugin ID remains `our-free-model`.
 
 Since v0.5.0, prebuilt GitHub Releases are published; since v0.5.3 they cover
 Windows amd64, Linux amd64/arm64 and macOS amd64/arm64. Download
-`our-free-model_0.5.16_<os>_<arch>.zip` from
+`our-free-model_<version>_<os>_<arch>.zip` from
 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases) and verify it
 against `checksums.txt`, or clone this repository and follow **Development** to
 build the native library yourself. Generated `dist/` files are not committed.
 
 1. Use a plugin-enabled CLIProxyAPI build. Validated against **CPA 8.0.23**.
 2. Copy the matching binary into CPA's configured `plugins` directory:
-   `our-free-model-v0.5.16.dll` (Windows), `.so` (Linux), or `.dylib` (macOS).
+   `our-free-model-v0.5.17.dll` for the current source build (Windows),
+   `.so` (Linux), or `.dylib` (macOS). Published versions follow the Releases page.
 3. Merge `config.example.yaml` into CPA's configuration and restart CPA:
 
 ```yaml

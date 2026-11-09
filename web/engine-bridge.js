@@ -4,6 +4,75 @@
   const pending = new Map();
   const nativeFetch = window.fetch.bind(window);
   const pageOrigin = new URL(location.href).origin;
+  const pageURL = new URL(location.href);
+  const assetDirectory = pageURL.pathname.slice(0, pageURL.pathname.lastIndexOf('/') + 1);
+  const ownedAssets = new Set(['engine-bridge.js', 'engine-workspace.css'].map(name => assetDirectory + name));
+  const staticAssetURL = value => {
+    if (typeof value !== 'string' || /^(?:#|data:|blob:)/i.test(value)) return value;
+    let url;
+    try { url = new URL(value, location.href); } catch { return value; }
+    if (url.origin !== pageOrigin || url.pathname === pageURL.pathname || ownedAssets.has(url.pathname)) return value;
+    const mount = '/api/management/engine/ui/';
+    const name = url.pathname.startsWith(mount) ? url.pathname.slice(mount.length)
+      : url.pathname.startsWith(assetDirectory) ? url.pathname.slice(assetDirectory.length) : url.pathname.slice(1);
+    if (!/^(?:[A-Za-z0-9._~-]+\/)*[A-Za-z0-9._~-]+\.(?:js|mjs|css|svg|png|jpe?g|gif|webp|avif|woff2?|ttf|otf)$/i.test(name) ||
+      name.startsWith('.') || name.includes('/.') || name.startsWith('api/') || name.includes('/api/')) return value;
+    const target = new URL(pageURL.pathname, pageOrigin);
+    target.searchParams.set('path', name);
+    target.hash = url.hash;
+    return target.href;
+  };
+  const resourceAttribute = (element, name) =>
+    name === 'src' && ['IMG', 'SCRIPT', 'SOURCE', 'VIDEO', 'AUDIO'].includes(element.tagName) ||
+    name === 'href' && element.tagName === 'LINK' || name === 'poster' && element.tagName === 'VIDEO';
+  // Upstream creates provider icons after loading its state. These URLs never
+  // pass through the server's HTML/CSS rewrite, so normalize them at creation.
+  for (const [name, property] of [['HTMLImageElement', 'src'], ['HTMLScriptElement', 'src'],
+    ['HTMLLinkElement', 'href'], ['HTMLSourceElement', 'src'], ['HTMLMediaElement', 'src'],
+    ['HTMLVideoElement', 'poster']]) {
+    const prototype = window[name]?.prototype;
+    const descriptor = prototype && Object.getOwnPropertyDescriptor(prototype, property);
+    if (descriptor?.set) Object.defineProperty(prototype, property, {
+      ...descriptor, set(value) { descriptor.set.call(this, staticAssetURL(value)); },
+    });
+  }
+  const elementPrototype = window.Element?.prototype;
+  if (elementPrototype) {
+    const setAttribute = elementPrototype.setAttribute;
+    elementPrototype.setAttribute = function(name, value) {
+      return setAttribute.call(this, name, resourceAttribute(this, String(name).toLowerCase()) ? staticAssetURL(value) : value);
+    };
+  }
+  const rewriteElement = element => {
+    if (element.nodeType !== 1) return;
+    for (const name of ['src', 'href', 'poster']) {
+      const value = element.getAttribute(name);
+      if (value === null || !resourceAttribute(element, name)) continue;
+      const next = staticAssetURL(value);
+      if (next !== value) element.setAttribute(name, next);
+    }
+    const style = element.getAttribute('style');
+    if (style) {
+      const next = style.replace(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*))\s*\)/gi,
+        (original, double, single, bare) => {
+          const value = (double ?? single ?? bare).trim();
+          const target = staticAssetURL(value);
+          return target === value ? original : `url("${target}")`;
+        });
+      if (next !== style) element.setAttribute('style', next);
+    }
+  };
+  const rewriteTree = node => {
+    rewriteElement(node);
+    for (const element of node.querySelectorAll?.('[src],[href],[poster],[style]') ?? []) rewriteElement(element);
+  };
+  new MutationObserver(records => {
+    for (const record of records) {
+      if (record.type === 'attributes') rewriteElement(record.target);
+      else for (const node of record.addedNodes) rewriteTree(node);
+    }
+  }).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['src', 'href', 'poster', 'style'] });
+  rewriteTree(document.documentElement);
   const makeID = () => [...crypto.getRandomValues(new Uint8Array(16))]
     .map(value => value.toString(16).padStart(2, '0')).join('');
   const json = (status, error) => new Response(JSON.stringify({ error }), {
@@ -37,6 +106,8 @@
   window.fetch = async (input, options = {}) => {
     const request = new Request(input, options);
     const url = new URL(request.url, location.href);
+    const asset = staticAssetURL(request.url);
+    if (asset !== request.url) return nativeFetch(new Request(asset, request));
     if (url.origin !== pageOrigin || (url.pathname !== '/api' && !url.pathname.startsWith('/api/'))) {
       return nativeFetch(request);
     }

@@ -1,11 +1,12 @@
 import { spawn } from 'node:child_process'
 import { randomBytes, createHash } from 'node:crypto'
-import { existsSync, readFileSync, createReadStream } from 'node:fs'
-import { mkdir, readFile, writeFile, rename, link, unlink, realpath } from 'node:fs/promises'
+import { existsSync, readFileSync, createReadStream, statSync } from 'node:fs'
+import { mkdir, readFile, writeFile, rename, link, unlink, realpath, rm } from 'node:fs/promises'
 import http from 'node:http'
 import net from 'node:net'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { restrictPermissions } from './open-external.js'
 import { loopbackFetch } from './loopback-fetch.js'
 import { hasEnginePayload, materializeEngine } from './engine-payload.js'
 import {
@@ -225,7 +226,15 @@ async function ownerLease(home) {
         throw engineError('Engine owner lock has an unsupported format')
       }
       let lease
-      try { lease = await bindLease(saved.port) } catch {
+      try { lease = await bindLease(saved.port) } catch (error) {
+        if (error?.code === 'EACCES' || error?.code === 'EPERM') {
+          // Windows reserves whole port ranges (winnat/Hyper-V/WSL) that drift
+          // across reboots. A saved lease port inside one is unusable on this
+          // boot, not owned: only a live listener reports EADDRINUSE. Drop the
+          // stale record and take a fresh lease instead of failing startup (#688).
+          await unlink(file).catch(() => {})
+          continue
+        }
         throw engineError('Magpie data directory already has an owner or its lease port is occupied')
       }
       try {
@@ -239,6 +248,7 @@ async function ownerLease(home) {
       await writeFile(temp, JSON.stringify({
         version: 1, port: lease.address().port, pid: process.pid, token: randomBytes(16).toString('hex'),
       }), { mode: 0o600, flag: 'wx' })
+      restrictPermissions(temp)
       // Atomic publication never overwrites another owner's lease record.
       await link(temp, file)
       return lease
@@ -261,6 +271,7 @@ async function writeJSON(file, value) {
   const temp = `${file}.${randomBytes(6).toString('hex')}.tmp`
   try {
     await writeFile(temp, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600, flag: 'wx' })
+    restrictPermissions(temp)
     await rename(temp, file)
   } finally { await unlink(temp).catch(() => {}) }
 }
@@ -389,6 +400,11 @@ const engineAppearanceCSS = `
 :root[data-ofm-engine] #addSheet > .row-head { height:auto; min-height:32px; gap:8px; }
 :root[data-ofm-engine] #addSheet .find { height:32px; }
 :root[data-ofm-engine] #addSheet .kind { padding-top:16px; }
+/* Upstream's "Compact at" row (#876) shrinks and wraps inside the agent prefs,
+   but the settings lists kept it flex:none: at a narrow panel width the fixed
+   76px number input sticks past the clipped list and loses half its width.
+   The same shrink-and-wrap answer, for the rows upstream missed. */
+:root[data-ofm-engine] .row.pref .compact-at { flex:0 1 auto; min-width:0; flex-wrap:wrap; row-gap:6px; }
 :root[data-ofm-engine-theme] {
   --ofm-bg:#f4f4f6; --ofm-card:#fff; --ofm-fg:#1c1c21; --ofm-quiet:#63636b;
   --ofm-muted:#85858d; --ofm-line:#e3e3e8; --ofm-accent:#4f46e5;
@@ -718,11 +734,15 @@ export function createMagpieEngine({ dataDir, logger, binary } = {}) {
         throw engineError('Saved engine gateway port is invalid')
       }
       if (gatewayPort !== undefined) {
-        let reservation
-        try { reservation = await bindLease(gatewayPort) } catch {
-          throw engineError('Saved engine gateway port is occupied; close the conflicting listener before restarting')
+        try {
+          const reservation = await bindLease(gatewayPort)
+          await closeLease(reservation)
+        } catch {
+          // The saved port is a preference, not a requirement: another listener
+          // or a Windows reserved range that drifted across reboots (#688) must
+          // not block startup. Take a fresh port; it is persisted right below.
+          gatewayPort = await freePort()
         }
-        await closeLease(reservation)
       } else gatewayPort = await freePort()
       let webPort = await freePort()
       while (webPort === gatewayPort) webPort = await freePort()
@@ -747,7 +767,47 @@ export function createMagpieEngine({ dataDir, logger, binary } = {}) {
       const env = { ...process.env }
       // An inherited Magpie override must never redirect this owned instance.
       for (const key of Object.keys(env)) if (key.toUpperCase().startsWith('MAGPIE_')) delete env[key]
+      // The engine wires every agent it finds under the user's home (ZCode's
+      // provider_config.json, Codex's config.toml, …) to itself when it starts.
+      // This engine's catalog is its own and may be empty, so that startup sync
+      // would rewrite those agents with no models. Give it a home of its own:
+      // it still serves its page, and no file of a real agent is touched. The
+      // Windows folders os.UserConfigDir reads are moved too, for the agents
+      // that keep their settings there (VS Code, Cline, …).
+      const agentHome = path.join(home, 'agent-home')
+      const agentRoaming = path.join(agentHome, 'AppData', 'Roaming')
+      const agentLocal = path.join(agentHome, 'AppData', 'Local')
+      for (const dir of [agentHome, agentRoaming, agentLocal]) {
+        await mkdir(dir, { recursive: true, mode: 0o700 })
+      }
+      // The engine goes straight to -p for a while after Claude Code's
+      // interactive mode failed to start (its claude-tui-broken mark, under
+      // this engine's LOCALAPPDATA). A mark earned by the previous engine
+      // says nothing about this one: after an engine upgrade that carries a
+      // start fix, a stale mark would keep the TUI off for up to a day.
+      // Forget it when the engine's revision changes.
+      const engineRevision = metadata.revision || ''
+      if (engineRevision !== '') {
+        const revisionFile = path.join(home, '.ofm-engine-revision')
+        let previousRevision = ''
+        try { previousRevision = (await readFile(revisionFile, 'utf8')).trim() } catch { /* first boot: no mark to forget either */ }
+        if (previousRevision !== engineRevision) {
+          await rm(path.join(agentLocal, 'magpie', 'claude-tui-broken'), { force: true }).catch(() => {})
+          await writeFile(revisionFile, `${engineRevision}\n`).catch(() => {})
+        }
+      }
+      // Windows folds every ancestor of a session folder into a 260-character
+      // budget; this redirection adds ~40, and claude appends a slug of the
+      // whole project path on top. A long or non-ASCII data home is the class
+      // of failure behind "rename the folder to something short and it works"
+      // — say so up front, with the escape hatch, instead of leaving a bare
+      // mkdir error nobody can act on.
+      if (agentHome.length > 200 || /[^\x20-\x7E]/.test(agentHome)) {
+        logger?.warn?.(`our-free-model: 引擎数据目录较长或含非 ASCII 字符（${agentHome.length} 字符）——Claude 等客户端可能无法新建会话文件夹；如遇到，请把 DSH_HOME 指向一个短的纯英文路径后重启。(engine data home is long or contains non-ASCII characters; if agents cannot create session folders, point DSH_HOME at a short ASCII path and restart)`)
+      }
       Object.assign(env, {
+        HOME: agentHome, USERPROFILE: agentHome,
+        APPDATA: agentRoaming, LOCALAPPDATA: agentLocal,
         XDG_CONFIG_HOME: dirs.config, XDG_CACHE_HOME: dirs.cache,
         XDG_DATA_HOME: dirs.data, XDG_STATE_HOME: dirs.state,
         MAGPIE_ADDR: `127.0.0.1:${gatewayPort}`, MAGPIE_WEB_KEY: webKey,
@@ -909,7 +969,13 @@ export function createMagpieEngine({ dataDir, logger, binary } = {}) {
       if (failure.statusCode === 400) throw engineError('Invalid gateway key request', 400)
       if (failure.statusCode === 413) throw engineError('Gateway key request exceeds limit', 413)
       if (options.signal?.aborted) throw new DOMException('Engine request aborted', 'AbortError')
-      throw engineError('Engine request failed')
+      // The engine's own transport refusals carry the actionable fact (the
+      // refused path, the socket error); a bare "Engine request failed" turns a
+      // diagnosable boot into a support thread. Keep the detail, bounded, and
+      // never from response bodies — those can quote user content.
+      const detail = typeof failure?.message === 'string' && failure.message !== ''
+        ? `: ${failure.message.slice(0, 160)}` : ''
+      throw engineError(`Engine request failed${detail}`)
     }
   }
   const proxy = async (req, res, subpath = '/', options = {}) => {
@@ -1085,4 +1151,28 @@ export function createMagpieEngine({ dataDir, logger, binary } = {}) {
     return { url: gatewayURL, key: gatewayKey }
   }
   return { start, status, close, request, proxy, gateway }
+}
+
+/**
+ * A lightweight PATH probe for the agent CLIs the engine connects to (claude
+ * first among them). The engine manages agent installs itself, but its
+ * downloader cannot reach the release host from every network, so the practical
+ * requirement is a pre-installed CLI — warn at boot instead of at the user's
+ * first failed connect. Never resolves shell shims deeper than a PATH entry.
+ */
+export function findAgentCli(command) {
+  const name = String(command ?? '').trim()
+  if (name === '' || name.includes('/') || name.includes('\\')) return undefined
+  const spellings = process.platform === 'win32' ? ['.cmd', '.bat', '.exe', ''] : ['']
+  const dirs = [
+    ...(process.env.PATH ?? '').split(path.delimiter).filter(Boolean),
+    ...(process.platform === 'win32' && process.env.APPDATA ? [path.join(process.env.APPDATA, 'npm')] : []),
+  ]
+  for (const dir of dirs) {
+    for (const spelling of spellings) {
+      const candidate = path.join(dir, `${name}${spelling}`)
+      try { if (statSync(candidate).isFile()) return candidate } catch { /* try the next spelling */ }
+    }
+  }
+  return undefined
 }

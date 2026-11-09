@@ -8,6 +8,7 @@ import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { fixtureUpstream, freePort, until, privateTestDirectory, removeTestDirectory, delay } from '../tests/helpers.mjs';
 import { assertJSONSSE } from '../tests/sse.mjs';
+import { writePagePluginFixture } from '../tests/plugin-fixture.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const binary = process.env.CPA_BIN || path.join(root, '.tools/cpa/cli-proxy-api.exe');
@@ -50,6 +51,10 @@ const api = async (route, body, key = apiKey, method) => fetch(base + route, {
 });
 const reports = [];
 const pass = description => { reports.push(description); console.log('PASS ' + description); };
+const consoleAPI = (target, body) => api('/v0/management/ofm/console-api', {
+  id: crypto.randomBytes(16).toString('hex'), path: '/api/management/' + target,
+  method: body === undefined ? 'GET' : 'POST', ...(body === undefined ? {} : { body }),
+}, managementKey);
 try {
   await until(async () => {
     if (child.exitCode !== null) throw new Error('CPA exited early');
@@ -58,6 +63,44 @@ try {
     return (await res.json()).data?.some(row => row.id === 'ofm/' + upstream.state.model);
   }, 90000);
   pass('Official CPA loads the native library and discovers prefixed OFM models');
+  const pluginCenter = await consoleAPI('plugins');
+  assert.equal(pluginCenter.status, 200, await pluginCenter.clone().text());
+  assert.ok((await pluginCenter.json()).installed.some(entry => entry.id === 'core-channel-pack' && entry.builtin));
+  assert.equal((await consoleAPI('settings', { developerPlugins: true })).status, 200);
+  const installed = await consoleAPI('plugins/install-local', {
+    path: writePagePluginFixture(directory), acknowledgeUnsigned: true,
+  });
+  assert.equal(installed.status, 200, await installed.clone().text());
+  const pageInfo = (await installed.json()).pages.find(page => page.pluginId === 'cpa-page-fixture');
+  assert.ok(pageInfo, 'the locally installed page must be listed');
+  const pageToken = /^\/api\/management\/plugins\/assets\/([a-f0-9]{32})\//.exec(pageInfo.url)?.[1];
+  assert.ok(pageToken);
+  const pluginAsset = name => base + '/v0/resource/plugins/our-free-model/plugin-asset?' +
+    new URLSearchParams({ token: pageToken, path: name });
+  const pluginPage = await fetch(pluginAsset('page/index.html'));
+  assert.equal(pluginPage.status, 200, await pluginPage.clone().text());
+  const pluginHTML = await pluginPage.text();
+  assert.match(pluginHTML, /path=__bridge\.js/);
+  assert.match(pluginHTML, /path=page%2Fmain\.mjs/);
+  assert.ok(!pluginHTML.includes('/api/management/') && !pluginHTML.includes(managementKey));
+  const pageScript = await fetch(pluginAsset('page/main.mjs'));
+  assert.equal(pageScript.status, 200);
+  assert.equal(pageScript.headers.get('access-control-allow-origin'), '*', 'CPA must emit exactly one CORS origin for sandboxed ES modules');
+  assert.match(await pageScript.text(), /path=page%2Flabels\.mjs/);
+  assert.equal((await fetch(pluginAsset('page/labels.mjs'))).status, 200);
+  const pageRPC = await consoleAPI('plugins/page-rpc', {
+    pluginId: pageInfo.pluginId, pageId: pageInfo.pageId, method: 'plugin.info', params: {},
+  });
+  assert.equal(pageRPC.status, 200);
+  assert.equal((await pageRPC.json()).result.id, 'cpa-page-fixture');
+  const privateRPC = await consoleAPI('plugins/page-rpc', {
+    pluginId: pageInfo.pluginId, pageId: pageInfo.pageId, method: 'secrets.get', params: {},
+  });
+  assert.equal(privateRPC.status, 400);
+  assert.equal((await consoleAPI('plugins/toggle', { id: 'cpa-page-fixture', enabled: false })).status, 200);
+  assert.equal((await fetch(pluginAsset('page/index.html'))).status, 404, 'disabling a page must revoke its capability');
+  assert.equal((await consoleAPI('settings', { developerPlugins: false })).status, 200);
+  pass('Plugin center, isolated page install, static ES modules, scoped page RPC and capability revocation');
   const listing = await api('/v0/management/plugins', undefined, managementKey);
   assert.equal(listing.status, 200);
   const pluginList = await listing.json();
@@ -78,6 +121,13 @@ try {
     const engineHTML = await engineRoot.text();
     assert.ok(!engineHTML.includes(`<base `) && !engineHTML.includes('browserBridge'));
     assert.ok(engineHTML.includes('./engine-bridge.js') && engineHTML.includes('./engine-workspace.css'));
+    assert.ok(engineHTML.includes('window.parent === window || event.source !== window.parent'));
+    assert.ok(!engineHTML.includes('event.source !== window.parent || event.origin !== location.origin'));
+    const state = await api('/v0/management/ofm/console-api', {
+      id: crypto.randomBytes(16).toString('hex'), path: '/api/state', method: 'GET', engine: true,
+    }, managementKey);
+    assert.equal(state.status, 200, await state.clone().text());
+    assert.equal((await state.json()).error, undefined, 'the real engine state must pass through its privileged standalone mount');
     const bridge = await fetch(base + '/v0/resource/plugins/our-free-model/engine-bridge.js');
     assert.equal(bridge.status, 200);
     assert.match(await bridge.text(), /ofm-engine-request/);
@@ -104,11 +154,10 @@ try {
   assert.equal(result.model, model);
   assert.equal(result.usage.prompt_tokens, 7);
   pass('Nonstream Chat Completions, model identity and token usage');
-  // The free lane moved to /inference/v1 in upstream v2.3.0 and re-fingerprinted
-  // for the OpenCode v2 client in v2.4.0, so assert the wire contract the fixture
-  // can see rather than only the answer.
+  // Upstream v2.8 uses provider-family paths and the official 2.2.3 headers.
+  // Assert what the fixture receives, including trace consistency.
   const laneCall = upstream.calls.filter(call => call.path.endsWith('/chat/completions')).at(-1);
-  assert.ok(laneCall.path.startsWith('/inference/v1/'), 'free lane must use the migrated path: ' + laneCall.path);
+  assert.equal(laneCall.path, '/inference/openai/v1/chat/completions', 'free lane must use the provider-family endpoint');
   assert.ok(laneCall.headers['x-opencode-session-id'], 'session id header must be sent');
   assert.equal(laneCall.headers['x-opencode-session-id'], laneCall.headers['x-opencode-session']);
   assert.equal(laneCall.headers['x-session-affinity'], laneCall.headers['x-opencode-session']);
@@ -122,6 +171,10 @@ try {
   assert.equal(laneCall.headers['x-opencode-client'], 'cli');
   assert.match(laneCall.headers['user-agent'], /^opencode\/[^/]+\/2\.\d+\.\d+\/[^/]+$/, 'User-Agent must be the v2 client shape');
   assert.doesNotMatch(laneCall.headers['user-agent'], /deepseek[-_]harness/i);
+  assert.match(laneCall.headers['x-opencode-project'], /^[0-9a-f]{40}$/);
+  const trace = /^00-([0-9a-f]{32})-([0-9a-f]{16})-01$/.exec(laneCall.headers.traceparent);
+  assert.ok(trace, 'traceparent must carry a W3C trace and span');
+  assert.match(laneCall.headers.b3, new RegExp(`^${trace[1]}-${trace[2]}-1-[0-9a-f]{16}$`));
   for (const name of ['read', 'shell']) {
     const tool = laneCall.body.tools?.find(entry => (entry.function?.name ?? entry.name) === name);
     assert.ok(tool, 'fingerprint tool missing: ' + name);
@@ -129,9 +182,9 @@ try {
     assert.ok(Object.keys(schema?.properties ?? {}).length > 0, name + ' needs a declared property');
   }
   assert.notEqual(laneCall.body.tool_choice, 'none', 'v2 rejects tool_choice:none');
-  pass('Free lane speaks the v2.5 wire: /inference/v1, four session headers, descending session id and the read/shell fingerprint');
+  pass('Free lane speaks the v2.8 wire: provider-family endpoint, canonical sessions, project ID, paired trace headers and read/shell tools');
   const stream = await api('/v1/chat/completions', { ...body, stream: true,
-    tools: [{ type: 'function', function: { name: 'lookup', parameters: { type: 'object', properties: {} } } }] });
+    tools: [{ type: 'function', function: { name: 'lookup', description: 'fixture function', parameters: { type: 'object', properties: { value: { type: 'number' } } } } }] });
   assert.equal(stream.status, 200);
   const sse = await stream.text();
   const chatChunks = assertJSONSSE(sse, { done: 1 }).map(event => event.value);
@@ -248,6 +301,17 @@ try {
   assert.ok(failedResponses.status >= 400 || /error|failed/.test(failedResponseBody), failedResponseBody);
   upstream.state.status = 200;
   pass('Vendor failures remain errors in JSON and SSE (subject to original OFM status folding)');
+  const beforeBreaker = upstream.calls.filter(call => call.path.endsWith('/chat/completions')).length;
+  const blocked = await api('/v1/chat/completions', body);
+  assert.equal(blocked.status, 429, await blocked.clone().text());
+  await blocked.text();
+  assert.equal(upstream.calls.filter(call => call.path.endsWith('/chat/completions')).length, beforeBreaker,
+    'the quota breaker must reject locally while Retry-After is active');
+  const lane = (await (await consoleAPI('summary')).json()).lane;
+  assert.equal(lane.state, 'quota');
+  assert.ok(Number.isFinite(lane.retryAt) && lane.retryAt - Date.now() <= 2500, 'the fixture Retry-After must bound the quota window');
+  await until(() => Date.now() >= lane.retryAt, 10000);
+  pass('Free-lane quota breaker suppresses repeated inference until the provider Retry-After expires');
   const native = upstream.calls.filter(call => call.path.endsWith('/chat/completions'));
   assert.ok(native.length > 0);
   assert.ok(native.every(call => call.headers.authorization !== 'Bearer ' + apiKey && !call.headers.cookie));

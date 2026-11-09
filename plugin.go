@@ -191,6 +191,9 @@ func (p *plugin) Handle(method string, raw []byte) (any, error) {
 		if response, ok := p.engineResource(request); ok {
 			return response, nil
 		}
+		if response, ok := p.pluginResource(request); ok {
+			return response, nil
+		}
 		// Resource routes contain static code only; all data operations require CPA auth.
 		if response, ok := consoleResource(request); ok {
 			return response, nil

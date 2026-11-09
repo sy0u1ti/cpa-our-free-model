@@ -9,9 +9,88 @@ plugin directories and data directories inside `.test-output/`.
 
 | Component | Revision |
 | --- | --- |
-| OFM | `e1b347aec9cc956eda70a766219f028a811078e2` (upstream v2.7.2) |
+| OFM | `9d714bb46ae4842586591dbaf74aeb7fefa62582` (upstream v2.8.3 plus main follow-ups) |
 | Official CPA | v8.0.23 / `d318bcc3afb9ea8782862f5e8cdb541afdc9dfa5` |
 | Native contract | C ABI 1, negotiated RPC schema up to 6 |
+
+## Upstream v2.8.3 Sync: 0.5.17
+
+Re-vendored OFM from `e1b347a` to `9d714bb` on 2026-11-09: 193 commits through
+v2.8.3 and the latest main follow-ups. The manifest contains 137 files. The
+importer now includes `packages/standalone/desktop-update.mjs`, which the
+management service imports at boot, and the text asset loaded by the new
+request-format modules. Engine restoration uses seven verified gzip parts.
+The three CPA source patches apply unchanged, and the private EAC file hashes
+remain unchanged. Re-collected web licenses retain the same dependency versions.
+
+The new served bundles are `channels-CgtV-0FB.js`, `models-ChmCQDPX.js`,
+`settings-pl214s3V.js`, `usage-DiusNYSE.js` and `visibility-data-BTNpyYn8.js`.
+Ten EAC hooks and ten workbench hooks were checked and re-anchored; all
+seventeen console labels still match. Upstream's standalone package declares
+`2.8.2` even though its root package and source revision are v2.8.3. Those
+original bytes are retained; the CPA adapter identifies itself as `0.5.17`.
+
+The plugin center uses an explicit authenticated JSON route allowlist.
+Marketplace covers are fetched from the original signature-verified cache;
+page assets require the upstream per-boot capability and a validated package
+path. HTML, CSS and ES module references are rewritten for CPA's exact resource
+routes without losing nested directories or reverse-proxy prefixes. Page RPC
+retains upstream's plugin/page/method checks. Redirects, cookies, invalid MIME,
+oversized assets and ambiguous queries are refused. Disabling a plugin revokes
+its page URLs.
+
+The browser checks found that adding CORS in the adapter duplicated CPA's own
+header (`*, *`), causing opaque-origin ES modules to fail. The host now owns
+that header, and the real-host smoke test asserts its single value. Nested
+static documents keep a CSP sandbox without `allow-same-origin`; their parent
+console explicitly allows the same-origin frame resources.
+
+The standalone shell's `.ws-frame` is distinct from the channel bundle's
+legacy `.ofm_engineframe`. Both now use the CPA resource route and share the
+identity-checked relay. Each engine request records its source window so the
+parent's response reaches that same inner frame; unrelated senders, sibling
+cancellation and late replies are rejected. The retained upstream appearance
+bridge checks the parent window rather than comparing opaque origins, so
+theme and toolbar messages work inside the sandbox.
+Engine API requests are mounted under `/api/management/engine/ui/api/` on the
+standalone service and require its privileged session. The smoke test reads
+the real engine's `/api/state`, so a successful static shell cannot mask a
+request sent to the wrong service path.
+Runtime-created bundled icons and CSS masks also use the CPA static route:
+image properties, attribute writes, inserted markup and static fetches are
+normalized, while API paths and external URLs remain outside that rewrite.
+Host-specific settings such as installed-font enumeration remain outside the
+engine API allowlist.
+
+The smoke fixture now follows provider-family inference paths and returns the
+tool name actually offered on the wire, proving the upstream restores the
+caller's `lookup` name. A real 429 is followed by a local breaker refusal with
+no additional upstream request; subsequent cancellation tests wait for the
+fixture's two-second `Retry-After` to expire.
+
+Verified on Windows x64 on 2026-11-09 with Node 24.15.0, Go 1.27.2, Zig 0.15.2
+and official CPA 8.0.23:
+
+- JavaScript syntax: 150 files; Node tests: 52 passed, none skipped.
+- `go test ./...` and `go vet ./...`: passed.
+- Original-source audit: all 137 files match their pinned Git blobs plus the
+  three declared CPA patches.
+- Real CPA smoke: 26 checks; global-proxy smoke: 27 checks. Both reports identify
+  the final Windows DLL SHA-256
+  `d03564118eb947c4e02a156c0d215d02dd63c7b37a541aeb71b5efeab02f6258`.
+- Ego browser: plugin-center listing and covers, sandboxed page modules and
+  page RPC, engine provider presets and icons, theme switching and the settings
+  toolbar. The simulated outer CPA shell uses the real CPA plugin endpoints.
+  At 1440px and 390px the outer document and management frame do not overflow
+  horizontally; the opaque console's measured content also fits its viewport.
+  Direct document access across that sandbox raises `SecurityError`.
+
+Screenshots and browser scripts are retained under
+`.test-output/ego-sync-20261109-9d714bb/`; native reports are
+`dist/CPA_SMOKE_windows_amd64.json` and `dist/CPA_PROXY_SMOKE_windows_amd64.json`.
+The preview and browser were closed after verification. This run produced a
+local Windows build; it did not publish a tag or Release, deploy the plugin,
+or validate real provider credentials or other operating systems.
 
 ## Upstream v2.7.2 Sync: 0.5.16
 

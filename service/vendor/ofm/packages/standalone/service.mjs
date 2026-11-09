@@ -11,7 +11,9 @@ import { createStandaloneEac } from './eac.mjs'
 import { createChannelRuntime } from './channels/runtime.mjs'
 import { createSubscriptions } from '../../src/subscriptions.js'
 import { createSubscriptionRuntime } from '../../src/subscription-completion.js'
-import { createMagpieEngine } from '../../src/magpie-engine.js'
+import { createMagpieEngine, findAgentCli } from '../../src/magpie-engine.js'
+import { createExtensionRuntime } from '../../src/extensions.js'
+import { builtinDescriptors } from '../../src/plugins.js'
 import { combineSubscriptionRuntimes, createMagpieModels } from '../../src/magpie-models.js'
 
 const PRODUCT = 'our-free-model-standalone'
@@ -113,6 +115,11 @@ export async function startStandalone({
   logger = console, refresh = true, probe, lanEnabled, lanPort,
   startRelay = startLanRelay,
   workbenchOptions, subscriptionOptions,
+  // The desktop updater judges the host it runs on (`win32` + `x64` only). It
+  // already takes `platform`/`arch` at its own boundary, so they are threaded
+  // through here rather than re-derived: a test runner is never a Windows x64
+  // host, and the update flow has to be exercisable where CI actually runs.
+  desktopPlatform = process.platform, desktopArch = process.arch,
 } = {}) {
   if (!isLoopbackHost(host)) throw new TypeError('the standalone service binds a loopback address only')
   if (typeof dataDir !== 'string' || !path.isAbsolute(dataDir)) throw new TypeError('dataDir must be an absolute path')
@@ -123,6 +130,8 @@ export async function startStandalone({
   if (lanPort !== undefined && (!Number.isInteger(lanPort) || lanPort < 0 || lanPort > 65535)) {
     throw new TypeError('lanPort must be an integer between 0 and 65535')
   }
+  if (typeof desktopPlatform !== 'string' || desktopPlatform === '') throw new TypeError('desktopPlatform must be a non-empty string')
+  if (typeof desktopArch !== 'string' || desktopArch === '') throw new TypeError('desktopArch must be a non-empty string')
   fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 })
   const releaseLock = await acquireServiceLock(dataDir)
   let stores
@@ -132,6 +141,7 @@ export async function startStandalone({
   let channels
   let subscriptions
   let magpieEngine
+  let extensions
   let magpieModels
   let eac
   let timer
@@ -251,15 +261,29 @@ export async function startStandalone({
     // The model workspace: the same embedded engine the plugin's settings page
     // uses, so both products answer "which providers, which models" the same way.
     magpieEngine = createMagpieEngine({ dataDir, logger })
+    // The extension runtime is created just below; the lazy reference gives the
+    // magpie lane the enhancement-hook seam without reordering boot.
+    let extensionHookRuntime = null
     magpieModels = createMagpieModels({
       engine: magpieEngine, stats: stores.stats, logger,
       onChanged: () => runtime?.syncAggregateCatalog?.(),
+      extensionRuntime: () => extensionHookRuntime,
     })
     const combinedSubscriptionRuntime = combineSubscriptionRuntimes(magpieModels, subscriptionRuntime)
+    // The OFM extension platform, same as the plugin's: the marketplace client,
+    // the sandboxed channel host, and the lane they contribute.
+    extensions = createExtensionRuntime({
+      dataDir, logger, hostVersion: VERSION,
+      onCatalogChanged: () => { try { runtime?.syncExtensionCatalog?.() } catch { /* boot ordering */ } },
+    })
+    extensionHookRuntime = extensions
+    // Built-ins register through the same kernel a third-party plugin uses.
+    for (const descriptor of builtinDescriptors()) extensions.registerBuiltin(descriptor)
     runtime = createModelRuntime({
       ...stores, logger, attributionUserAgent: `${PRODUCT}/${VERSION}`,
       sealedCredential: eac.credential,
       subscriptionRuntime: combinedSubscriptionRuntime,
+      extensionRuntime: extensions,
     })
     channels = await createChannelRuntime({ dataDir, logger, stats: stores.stats })
     const core = runtime
@@ -273,12 +297,14 @@ export async function startStandalone({
       complete: (request, onChunk) => channels.handles(request.model) ? channels.complete(request, onChunk) : core.complete(request, onChunk),
       async refreshCatalog(options) {
         if (stopped) return
-        await Promise.all([core.refreshCatalog(options), channels.refresh().catch(error => { if (!stopped) throw error })])
+        const [result, channelResult] = await Promise.all([core.refreshCatalog(options), channels.refresh(options).catch(error => { if (!stopped) throw error })])
+        if (options?.report) return { ...result, sources: { ...result.sources, ...channelResult?.sources } }
       },
     }
     management = createManagement({
-      stores, runtime, channels, eac, subscriptions, workbenchOptions,
+      stores, runtime, channels, eac, subscriptions, workbenchOptions, extensions,
       magpieEngine, magpieModels,
+      desktopPlatform, desktopArch,
       onEngineStarted: () => { settings.update({ magpieEnabled: true }); settings.flush() },
       onSubscriptionsChanged: () => runtime?.syncAggregateCatalog?.(),
       info: () => ({
@@ -315,7 +341,27 @@ export async function startStandalone({
       void magpieEngine.start().then(() => magpieModels.refresh()).catch(() => {
         logger.warn?.('our-free-model standalone: model workspace could not resume')
       })
+      // Same readiness warning as the plugin: the engine connects Claude through
+      // the locally installed Claude Code CLI.
+      if (findAgentCli('claude') === undefined) {
+        logger.warn?.('our-free-model standalone: 未检测到 Claude Code CLI —— 在模型工作台连接 Claude 前请先安装（npm i -g @anthropic-ai/claude-code）。(Claude Code CLI not found; install it before connecting Claude)')
+      }
     }
+    void extensions.init().catch(error => {
+      logger.warn?.(`our-free-model standalone: extension mount failed (${error?.message ?? error})`)
+    })
+    if (!process.env.OFM_TEST_UPSTREAM) extensions.startWatching({ intervalMs: 2000 })
+    void extensions.refreshRegistry().catch(() => {})
+    // The marketplace index refreshes on its own cadence too: an update that
+    // lands upstream should reach the Installed tab without the user opening
+    // the market first. The TTL cache keeps ticks cheap; failures are silent.
+    const registryTimer = setInterval(() => {
+      void extensions.refreshRegistry().catch(() => {})
+      // Same contract as the plugin side: the automatic updater rides the
+      // registry tick and only ever installs a soaked, still-enabled update.
+      if (settings.get().autoUpdateExtensions === true) void extensions.autoUpdate().catch(() => {})
+    }, 6 * 60 * 60 * 1000)
+    registryTimer.unref?.()
     await reconcileRelay()
 
     function scheduleRefresh() {
@@ -351,10 +397,12 @@ export async function startStandalone({
         if (closing !== undefined) return closing
         stopped = true
         clearTimeout(timer)
+        clearInterval(registryTimer)
         const managementClosing = management.dispose()
         eac.dispose()
         magpieModels?.close()
         const engineClosing = magpieEngine?.close()
+        extensions?.dispose()
         runtime.dispose()
         closing = (async () => {
           try {
@@ -374,6 +422,7 @@ export async function startStandalone({
     eac?.dispose()
     magpieModels?.close()
     await magpieEngine?.close()
+    extensions?.dispose()
     runtime?.dispose()
     await relayChanges
     await closeRelay()

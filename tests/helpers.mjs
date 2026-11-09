@@ -51,11 +51,13 @@ export async function fixtureUpstream() {
       res.on('close', () => { clearInterval(timer); state.cancelled++; });
       return;
     }
-    const hasTool = body.tools?.some(tool => tool.function?.name === 'lookup');
-    if (hasTool) res.write(frame({ choices: [{ index: 0, delta: { tool_calls: [
-      { index: 0, id: 'call_fixture', type: 'function', function: { name: 'lookup', arguments: '{"value":42}' } },
+    // Select the declared fixture tool by its contract. The free lane masks
+    // caller tool names on the wire and must restore them on the response.
+    const offeredTool = body.tools?.find(tool => tool.function?.description === 'fixture function' || tool.function?.name === 'lookup');
+    if (offeredTool) res.write(frame({ choices: [{ index: 0, delta: { tool_calls: [
+      { index: 0, id: 'call_fixture', type: 'function', function: { name: offeredTool.function.name, arguments: '{"value":42}' } },
     ] } }] }));
-    res.write(frame({ choices: [{ index: 0, delta: {}, finish_reason: hasTool ? 'tool_calls' : 'stop' }],
+    res.write(frame({ choices: [{ index: 0, delta: {}, finish_reason: offeredTool ? 'tool_calls' : 'stop' }],
       usage: { prompt_tokens: 7, completion_tokens: 5, total_tokens: 12, completion_tokens_details: { reasoning_tokens: 2 } } }));
     res.end('data: [DONE]\n\n');
   });

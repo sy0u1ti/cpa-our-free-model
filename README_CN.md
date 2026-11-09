@@ -10,13 +10,29 @@
 本轮内嵌的模型工作台引擎支持 Windows x64；其他平台保留原生 OFM 页面，并将工作台显示为不可用。
 
 **唯一产品源码上游是原项目，不使用参考项目的源码快照或辅助模块。**
-通过 `git show` 直接读取原仓库固定提交的文件（当前 121 个），除 2 个独立可追溯的
+通过 `git show` 直接读取原仓库固定提交的文件（当前 137 个），除 3 个独立可追溯的
 CPA 补丁（接入私有 EAC 来源、外置内置 OAuth 配置、移除订阅 Gemini OAuth 凭据）外逐字节不变，包括独立服务与
 完整控制台。来源、原始 Git blob、前后 SHA-256、补丁说明均记录在
 `service/vendor/ofm/UPSTREAM.json`。`scripts/import-upstream.mjs` 和
 `scripts/upstream-patches.mjs` 可以重现整个取源过程。
 
-**当前版本 v0.5.16**：同步上游 **v2.7.2**（`e1b347a`，包含 v2.6.0、v2.7.0、
+**当前版本 v0.5.17**：同步上游 **v2.8.3** 及 main 最新提交 `9d714bb`，
+自 v2.7.2 起共 193 个提交。免费车道采用按协议分组的接口路径、OpenCode 2.2.3
+请求格式、可逆的工具名称转换，以及遵守 `Retry-After` 的额度断路器。账号渠道补齐
+排队换号、续期资格与取消清理；新增插件中心，支持签名渠道/增强包、内置能力清单、
+开发者本地包和沙箱页面。Magpie 引擎同步了 Claude Code 新版引导屏导致 TUI
+等待超时的修复，载荷从九个分片收敛为七个。
+
+快照由 121 个文件增至 137 个，补齐新版独立服务依赖与请求格式文本资源。
+CPA 侧接入插件中心白名单接口、签名封面和按启动生成令牌的页面资源，HTML/CSS/
+模块引用保留反代路径前缀，停用插件会立即撤销页面令牌。工作台地址与嵌套页面策略
+一并修正；控制台和扩展页仍不开放 `allow-same-origin`。3 处源码补丁、
+10 处 EAC 补丁、10 处工作台补丁和 17 处文案锚点都继续接受固定源码校验。
+
+该上游提交的独立控制台版本字段仍为 `2.8.2`；本插件版本为 `0.5.17`，
+完整取源提交以 `UPSTREAM.json` 为准。正式安装包版本以 Releases 页面实际发布为准。
+
+**上一版 v0.5.16**：同步上游 **v2.7.2**（`e1b347a`，包含 v2.6.0、v2.7.0、
 v2.7.1 与 v2.7.2，共 28 个提交）。新增与桌面端相同的模型工作台及内嵌 Magpie
 引擎、订阅车道与原生 Gemini、供应商/资源库/路由管理、新版免责声明、Kilo
 免费池统计和上游旧版升级器的 2.7.2 兼容载荷。快照由 94 个文件增至 121 个；
@@ -119,16 +135,16 @@ Linux 源码备用更新器创建的安装目录改为可遍历权限，备份�
 **v0.5.0 起提供预编译 Release；v0.5.3 起覆盖 Windows amd64、Linux amd64/arm64
 与 macOS amd64/arm64。** `dist/` 不随源码提交：优先从
 [Releases](https://github.com/sy0u1ti/cpa-our-free-model/releases)
-下载 `our-free-model_0.5.16_<系统>_<架构>.zip` 并核对 `checksums.txt`；从仓库克隆后
+下载 `our-free-model_<版本>_<系统>_<架构>.zip` 并核对 `checksums.txt`；从仓库克隆后
 也可按第 7 节自行构建，产物位于：
 
 | 系统 | 文件 |
 | --- | --- |
-| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.16.dll` |
-| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.16.so` |
-| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.16.so` |
-| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.16.dylib` |
-| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.16.dylib` |
+| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.17.dll` |
+| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.17.so` |
+| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.17.so` |
+| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.17.dylib` |
+| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.17.dylib` |
 
 1. 把对应动态库复制到 CPA 配置的插件目录，例如 `plugins/` 或 `plugins/windows/amd64/`。
    **不要改掉 `our-free-model` 这一文件名 ID**；文件名和配置键必须一致。
@@ -146,11 +162,11 @@ plugins:
 ```
 
 完整示例见 `config.example.yaml`。只需要安装动态库，不需要另外安装 DSH、Magpie，
-也不需要复制 `service/` 文件夹：约 4 MB 的 OFM 源码、界面和许可都已嵌入动态库。
+也不需要复制 `service/` 文件夹：约 34 MiB 的 OFM 源码、界面、引擎载荷和许可都已嵌入动态库。
 首次使用时释放到私有数据目录，以内容哈希命名并逐文件校验，损坏时拒绝执行。
 
 CPA 适配源码仓库为 [sy0u1ti/cpa-our-free-model](https://github.com/sy0u1ti/cpa-our-free-model)。
-v0.5.0 起已发布二进制 Release（最新 v0.5.16，覆盖五个平台）；公共插件商店的上架申请
+v0.5.0 起发布二进制 Release，覆盖五个平台，最新版本以 Releases 页面为准；公共插件商店的上架申请
 仍在审核中，通过后即可在 CPA 插件商店里直接安装，在那之前请先手动放置动态库，
 之后可直接用页面一键更新（见第 7 节）。
 
@@ -367,7 +383,7 @@ https://raw.githubusercontent.com/sy0u1ti/cpa-our-free-model/main/registry.json
 不会自动重启整个 CPA，也不声称所有 CPA 版本都支持无中断热更新。使用反代路径前缀时，
 要把同前缀下的 `/v8/management/` 也转发到 CPA。
 
-**v0.5.0 是首个正式 Release**（最新已发布 v0.5.16），根目录 `registry.json` 已发布。
+**v0.5.0 是首个正式 Release**，后续正式版本以 Releases 页面为准，根目录 `registry.json` 已发布。
 v0.5.0 之前的版本不含更新器，需要手动安装一次；从 v0.5.0 起可直接在页面更新到
 后续正式版本。尚无 Release、平台安装包缺失、GitHub 请求失败或本地开发构建，
 都会显示对应状态并禁用安装按钮。

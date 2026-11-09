@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { PATCHES, patchOriginal } from './upstream-patches.mjs';
 
 export const ORIGINAL_REPOSITORY = 'https://github.com/Ebony-Vinyl/dsh-our-free-model';
-export const ORIGINAL_COMMIT = 'e1b347aec9cc956eda70a766219f028a811078e2';
+export const ORIGINAL_COMMIT = '9d714bb46ae4842586591dbaf74aeb7fefa62582';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const checkout = path.resolve(process.argv[2] || path.join(root, '.reference/ofm'));
 const destination = path.join(root, 'service/vendor/ofm');
@@ -22,7 +22,7 @@ const webAssets = JSON.parse(git(['show', `${ORIGINAL_COMMIT}:packages/standalon
 const selected = [
   'LICENSE', 'icon.svg', 'package.json', 'scripts/standalone-third-party.txt', 'packages/standalone/README.md',
   ...['package.json', 'cli.mjs', 'service.mjs', 'management.mjs', 'login-terminal.mjs', 'open-external.mjs', 'eac.mjs',
-    'client-terminal.mjs', 'workbench.mjs', 'providers.mjs', 'library.mjs', 'routing.mjs'].map(file => 'packages/standalone/' + file),
+    'client-terminal.mjs', 'workbench.mjs', 'providers.mjs', 'library.mjs', 'routing.mjs', 'desktop-update.mjs'].map(file => 'packages/standalone/' + file),
   ...['business', 'contracts', 'credentials', 'images', 'runtime', 'worker'].map(file => `packages/standalone/channels/${file}.mjs`),
   // Only the files the served index.html and assets.json actually reference:
   // the original repo keeps superseded bundles around, and shipping dead code
@@ -31,7 +31,7 @@ const selected = [
   ...webAssets.map(file => `packages/standalone/web/${file}`),
   // Everything under src/ except the seal, so a new upstream module cannot be
   // missed by an allow-list that silently forgets to name it.
-  ...tree.filter(file => /^src\/.*\.(js|json|css|part)$/.test(file) && !withheld.has(file)),
+  ...tree.filter(file => /^src\/.*\.(js|json|css|txt|part)$/.test(file) && !withheld.has(file)),
   'vendor/channel-pack/qoder-auth-wasm.wasm', 'vendor/channel-pack/LICENSE', 'vendor/channel-pack/NOTICE.md',
   'vendor/magpie/LICENSE', 'vendor/magpie/NOTICE.md', 'vendor/magpie/engine.json',
 ].sort();

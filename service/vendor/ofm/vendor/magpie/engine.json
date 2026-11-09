@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "name": "magpie",
   "upstream": "https://github.com/yetone/magpie.git",
-  "revision": "c551a229975653b7ae5b6a35e2278c983a272e06",
-  "version": "ofm-c551a2299756",
+  "revision": "eef99e4bbebaf363840847dce4a33ee72eb37945",
+  "version": "ofm-eef99e4bbeba",
   "license": "MIT",
   "build": {
     "command": [
@@ -14,65 +14,61 @@
       "-trimpath",
       "-buildvcs=true",
       "-ldflags",
-      "-X main.version=ofm-c551a2299756",
+      "-s -w -X main.version=ofm-eef99e4bbeba",
       "."
     ],
     "go": "go version go1.27.1 windows/amd64"
   },
+  "patches": [
+    {
+      "name": "0001-agent-sync-skip-an-empty-catalog.patch",
+      "sha256": "50acab57addbd3821a6a293f2a6be4f496b4fb4a8e118b3cfd224f29e83747aa"
+    }
+  ],
   "binaries": {
     "win32-x64": {
       "path": "bin/magpie-win32-x64.exe",
-      "sha256": "6490f7ed2c5f001adc97284276af453f2a2b1711712e175e6fc780e09046fa3b",
+      "sha256": "02876489caff4aaac2a50356cabff3fe708f17d07af052f6fd7b8433a4ba7446",
       "compressed": {
         "algorithm": "gzip",
-        "size": 35128000,
-        "sha256": "5964bf859e7de297bdc755d9fb4d540b816df87efd6fd28bbf9e1103c326730e",
-        "outputSize": 68578304,
+        "size": 28678010,
+        "sha256": "d95463d290d9137cd39cf1631f8f8f83a803d56d0228921e610cabaa8a15796f",
+        "outputSize": 72745472,
         "parts": [
           {
             "path": "src/engine-parts/win32-x64.000.part",
             "size": 4194304,
-            "sha256": "ee492eaa5d992b8703ede29821e07b4bd46a9ff0395faba2128211e1363fa4b9"
+            "sha256": "271153d125146ba96c31094e624fc82ee336bc3e71f1d56d5863d65b502139ff"
           },
           {
             "path": "src/engine-parts/win32-x64.001.part",
             "size": 4194304,
-            "sha256": "141c520cf249a6930618c198c6072ccf04fab7edee93ab4f28da41c4619e61aa"
+            "sha256": "9b1e05b21030112cd03751c4d629f58aeda6a069f6eb0abc893afa0fa29d9357"
           },
           {
             "path": "src/engine-parts/win32-x64.002.part",
             "size": 4194304,
-            "sha256": "854178a956532bdfc7b6eee89d179c6a5ea5a29fef9a0a2d19f396938ca93fe7"
+            "sha256": "a68960865289e3c8d71bc95c7bb7160ff80495aa67e4f96c070af0a9014f8c5a"
           },
           {
             "path": "src/engine-parts/win32-x64.003.part",
             "size": 4194304,
-            "sha256": "37740d6058361640c8a46cbcb26576ed88ba41f99c6162a495475828d5c7bff1"
+            "sha256": "58875c04d968c05f11c05716304f700fbd8441dac4a4ac4cb7be84a7ad2a0334"
           },
           {
             "path": "src/engine-parts/win32-x64.004.part",
             "size": 4194304,
-            "sha256": "228b98336fef117087c55d5ab85cc972cc42f61ea1d4b19ced145ac408723525"
+            "sha256": "116f4f9cf15d75ca00dca072eb8610de0f88f18cd2d4c4f08c1eb768cfb55da2"
           },
           {
             "path": "src/engine-parts/win32-x64.005.part",
             "size": 4194304,
-            "sha256": "4c723b29f4d69861fd29751951e7c480ae35ad981489b406cb0765b78cc5a26f"
+            "sha256": "364374b4a62dac550fa25b498b0b064a7bae74a7496867ad7c1dda6e9cfeff8f"
           },
           {
             "path": "src/engine-parts/win32-x64.006.part",
-            "size": 4194304,
-            "sha256": "397e3c199a0ed6ef6ffdf7a9de62cc7467f5583a2a5ecef3d5867cde9d14ce86"
-          },
-          {
-            "path": "src/engine-parts/win32-x64.007.part",
-            "size": 4194304,
-            "sha256": "18cb47f20ab54d013aaf9f7471695bb5a6e7ef5b8ed39a088c61a63a8ce73132"
-          },
-          {
-            "path": "src/engine-parts/win32-x64.008.part",
-            "size": 1573568,
-            "sha256": "4a0877e8067b71b5968304008afeb8b96fd578ac581a52e2281df45b95e0d3ce"
+            "size": 3512186,
+            "sha256": "f95bcd7723547caa0827e8efc4f5a4586154011f54c1a5eb85c393b905de2328"
           }
         ]
       }
@@ -80,8 +76,8 @@
   },
   "modules": [
     {
-      "path": "github.com/Calcium-Ion/moejs",
-      "version": "v0.1.0-alpha.4",
+      "path": "github.com/MoeForge/moejs",
+      "version": "v0.1.0-alpha.11",
       "licenses": [
         "LICENSE"
       ]
@@ -172,6 +168,13 @@
       ]
     },
     {
+      "path": "github.com/coder/websocket",
+      "version": "v1.8.14",
+      "licenses": [
+        "LICENSE.txt"
+      ]
+    },
+    {
       "path": "github.com/dustin/go-humanize",
       "version": "v1.0.1",
       "licenses": [
@@ -181,6 +184,34 @@
     {
       "path": "github.com/erikgeiser/coninput",
       "version": "v0.0.0-20211004153227-1c3628e74d0f",
+      "licenses": [
+        "LICENSE"
+      ]
+    },
+    {
+      "path": "github.com/fsnotify/fsnotify",
+      "version": "v1.9.0",
+      "licenses": [
+        "LICENSE"
+      ]
+    },
+    {
+      "path": "github.com/gen2brain/h265",
+      "version": "v0.2.4",
+      "licenses": [
+        "LICENSE"
+      ]
+    },
+    {
+      "path": "github.com/go-ole/go-ole",
+      "version": "v1.3.0",
+      "licenses": [
+        "LICENSE"
+      ]
+    },
+    {
+      "path": "github.com/google/uuid",
+      "version": "v1.6.0",
       "licenses": [
         "LICENSE"
       ]
@@ -276,6 +307,13 @@
       ]
     },
     {
+      "path": "github.com/santhosh-tekuri/jsonschema/v6",
+      "version": "v6.0.3",
+      "licenses": [
+        "LICENSE"
+      ]
+    },
+    {
       "path": "github.com/tidwall/gjson",
       "version": "v1.19.0",
       "licenses": [
@@ -313,6 +351,13 @@
     {
       "path": "golang.org/x/exp",
       "version": "v0.0.0-20260410095643-746e56fc9e2f",
+      "licenses": [
+        "LICENSE"
+      ]
+    },
+    {
+      "path": "golang.org/x/image",
+      "version": "v0.43.0",
       "licenses": [
         "LICENSE"
       ]

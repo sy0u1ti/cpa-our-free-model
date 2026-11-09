@@ -40,7 +40,7 @@ func consoleAssetNames() []string {
 }
 
 func consoleResourcePaths() []string {
-	paths := []string{"/manager.js", "/updater.js", "/eac-feedback.js", "/console-layout.css", "/console-bridge.js", "/engine-bridge.js", "/app", "/engine"}
+	paths := []string{"/manager.js", "/updater.js", "/eac-feedback.js", "/console-layout.css", "/console-bridge.js", "/engine-bridge.js", "/app", "/engine", "/plugin-cover", "/plugin-asset"}
 	for _, name := range consoleAssetNames() {
 		paths = append(paths, "/app-assets/"+name)
 	}
@@ -83,7 +83,7 @@ func consoleResource(request managementRequest) (httpResponse, bool) {
 		body = bytes.Replace(body, []byte("<head>"), []byte("<head>\n<script src=\"./eac-feedback.js\"></script>\n<script src=\"./console-bridge.js\"></script>"), 1)
 		body = bytes.Replace(body, []byte("</head>"), []byte("<link rel=\"stylesheet\" href=\"./console-layout.css\">\n</head>"), 1)
 		body = bytes.ReplaceAll(body, []byte("本地控制台"), []byte("CPA 管理控制台"))
-		headers.Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: https:; font-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'self'")
+		headers.Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-src 'self'; img-src 'self' data: https:; font-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'self'")
 	case consoleResourceBase + "/engine":
 		return httpResponse{}, false
 	default:
@@ -121,6 +121,10 @@ func consoleResource(request managementRequest) (httpResponse, bool) {
 			for _, patch := range engineConsolePatches {
 				body = bytes.ReplaceAll(body, []byte(patch[0]), []byte(patch[1]))
 			}
+			for _, patch := range workspaceConsolePatches {
+				body = bytes.ReplaceAll(body, []byte(patch[0]), []byte(patch[1]))
+			}
+			body = bytes.ReplaceAll(body, []byte(`/api/management/plugins/cover?id=`), []byte(`./plugin-cover?id=`))
 			headers.Set("Content-Type", "text/javascript; charset=utf-8")
 		} else {
 			headers.Set("Content-Type", "text/css; charset=utf-8")
@@ -166,6 +170,12 @@ var consoleAPIRoutes = map[string]bool{
 	"POST /api/management/subscriptions/quota": true,
 	"GET /api/management/engine/status":        true, "POST /api/management/engine/start": true,
 	"POST /api/management/engine/refresh": true,
+	"GET /api/management/plugins":         true, "GET /api/management/plugins/pages": true,
+	"GET /api/management/plugins/audit": true, "POST /api/management/plugins/registry/refresh": true,
+	"POST /api/management/plugins/install": true, "POST /api/management/plugins/install-local": true,
+	"POST /api/management/plugins/uninstall": true, "POST /api/management/plugins/toggle": true,
+	"POST /api/management/plugins/config": true, "POST /api/management/plugins/secret": true,
+	"POST /api/management/plugins/self-test": true, "POST /api/management/plugins/page-rpc": true,
 }
 
 // The engine iframe has its own opaque origin and no cookie. Only these
@@ -200,30 +210,30 @@ var consoleLabels = [][2]string{
 // Keep the original source hashes intact and fail tests if upstream hooks change.
 var eacConsolePatches = [][2]string{
 	// Login start: the pinned UI discards the cause and prints "unreachable".
-	{`catch{E===f.current&&r(o("eac.startFailed").replace("{reason}","unreachable"))}`,
-		`catch(error){E===f.current&&r(o("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}`},
+	{`catch{R===u.current&&r(n("eac.startFailed").replace("{reason}","unreachable"))}`,
+		`catch(error){R===u.current&&r(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}`},
 	// Logout: same blanket catch, same fix.
-	{`catch{r(o("eac.startFailed").replace("{reason}","unreachable"))}finally{s(!1)}},cancel:async()=>{`,
-		`catch(error){r(o("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}finally{s(!1)}},cancel:async()=>{`},
+	{`catch{r(n("eac.startFailed").replace("{reason}","unreachable"))}finally{s(!1)}},cancel:async()=>{`,
+		`catch(error){r(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}finally{s(!1)}},cancel:async()=>{`},
 	// Login start with a structured error object from the gateway.
-	{`r(o("eac.startFailed").replace("{reason}",_.error))`,
-		`r(o("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(_.error)))`},
+	{`r(n("eac.startFailed").replace("{reason}",A.error))`,
+		`r(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(A.error)))`},
 	// Polling: the pinned UI narrows every failure to a fixed vocabulary and
 	// labels anything unrecognised as a network fault.
-	{`const c=/\(([^)]+)\)\s*$/.exec(String(l?.message??""))?.[1]??"";n(c)`,
-		`n(window.ofmEacFeedback.reason(l))`},
+	{`const c=/\(([^)]+)\)\s*$/.exec(String(l?.message??""))?.[1]??"";o(c)`,
+		`o(window.ofmEacFeedback.reason(l))`},
 	// Login polling builds the same "unreachable" fallback, which is why a
 	// source-preparation failure during polling used to read as a gateway
 	// network fault. `not-writable` keeps its dedicated message.
-	{`r(S==="not-writable"?H("eac.saveFailed"):H("eac.pollFailed").replace("{reason}",O))`,
-		`r(S==="not-writable"?H("eac.saveFailed"):H("eac.pollFailed").replace("{reason}",window.ofmEacFeedback.reason(D)))`},
+	{`r(T==="not-writable"?F("eac.saveFailed"):F("eac.pollFailed").replace("{reason}",D))`,
+		`r(T==="not-writable"?F("eac.saveFailed"):F("eac.pollFailed").replace("{reason}",window.ofmEacFeedback.reason(K)))`},
 	// "No lane" is a composition state, not a network failure.
 	{`if(t.available!==!0)return e("p",{className:"ofm_note"},a("eac.noLane"))`,
 		`if(t.available!==!0)return e("p",{className:"ofm_note"},window.ofmEacFeedback.reason(t.reason||"no-lane"))`},
 	// The EAC page must not paint the summary's stale authorization state before
 	// its own query answers.
-	{`function _n({summary:ee}){const[te,ae]=X.useState(ee.eacAuth)`,
-		`function _n({summary:ee}){const[te,ae]=X.useState(void 0)`},
+	{`function To({summary:se}){const[ce,le]=te.useState(se.eacAuth)`,
+		`function To({summary:se}){const[ce,le]=te.useState(void 0)`},
 	// The pinned UI says importing "merges", but the service replaces the whole
 	// account pool, model blacklist and permanent-lock table. Say what happens and
 	// report how much was written, so an old backup cannot silently drop newer
@@ -233,10 +243,10 @@ var eacConsolePatches = [][2]string{
 	// The shared action wrapper appends "已保存。" after every action, which
 	// immediately overwrote the import summary. Let an action that reports its
 	// own result (by resolving `true`) suppress that generic line.
-	{`const V=async P=>{F(!0),q("");try{await P(),await pe(),window.dispatchEvent(new CustomEvent("ofm:channels")),ee.reload?.(),q("已保存。")}catch(Z){q(Z.message)}finally{F(!1)}}`,
-		`const V=async P=>{F(!0),q("");try{const ofmResult=await P();await pe(),window.dispatchEvent(new CustomEvent("ofm:channels")),ee.reload?.(),ofmResult!==!0&&q("已保存。")}catch(Z){q(Z.message)}finally{F(!1)}}`},
-	{`&&await V(async()=>{await Le("backup.import",{payload:JSON.parse(await Z.text())})})}};`,
-		`&&await V(async()=>{const ofmResult=await Le("backup.import",{payload:JSON.parse(await Z.text())});const ofmAccounts=Number(ofmResult?.accountsImported??0),ofmCredentials=Number(ofmResult?.credentialsImported??0),ofmMissing=Number(ofmResult?.missingCredentials??0),ofmExpired=Number(ofmResult?.expiredAccounts??0),ofmMessage=["已整体替换：写入 "+ofmAccounts+" 个账号、"+ofmCredentials+" 条凭据。"];ofmMissing>0&&ofmMessage.push(ofmMissing+" 个账号缺少凭据，需重新登录。");ofmExpired>0&&ofmMessage.push(ofmExpired+" 个账号的凭据已过期，使用时可能自动续期。");ofmResult?.skipped?.length>0&&ofmMessage.push("跳过 "+ofmResult.skipped.length+" 条无效凭据。");q(ofmMessage.join(""));return!0})}};`},
+	{`const X=async W=>{O(!0),G("");try{await W(),await _e(),window.dispatchEvent(new CustomEvent("ofm:channels")),se.reload?.(),G("已保存。")}catch(ne){G(ne.message)}finally{O(!1)}}`,
+		`const X=async W=>{O(!0),G("");try{const ofmResult=await W();await _e(),window.dispatchEvent(new CustomEvent("ofm:channels")),se.reload?.(),ofmResult!==!0&&G("已保存。")}catch(ne){G(ne.message)}finally{O(!1)}}`},
+	{`&&await X(async()=>{await je("backup.import",{payload:JSON.parse(await ne.text())})})}};`,
+		`&&await X(async()=>{const ofmResult=await je("backup.import",{payload:JSON.parse(await ne.text())});const ofmAccounts=Number(ofmResult?.accountsImported??0),ofmCredentials=Number(ofmResult?.credentialsImported??0),ofmMissing=Number(ofmResult?.missingCredentials??0),ofmExpired=Number(ofmResult?.expiredAccounts??0),ofmMessage=["已整体替换：写入 "+ofmAccounts+" 个账号、"+ofmCredentials+" 条凭据。"];ofmMissing>0&&ofmMessage.push(ofmMissing+" 个账号缺少凭据，需重新登录。");ofmExpired>0&&ofmMessage.push(ofmExpired+" 个账号的凭据已过期，使用时可能自动续期。");ofmResult?.skipped?.length>0&&ofmMessage.push("跳过 "+ofmResult.skipped.length+" 条无效凭据。");G(ofmMessage.join(""));return!0})}};`},
 }
 
 // The model workspace is a sandboxed document inside the sandboxed console.
@@ -244,16 +254,32 @@ var eacConsolePatches = [][2]string{
 // and contentDocument access cannot work. Keep the sandbox and bridge through
 // window identity instead: only the parent console frame can relay requests.
 var engineConsolePatches = [][2]string{
-	{`c.current?.contentWindow?.postMessage({type:"ofm:engine-theme",variables:E,fontFamily:z.fontFamily,colorScheme:N==="dark"?"dark":"light",externalControls:!0},window.location.origin)`,
-		`c.current?.contentWindow?.postMessage({type:"ofm:engine-theme",variables:E,fontFamily:z.fontFamily,colorScheme:N==="dark"?"dark":"light",externalControls:!0},"*")`},
-	{`w=C=>c.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:C},window.location.origin)`,
-		`w=C=>c.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:C},"*")`},
+	{`c.current?.contentWindow?.postMessage({type:"ofm:engine-theme",variables:R,fontFamily:z.fontFamily,colorScheme:N==="dark"?"dark":"light",externalControls:!0},window.location.origin)`,
+		`c.current?.contentWindow?.postMessage({type:"ofm:engine-theme",variables:R,fontFamily:z.fontFamily,colorScheme:N==="dark"?"dark":"light",externalControls:!0},"*")`},
+	{`w=S=>c.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:S},window.location.origin)`,
+		`w=S=>c.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:S},"*")`},
 	{`z.origin!==window.location.origin||z.source!==c.current?.contentWindow||z.data?.type!=="ofm:engine-changed"`,
 		`z.source!==c.current?.contentWindow||z.data?.type!=="ofm:engine-changed"`},
-	{"src:`${Me}/engine/ui/?mode=window&view=providers`",
-		"src:new URL(\"../engine?mode=window&view=providers\",location.href).href"},
-	{`onLoad:C=>{d();const z=C.currentTarget.contentDocument;if(!z||z.getElementById("ofm-workspace-layout"))return;const E=z.createElement("style");E.id="ofm-workspace-layout",E.textContent=Lo,z.head.appendChild(E)}}`,
+	{"src:`${Fe}/engine/ui/?mode=window&view=providers`",
+		"src:new URL(\"./engine?mode=window&view=providers\",location.href).href"},
+	{`onLoad:S=>{d();const z=S.currentTarget.contentDocument;if(!z||z.getElementById("ofm-workspace-layout"))return;const R=z.createElement("style");R.id="ofm-workspace-layout",R.textContent=qn,z.head.appendChild(R)}}`,
 		`onLoad:()=>{d()}}`},
+}
+
+// The standalone shell renders its own workspace component in app.js. It has
+// a separate frame from the channel bundle's legacy workbench, but uses the
+// same CPA asset route and identity-checked message bridge.
+var workspaceConsolePatches = [][2]string{
+	{`p.current?.contentWindow?.postMessage({type:"ofm:engine-theme",variables:C,fontFamily:U.fontFamily,colorScheme:document.documentElement.dataset.theme==="dark"?"dark":"light",externalControls:!0},window.location.origin)`,
+		`p.current?.contentWindow?.postMessage({type:"ofm:engine-theme",variables:C,fontFamily:U.fontFamily,colorScheme:document.documentElement.dataset.theme==="dark"?"dark":"light",externalControls:!0},"*")`},
+	{`p.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:"refresh"},window.location.origin)`,
+		`p.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:"refresh"},"*")`},
+	{`p.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:"settings"},window.location.origin)`,
+		`p.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:"settings"},"*")`},
+	{`C.origin===window.location.origin&&C.source===p.current?.contentWindow&&C.data?.type==="ofm:engine-changed"`,
+		`C.source===p.current?.contentWindow&&C.data?.type==="ofm:engine-changed"`},
+	{`src:"/api/management/engine/ui/?mode=window&view=providers"`,
+		`src:new URL("./engine?mode=window&view=providers",location.href).href`},
 }
 
 // Engine HTML comes from the upstream management server, which injects a
@@ -277,6 +303,11 @@ func adaptEngineHTML(body []byte) []byte {
 			}
 		}
 	}
+	// Keep upstream's presentation bridge, but authenticate the opaque parent
+	// by its window object so theme and toolbar messages can still reach it.
+	html = strings.Replace(html,
+		"window.parent === window || event.source !== window.parent || event.origin !== location.origin",
+		"window.parent === window || event.source !== window.parent", 1)
 	injection := `<script src="./engine-bridge.js"></script><link rel="stylesheet" href="./engine-workspace.css">`
 	if strings.Contains(html, "</head>") {
 		html = strings.Replace(html, "</head>", injection+"</head>", 1)
@@ -486,36 +517,71 @@ func (p *plugin) engineResource(request managementRequest) (httpResponse, bool) 
 	if !ok {
 		return httpResponse{}, false
 	}
+	target := "/api/management/engine/ui" + name
+	if name == "/index.html" {
+		target = "/api/management/engine/ui/"
+	}
+	if validEngineSessionQuery(request) {
+		target += "?" + strings.TrimPrefix(request.Path, consoleResourceBase+"/engine?")
+	} else if request.Query != nil {
+		query := url.Values{}
+		for _, key := range []string{"mode", "view"} {
+			if value := request.Query.Get(key); value != "" {
+				query.Set(key, value)
+			}
+		}
+		if len(query) != 0 {
+			target += "?" + query.Encode()
+		}
+	}
+	response := p.fetchConsoleAsset(target, 8*1024*1024)
+	if response.StatusCode != http.StatusOK {
+		return response, true
+	}
+	contentType, ok := engineContentType(name, response.Headers.Get("Content-Type"))
+	if !ok {
+		return jsonHTTP(502, map[string]string{"error": "engine content type refused"}), true
+	}
+	raw := response.Body
+	if strings.HasPrefix(contentType, "text/html") {
+		raw = adaptEngineHTML(raw)
+	} else if strings.HasPrefix(contentType, "text/css") {
+		raw = adaptEngineCSS(raw)
+	}
+	headers := http.Header{
+		"Content-Type": {contentType}, "Cache-Control": {"no-store"}, "X-Content-Type-Options": {"nosniff"},
+		"Content-Security-Policy": {"default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: https:; font-src 'self'; base-uri 'none'; form-action 'none'; sandbox allow-scripts allow-forms allow-popups"},
+	}
+	return httpResponse{StatusCode: 200, Headers: headers, Body: raw}, true
+}
+
+// Callers construct target only after validating an engine asset, a signed
+// marketplace cover, or a per-boot plugin capability. Caller headers never
+// enter the private loopback request.
+func (p *plugin) fetchConsoleAsset(target string, limit int64) httpResponse {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	_, rt, err := p.begin()
 	if err != nil {
-		return jsonHTTP(503, map[string]string{"error": "engine unavailable"}), true
+		return jsonHTTP(503, map[string]string{"error": "console asset unavailable"})
 	}
 	defer p.active.Done()
 	var conn connection
 	if err := rt.command("console-connection", nil, &conn); err != nil {
-		return jsonHTTP(503, map[string]string{"error": "engine unavailable"}), true
+		return jsonHTTP(503, map[string]string{"error": "console asset unavailable"})
 	}
 	if conn.Session == "" {
-		return jsonHTTP(503, map[string]string{"error": "engine session unavailable"}), true
+		return jsonHTTP(503, map[string]string{"error": "console session unavailable"})
 	}
 	base, err := url.Parse(conn.Base)
 	if err != nil || base.Scheme != "http" || base.Hostname() != "127.0.0.1" || base.Port() == "" ||
 		base.User != nil || base.Path != "" || base.RawQuery != "" || base.Fragment != "" ||
 		conn.Key == "" {
-		return jsonHTTP(502, map[string]string{"error": "invalid engine service"}), true
+		return jsonHTTP(502, map[string]string{"error": "invalid console service"})
 	}
-	target := conn.Base + "/api/management/engine/ui" + name
-	if name == "/index.html" {
-		target = conn.Base + "/api/management/engine/ui/"
-	}
-	if validEngineSessionQuery(request) {
-		target += "?" + strings.TrimPrefix(request.Path, consoleResourceBase+"/engine?")
-	}
-	upstream, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+	upstream, err := http.NewRequestWithContext(ctx, http.MethodGet, conn.Base+target, nil)
 	if err != nil {
-		return jsonHTTP(400, map[string]string{"error": "invalid engine resource"}), true
+		return jsonHTTP(400, map[string]string{"error": "invalid console asset"})
 	}
 	upstream.Header = http.Header{
 		"Authorization": {"Bearer " + conn.Key}, "Cookie": {conn.Session},
@@ -524,33 +590,24 @@ func (p *plugin) engineResource(request managementRequest) (httpResponse, bool) 
 	}
 	response, err := loopbackClient.Do(upstream)
 	if err != nil {
-		return jsonHTTP(502, map[string]string{"error": "engine resource failed"}), true
+		return jsonHTTP(502, map[string]string{"error": "console asset request failed"})
 	}
 	defer response.Body.Close()
 	if response.StatusCode >= 300 && response.StatusCode < 400 || response.Header.Get("Set-Cookie") != "" {
-		return jsonHTTP(502, map[string]string{"error": "engine redirect or credential refused"}), true
+		return jsonHTTP(502, map[string]string{"error": "console asset redirect or credential refused"})
 	}
 	if response.StatusCode != http.StatusOK {
-		return jsonHTTP(502, map[string]string{"error": "engine resource unavailable"}), true
+		status := http.StatusBadGateway
+		if response.StatusCode == http.StatusNotFound {
+			status = http.StatusNotFound
+		}
+		return jsonHTTP(status, map[string]string{"error": "console asset unavailable"})
 	}
-	raw, err := io.ReadAll(io.LimitReader(response.Body, 8*1024*1024+1))
-	if err != nil || len(raw) > 8*1024*1024 {
-		return jsonHTTP(502, map[string]string{"error": "engine resource is too large"}), true
+	raw, err := io.ReadAll(io.LimitReader(response.Body, limit+1))
+	if err != nil || int64(len(raw)) > limit {
+		return jsonHTTP(502, map[string]string{"error": "console asset is too large"})
 	}
-	contentType, ok := engineContentType(name, response.Header.Get("Content-Type"))
-	if !ok {
-		return jsonHTTP(502, map[string]string{"error": "engine content type refused"}), true
-	}
-	if strings.HasPrefix(contentType, "text/html") {
-		raw = adaptEngineHTML(raw)
-	} else if strings.HasPrefix(contentType, "text/css") {
-		raw = adaptEngineCSS(raw)
-	}
-	headers := http.Header{
-		"Content-Type": {contentType}, "Cache-Control": {"no-store"}, "X-Content-Type-Options": {"nosniff"},
-		"Content-Security-Policy": {"default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: https:; font-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'self'"},
-	}
-	return httpResponse{StatusCode: 200, Headers: headers, Body: raw}, true
+	return httpResponse{StatusCode: 200, Headers: http.Header{"Content-Type": {response.Header.Get("Content-Type")}}, Body: raw}
 }
 
 func validateConsoleRequest(request consoleProxyRequest) bool {
@@ -700,7 +757,16 @@ func (p *plugin) proxyConsole(rt controlRuntime, raw []byte) httpResponse {
 		u.Path != "" || u.RawQuery != "" || u.Fragment != "" || conn.Key == "" {
 		return bad(502, "OFM 内部服务地址不合法")
 	}
-	upstream, err := http.NewRequestWithContext(ctx, request.Method, conn.Base+request.Path, bytes.NewReader(request.Body))
+	target := request.Path
+	if request.Engine {
+		if conn.Session == "" {
+			return bad(503, "工作台管理会话不可用")
+		}
+		// The standalone service mounts the engine behind its privileged
+		// management route; /api/state belongs to the engine, not that service.
+		target = "/api/management/engine/ui" + target
+	}
+	upstream, err := http.NewRequestWithContext(ctx, request.Method, conn.Base+target, bytes.NewReader(request.Body))
 	if err != nil {
 		return bad(400, "无效的控制台请求")
 	}

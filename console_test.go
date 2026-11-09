@@ -64,7 +64,7 @@ func memoryStorageBlock(script []byte) string {
 func TestSameOriginConsoleAssetsArePublicCodeOnly(t *testing.T) {
 	p := newPlugin(nil)
 	for _, resource := range append(consoleResourcePaths(), "/console") {
-		if resource == "/engine" {
+		if resource == "/engine" || resource == "/plugin-cover" || resource == "/plugin-asset" {
 			continue
 		}
 		value, err := p.Handle("management.handle", wire(t, managementRequest{Method: "GET", Path: consoleResourceBase + resource}))
@@ -191,11 +191,11 @@ func TestRemoteConsoleLinkIsRelativeWithoutPublicPort(t *testing.T) {
 }
 
 func TestEACUIHooksMatchOnlyThePinnedBundle(t *testing.T) {
-	original, err := serviceAssets.ReadFile("service/vendor/ofm/packages/standalone/web/channels-CwUJPBXI.js")
+	original, err := serviceAssets.ReadFile("service/vendor/ofm/packages/standalone/web/channels-CgtV-0FB.js")
 	if err != nil {
 		t.Fatal(err)
 	}
-	response, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/app-assets/channels-CwUJPBXI.js"})
+	response, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/app-assets/channels-CgtV-0FB.js"})
 	if !ok {
 		t.Fatal("missing adapted EAC module")
 	}
@@ -211,11 +211,11 @@ func TestEACUIHooksMatchOnlyThePinnedBundle(t *testing.T) {
 }
 
 func TestEngineUIHooksMatchOnlyThePinnedBundle(t *testing.T) {
-	original, err := serviceAssets.ReadFile("service/vendor/ofm/packages/standalone/web/channels-CwUJPBXI.js")
+	original, err := serviceAssets.ReadFile("service/vendor/ofm/packages/standalone/web/channels-CgtV-0FB.js")
 	if err != nil {
 		t.Fatal(err)
 	}
-	response, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/app-assets/channels-CwUJPBXI.js"})
+	response, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/app-assets/channels-CgtV-0FB.js"})
 	if !ok {
 		t.Fatal("missing adapted engine console module")
 	}
@@ -230,22 +230,46 @@ func TestEngineUIHooksMatchOnlyThePinnedBundle(t *testing.T) {
 	}
 }
 
+func TestStandaloneWorkspaceHooksMatchOnlyThePinnedBundle(t *testing.T) {
+	original, err := serviceAssets.ReadFile("service/vendor/ofm/packages/standalone/web/app.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/app-assets/app.js"})
+	if !ok {
+		t.Fatal("missing standalone workspace bundle")
+	}
+	for _, patch := range workspaceConsolePatches {
+		if count := bytes.Count(original, []byte(patch[0])); count != 1 {
+			t.Fatalf("standalone workspace hook must match once, got %d for %s", count, patch[0])
+		}
+		if !bytes.Contains(response.Body, []byte(patch[1])) {
+			t.Fatalf("standalone workspace hook was not applied: %s", patch[0])
+		}
+	}
+}
+
 func TestEngineHTMLRemovesSameOriginBridgeAndAddsSandboxBridge(t *testing.T) {
-	source := []byte(`<html><head><base href="/api/management/engine/ui/"><script>browserBridge()</script><script src="boot.js"></script></head><body></body></html>`)
+	source := []byte(`<html><head><base href="/api/management/engine/ui/"><script>browserBridge()</script><script>if (window.parent === window || event.source !== window.parent || event.origin !== location.origin) return;</script><script src="boot.js"></script></head><body></body></html>`)
 	adapted := string(adaptEngineHTML(source))
 	if strings.Contains(adapted, "<base ") || strings.Contains(adapted, "browserBridge") ||
 		!strings.Contains(adapted, `<script src="./engine?path=boot.js"></script>`) ||
 		!strings.Contains(adapted, `src="./engine-bridge.js"`) || !strings.Contains(adapted, `href="./engine-workspace.css"`) {
 		t.Fatalf("engine HTML adaptation is incomplete: %s", adapted)
 	}
+	if strings.Contains(adapted, "event.origin !== location.origin") || !strings.Contains(adapted, "event.source !== window.parent") {
+		t.Fatal("engine presentation messages must retain the parent-window identity check")
+	}
 }
 
 func TestEngineProxyForwardsThePrivilegedSessionAndSafeHeaders(t *testing.T) {
 	var seen http.Header
+	var seenPath string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		seen = r.Header.Clone()
+		seenPath = r.URL.Path
 		w.Header().Set("X-Magpie-Reading", "fixture-reading")
-		if r.URL.Path == "/api/provider/test" {
+		if r.URL.Path == "/api/management/engine/ui/api/provider/test" {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
@@ -254,12 +278,13 @@ func TestEngineProxyForwardsThePrivilegedSessionAndSafeHeaders(t *testing.T) {
 	defer server.Close()
 	p := newPlugin(nil)
 	p.accepting = true
-	rt := &consoleFixture{url: server.URL}
+	rt := &engineStaticFixture{consoleFixture{url: server.URL}}
 	response := p.proxyConsole(rt, wire(t, consoleProxyRequest{
 		ID: testConsoleID, Path: "/api/state", Method: "GET", Engine: true,
 	}))
 	if response.StatusCode != 200 || response.Headers.Get("X-Magpie-Reading") != "fixture-reading" ||
-		seen.Get("Referer") != server.URL+"/" || seen.Get("Accept-Encoding") != "identity" {
+		seen.Get("Referer") != server.URL+"/" || seen.Get("Accept-Encoding") != "identity" ||
+		seen.Get("Cookie") != "ofm_management_fixture=session-token" || seenPath != "/api/management/engine/ui/api/state" {
 		t.Fatalf("engine proxy headers/status are wrong: %+v %v", response, seen)
 	}
 	response = p.proxyConsole(rt, wire(t, consoleProxyRequest{
@@ -268,6 +293,12 @@ func TestEngineProxyForwardsThePrivilegedSessionAndSafeHeaders(t *testing.T) {
 	}))
 	if response.StatusCode != http.StatusNoContent || len(response.Body) != 0 {
 		t.Fatalf("engine 204 was not preserved: %+v", response)
+	}
+	missing := p.proxyConsole(&consoleFixture{url: server.URL}, wire(t, consoleProxyRequest{
+		ID: testConsoleID, Path: "/api/state", Method: "GET", Engine: true,
+	}))
+	if missing.StatusCode != 503 {
+		t.Fatalf("engine request without a privileged session was accepted: %+v", missing)
 	}
 }
 

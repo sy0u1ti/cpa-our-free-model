@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const feedback = fs.readFileSync(new URL('../web/eac-feedback.js', import.meta.url), 'utf8');
-const bundle = fs.readFileSync(new URL('../service/vendor/ofm/packages/standalone/web/channels-CwUJPBXI.js', import.meta.url), 'utf8');
+const bundle = fs.readFileSync(new URL('../service/vendor/ofm/packages/standalone/web/channels-CgtV-0FB.js', import.meta.url), 'utf8');
 const adapter = fs.readFileSync(new URL('../console.go', import.meta.url), 'utf8');
 const eacBlock = adapter.slice(adapter.indexOf('var eacConsolePatches'), adapter.indexOf('var engineConsolePatches'));
 const patches = [...eacBlock.matchAll(/\{`([^`]+)`,\s*`([^`]+)`\}/g)]
@@ -18,9 +18,9 @@ let served = bundle;
 for (const [before, after] of patches) served = served.replaceAll(before, after);
 assert.ok(!served.includes('导入会合并备份'), 'the merge wording must not survive');
 assert.ok(!served.includes('replace("{reason}","unreachable")'), 'the pinned unreachable fallbacks must not survive');
-assert.ok(!served.includes('eac.pollFailed").replace("{reason}",O)'), 'polling must not keep its own unreachable fallback');
-assert.match(served, /ofmResult!==!0&&q\("已保存。"\)/, 'the import summary must suppress the generic saved line');
-assert.match(served, /pool:u,poolError:d}=et\(\)/, 'the EAC page must retain the upstream pool error binding');
+assert.ok(!served.includes('eac.pollFailed").replace("{reason}",D)'), 'polling must not keep its own unreachable fallback');
+assert.match(served, /ofmResult!==!0&&G\("已保存。"\)/, 'the import summary must suppress the generic saved line');
+assert.match(served, /pool:f,poolError:d}=gt\(\)/, 'the EAC page must retain the upstream pool error binding');
 
   // The pinned login factory is a closure over its own state helpers. These stubs
   // mirror just enough of them to drive `login()` and read the notice it sets.
@@ -28,22 +28,22 @@ assert.match(served, /pool:u,poolError:d}=et\(\)/, 'the EAC page must retain the
     const states = [];
     const useState = value => { const index = states.length; states.push(typeof value === 'function' ? value() : value); return [states[index], next => { states[index] = next; }]; };
     // The pinned factory destructures its React helpers by minified name:
-    // b=useState, F=useEffect, re=useCallback, q=useRef.
+    // h=useState, O=useEffect, fe=useCallback, G=useRef.
     const context = {
-      window: {}, b: useState,
-      F() {}, re: fn => fn, q: value => ({ current: value }),
-      K: async () => { throw new Error(failure); },
-      V: async () => { throw new Error('unused'); },
-      Jt: null, st() {}, nt: 600000,
+      window: {}, h: useState,
+      O() {}, fe: fn => fn, G: value => ({ current: value }),
+      J: async () => { throw new Error(failure); },
+      X: async () => { throw new Error('unused'); },
+      rn: null, yt() {}, xt: 600000,
     };
     vm.createContext(context);
     vm.runInContext(feedback, context);
-    const start = source.indexOf('function Ma({t:o,summary:a,onAuth:t})');
-    const end = source.indexOf('function za(o){');
+    const start = source.indexOf('function Ka({t:n,summary:a,onAuth:t})');
+    const end = source.indexOf('function ', start + 9);
     if (start < 0 || end < 0) throw new Error('pinned EAC login factory not found');
     const hook = source.slice(start, end);
-    vm.runInContext(hook + ';this.login=Ma({t:key=>key==="eac.startFailed"?"Unable to start ({reason})":key,summary:{},onAuth(){}}).login;', context);
-    // `Ma()` allocates [busy, notice, pending, copied]; the notice is slot 1.
+    vm.runInContext(hook + ';this.login=Ka({t:key=>key==="eac.startFailed"?"Unable to start ({reason})":key,summary:{},onAuth(){}}).login;', context);
+    // `Ka()` allocates [busy, notice, pending, copied]; the notice is slot 1.
     return { run: context.login, notice: () => states[1], feedback: context.window.ofmEacFeedback };
   }
 
@@ -77,6 +77,6 @@ test('unknown EAC error details cannot expose upstream secrets or be mislabeled 
 });
 
 test('EAC page starts in a loading state instead of presenting stale summary authorization', () => {
-  assert.match(served, /function _n\(\{summary:ee\}\)\{const\[te,ae\]=X\.useState\(void 0\)/);
-  assert.doesNotMatch(served, /function _n\(\{summary:ee\}\)\{const\[te,ae\]=X\.useState\(ee\.eacAuth\)/);
+  assert.match(served, /function To\(\{summary:se\}\)\{const\[ce,le\]=te\.useState\(void 0\)/);
+  assert.doesNotMatch(served, /function To\(\{summary:se\}\)\{const\[ce,le\]=te\.useState\(se\.eacAuth\)/);
 });
