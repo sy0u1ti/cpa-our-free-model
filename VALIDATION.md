@@ -9,9 +9,78 @@ plugin directories and data directories inside `.test-output/`.
 
 | Component | Revision |
 | --- | --- |
-| OFM | `9d714bb46ae4842586591dbaf74aeb7fefa62582` (upstream v2.8.3 plus main follow-ups) |
+| OFM | `ba266c6e268bc5fb9227fb1353149e4a99f77739` (upstream v2.8.6 plus main follow-ups) |
 | Official CPA | v8.0.23 / `d318bcc3afb9ea8782862f5e8cdb541afdc9dfa5` |
 | Native contract | C ABI 1, negotiated RPC schema up to 6 |
+
+## Upstream v2.8.6 Sync: 0.5.18
+
+Re-vendored OFM from `9d714bb` to `ba266c6` on 2026-11-18: 68 commits through
+v2.8.4, v2.8.5, v2.8.6 and the latest main fixes. All 138 files were read from
+the original repository's pinned Git blobs. The importer and Go embed list now
+include `packages/standalone/feedback.mjs`. The two previous request assets are
+replaced by `ofm-agent-context.txt` and `ofm-tool-contracts.json`; superseded web
+bundles and assets are removed from the generated snapshot.
+
+The three CPA source patches apply unchanged. The omitted EAC modules retain
+their original hashes; the upstream license gains the models.dev MIT copyright
+and full license text. Web dependency versions and license texts remain
+unchanged, with provenance advanced to the new source pin. The bundled Magpie
+engine and its seven restoration parts are unchanged. Upstream's private
+standalone package still declares `2.8.2`; CPA identifies itself as `0.5.18`.
+
+The sync retains OFM's rewritten request adapter, tool-output compression,
+local replies, failure classification and provider metadata, including notes
+on retired or potentially remapped historical models. Responses fixes cover
+namespace restoration, orphaned tool receipts and consistent final message
+phases when a tool arrives after text. EAC proxy requests use the built-in
+CONNECT tunnel and support handshake cancellation; Gemini quota checks reuse
+the channel fetcher.
+
+CPA admission previously compared every channel request to raw RPC model IDs,
+which would reject Qoder's newly advertised friendly aliases. Qoder and
+QoderCN now use the upstream worker's fresh public listing, preserving its
+collision rules and enabled-model filtering. The account check remains in
+place. Regression checks reject aliases that remain in the stale CPA catalog
+after the live listing or enabled account changes.
+
+The console exposes only the five exact feedback routes through CPA management
+authentication. The real-host fixture uses a loopback feedback server to check
+device-flow start and polling, submission, server-side token handling, expiry
+and signout. Unsigned submissions make no remote request, and the management
+summary does not disclose the feedback token. Ten EAC hooks and ten workbench
+hooks were re-anchored; fourteen remaining console labels match the new bundles.
+
+Verified on Windows x64 on 2026-11-18 with Node 24.15.0, Go 1.27.2, Zig 0.15.2
+and official CPA 8.0.23:
+
+- JavaScript syntax: 151 files; Node tests: 53 passed, none skipped.
+- `go test ./...` and `go vet ./...`: passed.
+- Original-source audit: all 138 files match their pinned Git blobs plus the
+  three declared CPA patches; the explicit Go embed manifest contains exactly
+  the selected files.
+- Bundled service regression: JSON and streaming Responses restore the
+  `fixture_tools/lookup` namespace, discard an orphaned receipt and agree on the
+  final message phase when the fixture emits a tool after text.
+- Real CPA smoke: 27 checks; global-proxy smoke: 28 checks. Both reports identify
+  Windows DLL SHA-256
+  `4ca3bc48c28b4f70d61cb50661adc9cfaf9fb7bf6bcc1f45d4eb64596760a326`.
+- Ego browser: feedback status, accurate disabled-EAC reasons, workbench
+  provider icons, light/dark theme relay and the settings action; the plugin
+  market's six available covers load, and the sandboxed fixture page loads
+  nested ES modules and completes its restricted `plugin.info` RPC.
+- The simulated CPA shell uses the real plugin endpoints under `/gateway/`.
+  At 1440px and 390px, the outer document, management frame and opaque console
+  do not overflow horizontally. Console widths are 1252px and 342px; navigation
+  scrolls within its own row. Direct parent access to the sandboxed console's
+  document raises `SecurityError`.
+
+Browser scripts, screenshots and layout measurements are retained under
+`.test-output/ego-sync-20261118-ba266c6/`; native reports are
+`dist/CPA_SMOKE_windows_amd64.json` and `dist/CPA_PROXY_SMOKE_windows_amd64.json`.
+The Ego task space and isolated preview were closed after verification. This
+run builds and packages Windows x64 locally; it does not validate other
+platform binaries, real provider credentials or current model availability.
 
 ## Upstream v2.8.3 Sync: 0.5.17
 

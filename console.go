@@ -176,6 +176,9 @@ var consoleAPIRoutes = map[string]bool{
 	"POST /api/management/plugins/uninstall": true, "POST /api/management/plugins/toggle": true,
 	"POST /api/management/plugins/config": true, "POST /api/management/plugins/secret": true,
 	"POST /api/management/plugins/self-test": true, "POST /api/management/plugins/page-rpc": true,
+	"GET /api/management/feedback": true, "POST /api/management/feedback/start": true,
+	"POST /api/management/feedback/poll": true, "POST /api/management/feedback/signout": true,
+	"POST /api/management/feedback/submit": true,
 }
 
 // The engine iframe has its own opaque origin and no cookie. Only these
@@ -197,8 +200,7 @@ var engineAPIRoutes = map[string]bool{
 // installation, so the embedded console reads as a CPA-hosted view. Each
 // source literal is also asserted against the pinned web bundle by tests.
 var consoleLabels = [][2]string{
-	{"LOCAL", "同源访问"}, {"WORKSPACE / OVERVIEW", "工作空间 / 概览"}, {"WORKSPACE / MODELS", "工作空间 / 模型"},
-	{"WORKSPACE / USAGE", "工作空间 / 用量"}, {"MANAGEMENT / SETTINGS", "管理 / 设置"}, {"API BASE URL", "客户端接入地址"},
+	{"LOCAL", "同源访问"}, {"WORKSPACE / OVERVIEW", "工作空间 / 概览"}, {"API BASE URL", "客户端接入地址"},
 	{"CONNECT YOUR TOOLS", "连接你的客户端"}, {"OUR FREE MODEL / LOCAL CONSOLE", "免费模型 / 管理控制台"},
 	{"本地模型工作台", "模型管理工作台"}, {"独立本地服务", "CPA 内部服务"}, {"本机", "CPA 服务器"},
 	{"本机运行 / 仅监听回环地址", "当前 CPA 域名访问 / 内部回环运行"}, {"本地服务在线", "OFM 服务在线"},
@@ -210,14 +212,14 @@ var consoleLabels = [][2]string{
 // Keep the original source hashes intact and fail tests if upstream hooks change.
 var eacConsolePatches = [][2]string{
 	// Login start: the pinned UI discards the cause and prints "unreachable".
-	{`catch{R===u.current&&r(n("eac.startFailed").replace("{reason}","unreachable"))}`,
-		`catch(error){R===u.current&&r(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}`},
+	{`catch{R===f.current&&i(n("eac.startFailed").replace("{reason}","unreachable"))}`,
+		`catch(error){R===f.current&&i(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}`},
 	// Logout: same blanket catch, same fix.
-	{`catch{r(n("eac.startFailed").replace("{reason}","unreachable"))}finally{s(!1)}},cancel:async()=>{`,
-		`catch(error){r(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}finally{s(!1)}},cancel:async()=>{`},
+	{`catch{i(n("eac.startFailed").replace("{reason}","unreachable"))}finally{s(!1)}},cancel:async()=>{`,
+		`catch(error){i(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(error)))}finally{s(!1)}},cancel:async()=>{`},
 	// Login start with a structured error object from the gateway.
-	{`r(n("eac.startFailed").replace("{reason}",A.error))`,
-		`r(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(A.error)))`},
+	{`i(n("eac.startFailed").replace("{reason}",y.error))`,
+		`i(n("eac.startFailed").replace("{reason}",window.ofmEacFeedback.reason(y.error)))`},
 	// Polling: the pinned UI narrows every failure to a fixed vocabulary and
 	// labels anything unrecognised as a network fault.
 	{`const c=/\(([^)]+)\)\s*$/.exec(String(l?.message??""))?.[1]??"";o(c)`,
@@ -225,15 +227,15 @@ var eacConsolePatches = [][2]string{
 	// Login polling builds the same "unreachable" fallback, which is why a
 	// source-preparation failure during polling used to read as a gateway
 	// network fault. `not-writable` keeps its dedicated message.
-	{`r(T==="not-writable"?F("eac.saveFailed"):F("eac.pollFailed").replace("{reason}",D))`,
-		`r(T==="not-writable"?F("eac.saveFailed"):F("eac.pollFailed").replace("{reason}",window.ofmEacFeedback.reason(K)))`},
+	{`i(A==="not-writable"?F("eac.saveFailed"):F("eac.pollFailed").replace("{reason}",B))`,
+		`i(A==="not-writable"?F("eac.saveFailed"):F("eac.pollFailed").replace("{reason}",window.ofmEacFeedback.reason(q)))`},
 	// "No lane" is a composition state, not a network failure.
 	{`if(t.available!==!0)return e("p",{className:"ofm_note"},a("eac.noLane"))`,
 		`if(t.available!==!0)return e("p",{className:"ofm_note"},window.ofmEacFeedback.reason(t.reason||"no-lane"))`},
 	// The EAC page must not paint the summary's stale authorization state before
 	// its own query answers.
-	{`function To({summary:se}){const[ce,le]=te.useState(se.eacAuth)`,
-		`function To({summary:se}){const[ce,le]=te.useState(void 0)`},
+	{`function Bo({summary:se}){const[me,le]=te.useState(se.eacAuth)`,
+		`function Bo({summary:se}){const[me,le]=te.useState(void 0)`},
 	// The pinned UI says importing "merges", but the service replaces the whole
 	// account pool, model blacklist and permanent-lock table. Say what happens and
 	// report how much was written, so an old backup cannot silently drop newer
@@ -243,10 +245,10 @@ var eacConsolePatches = [][2]string{
 	// The shared action wrapper appends "已保存。" after every action, which
 	// immediately overwrote the import summary. Let an action that reports its
 	// own result (by resolving `true`) suppress that generic line.
-	{`const X=async W=>{O(!0),G("");try{await W(),await _e(),window.dispatchEvent(new CustomEvent("ofm:channels")),se.reload?.(),G("已保存。")}catch(ne){G(ne.message)}finally{O(!1)}}`,
-		`const X=async W=>{O(!0),G("");try{const ofmResult=await W();await _e(),window.dispatchEvent(new CustomEvent("ofm:channels")),se.reload?.(),ofmResult!==!0&&G("已保存。")}catch(ne){G(ne.message)}finally{O(!1)}}`},
-	{`&&await X(async()=>{await je("backup.import",{payload:JSON.parse(await ne.text())})})}};`,
-		`&&await X(async()=>{const ofmResult=await je("backup.import",{payload:JSON.parse(await ne.text())});const ofmAccounts=Number(ofmResult?.accountsImported??0),ofmCredentials=Number(ofmResult?.credentialsImported??0),ofmMissing=Number(ofmResult?.missingCredentials??0),ofmExpired=Number(ofmResult?.expiredAccounts??0),ofmMessage=["已整体替换：写入 "+ofmAccounts+" 个账号、"+ofmCredentials+" 条凭据。"];ofmMissing>0&&ofmMessage.push(ofmMissing+" 个账号缺少凭据，需重新登录。");ofmExpired>0&&ofmMessage.push(ofmExpired+" 个账号的凭据已过期，使用时可能自动续期。");ofmResult?.skipped?.length>0&&ofmMessage.push("跳过 "+ofmResult.skipped.length+" 条无效凭据。");G(ofmMessage.join(""));return!0})}};`},
+	{`const Y=async D=>{P(!0),J("");try{await D(),await _e(),window.dispatchEvent(new CustomEvent("ofm:channels")),se.reload?.(),J("已保存。")}catch(ne){J(ne.message)}finally{P(!1)}}`,
+		`const Y=async D=>{P(!0),J("");try{const ofmResult=await D();await _e(),window.dispatchEvent(new CustomEvent("ofm:channels")),se.reload?.(),ofmResult!==!0&&J("已保存。")}catch(ne){J(ne.message)}finally{P(!1)}}`},
+	{`&&await Y(async()=>{await je("backup.import",{payload:JSON.parse(await ne.text())})})}};`,
+		`&&await Y(async()=>{const ofmResult=await je("backup.import",{payload:JSON.parse(await ne.text())});const ofmAccounts=Number(ofmResult?.accountsImported??0),ofmCredentials=Number(ofmResult?.credentialsImported??0),ofmMissing=Number(ofmResult?.missingCredentials??0),ofmExpired=Number(ofmResult?.expiredAccounts??0),ofmMessage=["已整体替换：写入 "+ofmAccounts+" 个账号、"+ofmCredentials+" 条凭据。"];ofmMissing>0&&ofmMessage.push(ofmMissing+" 个账号缺少凭据，需重新登录。");ofmExpired>0&&ofmMessage.push(ofmExpired+" 个账号的凭据已过期，使用时可能自动续期。");ofmResult?.skipped?.length>0&&ofmMessage.push("跳过 "+ofmResult.skipped.length+" 条无效凭据。");J(ofmMessage.join(""));return!0})}};`},
 }
 
 // The model workspace is a sandboxed document inside the sandboxed console.
@@ -254,15 +256,15 @@ var eacConsolePatches = [][2]string{
 // and contentDocument access cannot work. Keep the sandbox and bridge through
 // window identity instead: only the parent console frame can relay requests.
 var engineConsolePatches = [][2]string{
-	{`c.current?.contentWindow?.postMessage({type:"ofm:engine-theme",variables:R,fontFamily:z.fontFamily,colorScheme:N==="dark"?"dark":"light",externalControls:!0},window.location.origin)`,
-		`c.current?.contentWindow?.postMessage({type:"ofm:engine-theme",variables:R,fontFamily:z.fontFamily,colorScheme:N==="dark"?"dark":"light",externalControls:!0},"*")`},
-	{`w=S=>c.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:S},window.location.origin)`,
-		`w=S=>c.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:S},"*")`},
-	{`z.origin!==window.location.origin||z.source!==c.current?.contentWindow||z.data?.type!=="ofm:engine-changed"`,
-		`z.source!==c.current?.contentWindow||z.data?.type!=="ofm:engine-changed"`},
-	{"src:`${Fe}/engine/ui/?mode=window&view=providers`",
+	{`c.current?.contentWindow?.postMessage({type:"ofm:engine-theme",variables:R,fontFamily:M.fontFamily,colorScheme:N==="dark"?"dark":"light",externalControls:!0},window.location.origin)`,
+		`c.current?.contentWindow?.postMessage({type:"ofm:engine-theme",variables:R,fontFamily:M.fontFamily,colorScheme:N==="dark"?"dark":"light",externalControls:!0},"*")`},
+	{`k=S=>c.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:S},window.location.origin)`,
+		`k=S=>c.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:S},"*")`},
+	{`M.origin!==window.location.origin||M.source!==c.current?.contentWindow||M.data?.type!=="ofm:engine-changed"`,
+		`M.source!==c.current?.contentWindow||M.data?.type!=="ofm:engine-changed"`},
+	{"src:`${Ue}/engine/ui/?mode=window&view=providers`",
 		"src:new URL(\"./engine?mode=window&view=providers\",location.href).href"},
-	{`onLoad:S=>{d();const z=S.currentTarget.contentDocument;if(!z||z.getElementById("ofm-workspace-layout"))return;const R=z.createElement("style");R.id="ofm-workspace-layout",R.textContent=qn,z.head.appendChild(R)}}`,
+	{`onLoad:S=>{d();const M=S.currentTarget.contentDocument;if(!M||M.getElementById("ofm-workspace-layout"))return;const R=M.createElement("style");R.id="ofm-workspace-layout",R.textContent=ao,M.head.appendChild(R)}}`,
 		`onLoad:()=>{d()}}`},
 }
 
@@ -270,14 +272,14 @@ var engineConsolePatches = [][2]string{
 // a separate frame from the channel bundle's legacy workbench, but uses the
 // same CPA asset route and identity-checked message bridge.
 var workspaceConsolePatches = [][2]string{
-	{`p.current?.contentWindow?.postMessage({type:"ofm:engine-theme",variables:C,fontFamily:U.fontFamily,colorScheme:document.documentElement.dataset.theme==="dark"?"dark":"light",externalControls:!0},window.location.origin)`,
-		`p.current?.contentWindow?.postMessage({type:"ofm:engine-theme",variables:C,fontFamily:U.fontFamily,colorScheme:document.documentElement.dataset.theme==="dark"?"dark":"light",externalControls:!0},"*")`},
-	{`p.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:"refresh"},window.location.origin)`,
-		`p.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:"refresh"},"*")`},
-	{`p.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:"settings"},window.location.origin)`,
-		`p.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:"settings"},"*")`},
-	{`C.origin===window.location.origin&&C.source===p.current?.contentWindow&&C.data?.type==="ofm:engine-changed"`,
-		`C.source===p.current?.contentWindow&&C.data?.type==="ofm:engine-changed"`},
+	{`b.current?.contentWindow?.postMessage({type:"ofm:engine-theme",variables:C,fontFamily:J.fontFamily,colorScheme:document.documentElement.dataset.theme==="dark"?"dark":"light",externalControls:!0},window.location.origin)`,
+		`b.current?.contentWindow?.postMessage({type:"ofm:engine-theme",variables:C,fontFamily:J.fontFamily,colorScheme:document.documentElement.dataset.theme==="dark"?"dark":"light",externalControls:!0},"*")`},
+	{`b.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:"refresh"},window.location.origin)`,
+		`b.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:"refresh"},"*")`},
+	{`b.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:"settings"},window.location.origin)`,
+		`b.current?.contentWindow?.postMessage({type:"ofm:engine-action",action:"settings"},"*")`},
+	{`C.origin===window.location.origin&&C.source===b.current?.contentWindow&&C.data?.type==="ofm:engine-changed"`,
+		`C.source===b.current?.contentWindow&&C.data?.type==="ofm:engine-changed"`},
 	{`src:"/api/management/engine/ui/?mode=window&view=providers"`,
 		`src:new URL("./engine?mode=window&view=providers",location.href).href`},
 }

@@ -191,11 +191,11 @@ func TestRemoteConsoleLinkIsRelativeWithoutPublicPort(t *testing.T) {
 }
 
 func TestEACUIHooksMatchOnlyThePinnedBundle(t *testing.T) {
-	original, err := serviceAssets.ReadFile("service/vendor/ofm/packages/standalone/web/channels-CgtV-0FB.js")
+	original, err := serviceAssets.ReadFile("service/vendor/ofm/packages/standalone/web/channels-CUES-TF9.js")
 	if err != nil {
 		t.Fatal(err)
 	}
-	response, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/app-assets/channels-CgtV-0FB.js"})
+	response, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/app-assets/channels-CUES-TF9.js"})
 	if !ok {
 		t.Fatal("missing adapted EAC module")
 	}
@@ -211,11 +211,11 @@ func TestEACUIHooksMatchOnlyThePinnedBundle(t *testing.T) {
 }
 
 func TestEngineUIHooksMatchOnlyThePinnedBundle(t *testing.T) {
-	original, err := serviceAssets.ReadFile("service/vendor/ofm/packages/standalone/web/channels-CgtV-0FB.js")
+	original, err := serviceAssets.ReadFile("service/vendor/ofm/packages/standalone/web/channels-CUES-TF9.js")
 	if err != nil {
 		t.Fatal(err)
 	}
-	response, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/app-assets/channels-CgtV-0FB.js"})
+	response, ok := consoleResource(managementRequest{Method: "GET", Path: consoleResourceBase + "/app-assets/channels-CUES-TF9.js"})
 	if !ok {
 		t.Fatal("missing adapted engine console module")
 	}
@@ -513,6 +513,34 @@ func TestConsoleProxyAllowlist(t *testing.T) {
 	valid.Body = json.RawMessage(`[]`)
 	if validateConsoleRequest(valid) {
 		t.Fatal("array body accepted")
+	}
+}
+
+func TestFeedbackConsoleRoutesRequireExactMethodsAndObjectBodies(t *testing.T) {
+	for _, route := range []string{"", "/start", "/poll", "/signout", "/submit"} {
+		request := consoleProxyRequest{ID: testConsoleID, Path: "/api/management/feedback" + route, Method: "GET"}
+		if route != "" {
+			request.Method, request.Body = "POST", json.RawMessage(`{}`)
+		}
+		if !validateConsoleRequest(request) {
+			t.Fatalf("feedback route rejected: %s", route)
+		}
+		request.Path += "?url=https://external.invalid"
+		if validateConsoleRequest(request) {
+			t.Fatal("feedback query must not choose the upstream server")
+		}
+	}
+	for _, route := range []string{"/submit/extra", "/token", "/auth/start", "/../summary"} {
+		if validateConsoleRequest(consoleProxyRequest{
+			ID: testConsoleID, Path: "/api/management/feedback" + route, Method: "POST", Body: json.RawMessage(`{}`),
+		}) {
+			t.Fatalf("unknown feedback route accepted: %s", route)
+		}
+	}
+	if validateConsoleRequest(consoleProxyRequest{ID: testConsoleID, Path: "/api/management/feedback/start", Method: "GET"}) ||
+		validateConsoleRequest(consoleProxyRequest{ID: testConsoleID, Path: "/api/management/feedback", Method: "POST", Body: json.RawMessage(`{}`)}) ||
+		validateConsoleRequest(consoleProxyRequest{ID: testConsoleID, Path: "/api/management/feedback/submit", Method: "POST", Body: json.RawMessage(`[]`)}) {
+		t.Fatal("feedback methods and body types must remain strict")
 	}
 }
 

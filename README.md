@@ -12,14 +12,36 @@ C ABI integration is separate. Original authorship and MIT licenses are retained
 The bundled model workbench engine supports Windows x64 in this release; other
 platforms keep the native OFM pages and show the workbench as unavailable.
 
-Version **0.5.17** vendors OFM `9d714bb` (upstream v2.8.3 plus the latest main
-documentation and release-check commits). Only the
+Version **0.5.18** vendors OFM `ba266c6` (upstream v2.8.6 plus the latest main
+Responses, Qoder and EAC fixes). Only the
 files the served UI actually references are kept, and the private EAC seal is never
 vendored. `npm run vendor:original -- /path/to/original-checkout` regenerates the
 snapshot from pinned Git blobs. See `scripts/upstream-patches.mjs` and
 `service/vendor/ofm/UPSTREAM.json` for exact provenance.
 
-**New in 0.5.17:** 193 upstream commits since v2.7.2. The free lane now uses
+**New in 0.5.18:** 68 upstream commits since the v2.8.3 snapshot. OFM rebuilds
+the free-lane request adapter, tool-output compression, local replies, failure
+classification and provider metadata. Authored OFM context and tool contracts
+replace the two previous request assets. Historical provider IDs remain
+available with retirement and fallback notes; an old ID does not establish
+current model availability.
+
+Responses restores tool namespaces, ignores unpaired outputs and keeps the
+final message phase consistent when tools arrive after text. Qoder channels
+publish friendly aliases alongside original IDs, reject alias collisions and
+resolve each call against enabled models. CPA admission follows that live
+upstream listing. EAC uses the built-in proxy tunnel with cancellation support;
+Gemini quota checks reuse the channel's configured fetcher.
+
+The updated console adds **反馈与许愿** through authenticated CPA routes.
+Feedback authorization stays on the server. The 138-file snapshot includes
+the new feedback service and request assets, plus the models.dev MIT notice.
+The three CPA source patches still apply unchanged; ten EAC hooks, ten
+workbench hooks and fourteen remaining console labels are checked against
+the new bundles. Upstream's private standalone package still reports `2.8.2`;
+the source revision in `UPSTREAM.json` identifies the complete snapshot.
+
+**Previously in 0.5.17:** 193 upstream commits since v2.7.2. The free lane now uses
 provider-family endpoints, the OpenCode 2.2.3 request format, reversible client
 tool names and a quota breaker that honors `Retry-After`. Account channels gain
 queue-aware account rotation and credential-refresh fixes. The plugin center
@@ -213,7 +235,7 @@ build the native library yourself. Generated `dist/` files are not committed.
 
 1. Use a plugin-enabled CLIProxyAPI build. Validated against **CPA 8.0.23**.
 2. Copy the matching binary into CPA's configured `plugins` directory:
-   `our-free-model-v0.5.17.dll` for the current source build (Windows),
+   `our-free-model-v0.5.18.dll` for the current source build (Windows),
    `.so` (Linux), or `.dylib` (macOS). Published versions follow the Releases page.
 3. Merge `config.example.yaml` into CPA's configuration and restart CPA:
 

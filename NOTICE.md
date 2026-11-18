@@ -8,10 +8,12 @@ binary Release is implied.
 ## Our Free Model
 
 - Source: https://github.com/Ebony-Vinyl/dsh-our-free-model
-- Commit: `9d714bb46ae4842586591dbaf74aeb7fefa62582` (upstream v2.8.3 plus main follow-ups)
+- Commit: `ba266c6e268bc5fb9227fb1353149e4a99f77739` (upstream v2.8.6 plus main follow-ups)
 - Runtime, providers, console, usage accounting, authentication flows and model
   policy are upstream functionality, not newly authored by this adapter.
 - License: `service/vendor/ofm/LICENSE` (MIT).
+- Provider/model metadata includes models.dev's MIT copyright and full license
+  in that same upstream license file.
 - Original channel-pack attribution: `service/vendor/ofm/vendor/channel-pack/`.
 - Original bundled Magpie engine attribution: `service/vendor/ofm/vendor/magpie/`.
 - Original bundled third-party notices: `service/vendor/ofm/scripts/standalone-third-party.txt`.

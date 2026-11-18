@@ -42,6 +42,37 @@ test('real bundled OFM service: discovery, auth fences, key rotation, console, s
     headers: { 'content-type': 'application/json', authorization: 'Bearer ' + connection.key }, body: JSON.stringify(prepared.body) });
   assert.equal(complete.status, 200);
   assert.equal((await complete.json()).choices[0].message.content, 'cpa-ofm-ok');
+  const responsesBody = {
+    model: upstream.state.model,
+    input: [
+      { type: 'function_call_output', output: 'orphaned receipt' },
+      { role: 'user', content: 'hi' },
+    ],
+    tools: [{
+      type: 'namespace', name: 'fixture_tools',
+      tools: [{ type: 'function', name: 'lookup', description: 'fixture function', parameters: { type: 'object', properties: {} } }],
+    }],
+  };
+  for (const stream of [false, true]) {
+    const responses = await fetch(connection.url + '/v1/responses', {
+      method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + connection.key },
+      body: JSON.stringify({ ...responsesBody, stream }),
+    });
+    assert.equal(responses.status, 200, await responses.clone().text());
+    const frames = stream ? (await responses.text()).split('\n').filter(line => line.startsWith('data: {'))
+      .map(line => JSON.parse(line.slice(6))) : [];
+    const payload = stream ? frames.find(frame => frame.type === 'response.completed').response : await responses.json();
+    const call = payload.output.find(item => item.type === 'function_call');
+    const message = payload.output.find(item => item.type === 'message');
+    assert.equal(call.name, 'lookup');
+    assert.equal(call.namespace, 'fixture_tools');
+    assert.equal(message.phase, 'commentary');
+    assert.deepEqual(JSON.parse(call.arguments), { value: 42 });
+    if (stream) {
+      const done = frames.find(frame => frame.type === 'response.output_item.done' && frame.item.type === 'message');
+      assert.equal(done.item.phase, message.phase, 'a tool emitted after text must not change the final message phase');
+    }
+  }
   const ticket = await runner.call('console');
   assert.ok(!ticket.includes(connection.key));
   // Browser navigation from a localhost CPA tab to a 127.0.0.1 ticket is

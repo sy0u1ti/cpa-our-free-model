@@ -26,6 +26,29 @@ const data = path.join(directory, 'ofm-data');
 fs.mkdirSync(plugins); fs.mkdirSync(data);
 fs.copyFileSync(plugin, path.join(plugins, path.basename(plugin)));
 const upstream = await fixtureUpstream();
+const feedbackCalls = [];
+const feedbackState = { expired: false };
+const feedback = createServer(async (req, res) => {
+  let raw = '';
+  for await (const chunk of req) raw += chunk;
+  feedbackCalls.push({ path: req.url, headers: req.headers, body: raw ? JSON.parse(raw) : {} });
+  res.setHeader('content-type', 'application/json');
+  if (req.url === '/feedback/api/auth/start') return res.end(JSON.stringify({
+    session: 'fixture-feedback-session', userCode: 'FIXT-CODE', verifyUrl: 'https://github.com/login/device',
+  }));
+  if (req.url === '/feedback/api/auth/poll') return res.end(JSON.stringify({
+    status: 'ok', login: 'fixture-user', token: 'fixture-feedback-private-token',
+  }));
+  if (req.url === '/feedback/api/feedback') {
+    if (feedbackState.expired) { res.writeHead(401); return res.end('{"error":"expired"}'); }
+    return res.end('{"id":"fixture-feedback-id"}');
+  }
+  res.writeHead(404); res.end('{"error":"not-found"}');
+});
+feedback.listen(0, '127.0.0.1'); await once(feedback, 'listening');
+fs.writeFileSync(path.join(data, 'settings.json'), JSON.stringify({
+  feedbackUrl: `http://127.0.0.1:${feedback.address().port}/feedback`,
+}));
 const proxyCalls = [];
 const proxy = createServer((req, res) => { proxyCalls.push({ url: req.url, headers: req.headers }); res.writeHead(502); res.end(); });
 proxy.listen(0, '127.0.0.1'); await once(proxy, 'listening');
@@ -262,6 +285,35 @@ try {
   assert.equal(remoteGateway.status, 200);
   assert.equal((await remoteGateway.json()).value.apiKey.value, '');
   pass('Remote console uses CPA resource/API routes with authentication, path allowlists and no internal key disclosure');
+  const unsignedFeedback = await consoleAPI('feedback');
+  assert.equal(unsignedFeedback.status, 200);
+  assert.deepEqual(await unsignedFeedback.json(), { signedIn: false, login: '' });
+  const feedbackBody = { kind: 'bug', title: 'Isolated fixture', detail: 'Loopback verification only.' };
+  assert.equal((await consoleAPI('feedback/submit', feedbackBody)).status, 401);
+  assert.equal(feedbackCalls.length, 0, 'unsigned feedback must not contact the remote service');
+  const feedbackStart = await consoleAPI('feedback/start', {});
+  assert.equal(feedbackStart.status, 200);
+  assert.equal((await feedbackStart.json()).userCode, 'FIXT-CODE');
+  const feedbackPoll = await consoleAPI('feedback/poll', { session: 'fixture-feedback-session' });
+  assert.equal(feedbackPoll.status, 200);
+  assert.deepEqual(await feedbackPoll.json(), { status: 'ok', login: 'fixture-user' });
+  assert.deepEqual(await (await consoleAPI('feedback')).json(), { signedIn: true, login: 'fixture-user' });
+  const signedSummary = await (await consoleAPI('summary')).text();
+  assert.ok(!signedSummary.includes('fixture-feedback-private-token') && !signedSummary.includes('feedbackAuth'));
+  const feedbackSubmit = await consoleAPI('feedback/submit', feedbackBody);
+  assert.equal(feedbackSubmit.status, 200);
+  assert.deepEqual(await feedbackSubmit.json(), { id: 'fixture-feedback-id' });
+  assert.equal(feedbackCalls.at(-1).path, '/feedback/api/feedback');
+  assert.equal(feedbackCalls.at(-1).headers.authorization, 'Bearer fixture-feedback-private-token');
+  assert.equal(feedbackCalls.at(-1).body.title, feedbackBody.title);
+  feedbackState.expired = true;
+  assert.equal((await consoleAPI('feedback/submit', feedbackBody)).status, 401);
+  assert.deepEqual(await (await consoleAPI('feedback')).json(), { signedIn: false, login: '' });
+  assert.equal((await consoleAPI('feedback/signout', {})).status, 200);
+  assert.equal((await api('/v0/management/ofm/console-api', {
+    id: crypto.randomBytes(16).toString('hex'), path: '/api/management/feedback', method: 'GET',
+  }, 'wrong-feedback-management-key')).status, 401);
+  pass('Feedback device flow and submission use loopback fixtures, keep tokens server-side and clear expired authorization');
   const localReply = await api('/v0/management/ofm/console-local', {}, managementKey);
   const localLink = (await localReply.json()).url;
   const opened = await fetch(localLink, { redirect: 'manual' });
@@ -383,6 +435,7 @@ try {
   child.kill();
   await exited;
   await upstream.close();
+  feedback.closeAllConnections(); await new Promise(resolve => feedback.close(resolve));
   proxy.closeAllConnections(); await new Promise(resolve => proxy.close(resolve));
   if (ofmPid) await until(() => { try { process.kill(ofmPid, 0); return false; } catch { return true; } }, 12000).catch(() => {});
   if (!process.exitCode) removeTestDirectory(directory, root);

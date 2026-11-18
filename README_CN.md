@@ -10,13 +10,29 @@
 本轮内嵌的模型工作台引擎支持 Windows x64；其他平台保留原生 OFM 页面，并将工作台显示为不可用。
 
 **唯一产品源码上游是原项目，不使用参考项目的源码快照或辅助模块。**
-通过 `git show` 直接读取原仓库固定提交的文件（当前 137 个），除 3 个独立可追溯的
+通过 `git show` 直接读取原仓库固定提交的文件（当前 138 个），除 3 个独立可追溯的
 CPA 补丁（接入私有 EAC 来源、外置内置 OAuth 配置、移除订阅 Gemini OAuth 凭据）外逐字节不变，包括独立服务与
 完整控制台。来源、原始 Git blob、前后 SHA-256、补丁说明均记录在
 `service/vendor/ofm/UPSTREAM.json`。`scripts/import-upstream.mjs` 和
 `scripts/upstream-patches.mjs` 可以重现整个取源过程。
 
-**当前版本 v0.5.17**：同步上游 **v2.8.3** 及 main 最新提交 `9d714bb`，
+**当前版本 v0.5.18**：同步上游 **v2.8.6** 及 2026-11-18 的 main 提交 `ba266c6`，
+比上一快照新增 68 个提交。上游重写免费车道请求适配、工具输出压缩、本地应答与失败
+分类，改用 OFM 编写的上下文和工具描述，并重建供应商元数据。历史模型 ID 保留退役与
+上游回落说明；保留旧配置不代表对应模型当前可用。
+
+Responses 修复 namespace 工具名称还原、无法配对的工具回执，以及文本后出现工具时
+最终消息阶段的一致性。Qoder / Qoder 国内版同时保留原始 ID 与友好别名，拒绝冲突
+别名；CPA 准入直接使用上游当前启用清单，停用账号或模型后旧别名不会继续放行。
+EAC 代理复用内置 CONNECT 隧道并支持取消握手，Gemini 配额查询沿用渠道配置的出口。
+
+控制台同步新版样式与「反馈与许愿」页，反馈读写经过 CPA 管理鉴权，GitHub 登录令牌
+仅保存在服务器。快照增至 138 个文件，补齐 `feedback.mjs` 和两份新请求资产，保留
+models.dev MIT 版权与许可全文。3 处源码补丁原样应用；10 处 EAC 补丁、10 处工作台
+补丁和剩余 14 处文案锚点逐项校验。独立端私有包仍自报 `2.8.2`，完整取源提交以
+`UPSTREAM.json` 为准。
+
+**上一版 v0.5.17**：同步上游 **v2.8.3** 及 main 最新提交 `9d714bb`，
 自 v2.7.2 起共 193 个提交。免费车道采用按协议分组的接口路径、OpenCode 2.2.3
 请求格式、可逆的工具名称转换，以及遵守 `Retry-After` 的额度断路器。账号渠道补齐
 排队换号、续期资格与取消清理；新增插件中心，支持签名渠道/增强包、内置能力清单、
@@ -140,11 +156,11 @@ Linux 源码备用更新器创建的安装目录改为可遍历权限，备份�
 
 | 系统 | 文件 |
 | --- | --- |
-| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.17.dll` |
-| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.17.so` |
-| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.17.so` |
-| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.17.dylib` |
-| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.17.dylib` |
+| Windows x64 | `dist/windows/amd64/our-free-model-v0.5.18.dll` |
+| Linux x64 | `dist/linux/amd64/our-free-model-v0.5.18.so` |
+| Linux arm64 | `dist/linux/arm64/our-free-model-v0.5.18.so` |
+| macOS Intel | `dist/darwin/amd64/our-free-model-v0.5.18.dylib` |
+| macOS Apple 芯片 | `dist/darwin/arm64/our-free-model-v0.5.18.dylib` |
 
 1. 把对应动态库复制到 CPA 配置的插件目录，例如 `plugins/` 或 `plugins/windows/amd64/`。
    **不要改掉 `our-free-model` 这一文件名 ID**；文件名和配置键必须一致。

@@ -40,6 +40,7 @@ import (
 //go:embed service/vendor/ofm/packages/standalone/client-terminal.mjs
 //go:embed service/vendor/ofm/packages/standalone/desktop-update.mjs
 //go:embed service/vendor/ofm/packages/standalone/eac.mjs
+//go:embed service/vendor/ofm/packages/standalone/feedback.mjs
 //go:embed service/vendor/ofm/packages/standalone/library.mjs
 //go:embed service/vendor/ofm/packages/standalone/login-terminal.mjs
 //go:embed service/vendor/ofm/packages/standalone/management.mjs
@@ -51,12 +52,12 @@ import (
 //go:embed service/vendor/ofm/packages/standalone/web/app.css
 //go:embed service/vendor/ofm/packages/standalone/web/app.js
 //go:embed service/vendor/ofm/packages/standalone/web/assets.json
-//go:embed service/vendor/ofm/packages/standalone/web/channels-CgtV-0FB.js
+//go:embed service/vendor/ofm/packages/standalone/web/channels-CUES-TF9.js
 //go:embed service/vendor/ofm/packages/standalone/web/index.html
-//go:embed service/vendor/ofm/packages/standalone/web/models-ChmCQDPX.js
-//go:embed service/vendor/ofm/packages/standalone/web/settings-pl214s3V.js
+//go:embed service/vendor/ofm/packages/standalone/web/models-DKeafDX5.js
+//go:embed service/vendor/ofm/packages/standalone/web/settings-aL0k74X_.js
 //go:embed service/vendor/ofm/packages/standalone/web/sliders-horizontal-DNbjUrIs.js
-//go:embed service/vendor/ofm/packages/standalone/web/usage-DiusNYSE.js
+//go:embed service/vendor/ofm/packages/standalone/web/usage-DgPpz8WU.js
 //go:embed service/vendor/ofm/packages/standalone/web/visibility-data-BTNpyYn8.js
 //go:embed service/vendor/ofm/packages/standalone/workbench.mjs
 //go:embed service/vendor/ofm/scripts/standalone-third-party.txt
@@ -104,8 +105,8 @@ import (
 //go:embed service/vendor/ofm/src/model-test.js
 //go:embed service/vendor/ofm/src/o2a.js
 //go:embed service/vendor/ofm/src/o2a/asset-source.js
-//go:embed service/vendor/ofm/src/o2a/assets/opencode_prompt_v2.txt
-//go:embed service/vendor/ofm/src/o2a/assets/opencode_tools.json
+//go:embed service/vendor/ofm/src/o2a/assets/ofm-agent-context.txt
+//go:embed service/vendor/ofm/src/o2a/assets/ofm-tool-contracts.json
 //go:embed service/vendor/ofm/src/o2a/gateway-body.js
 //go:embed service/vendor/ofm/src/o2a/headers.js
 //go:embed service/vendor/ofm/src/o2a/identity.js

@@ -48,3 +48,31 @@ test('admission checks current account and disabled-model state, not stale catal
   enabled = true; disabled = true;
   assert.equal(await admitModel(current, 'buddy/model'), false);
 });
+
+test('Qoder admission uses the upstream live alias listing and rejects stale or conflicting aliases', async () => {
+  for (const provider of ['qoder', 'qodercn']) {
+    const current = service();
+    const original = provider + '/opaque-model-id';
+    const alias = provider + '/Claude-Sonnet';
+    let enabled = true;
+    let rows = [{ id: original }, { id: alias }];
+    current.runtime.publicModelRows = () => [{ id: original }, { id: alias }];
+    current.channels.handles = id => id.startsWith(provider + '/');
+    current.channels.refresh = async () => rows;
+    current.channels.rpc = async ({ method }) => {
+      assert.equal(method, 'account.list');
+      return { ok: true, value: { accounts: [{ enabled }] } };
+    };
+    assert.equal(await admitModel(current, original), true);
+    assert.equal(await admitModel(current, alias), true);
+    enabled = false;
+    assert.equal(await admitModel(current, alias), false);
+    enabled = true;
+    rows = [{ id: original }];
+    assert.equal(await admitModel(current, alias), false);
+    assert.equal(await admitModel(current, original), true);
+    rows = [];
+    assert.equal(await admitModel(current, original), false);
+    assert.equal(await admitModel(current, alias), false);
+  }
+});
