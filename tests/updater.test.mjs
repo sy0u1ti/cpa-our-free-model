@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const script = fs.readFileSync(new URL('../web/updater.js', import.meta.url), 'utf8');
+const i18nScript = fs.readFileSync(new URL('../web/i18n.js', import.meta.url), 'utf8');
 const repository = 'https://github.com/sy0u1ti/cpa-our-free-model';
 const registry = 'https://raw.githubusercontent.com/sy0u1ti/cpa-our-free-model/main/registry.json';
 const existingSource = 'https://example.invalid/existing-registry.json';
@@ -27,8 +28,11 @@ function fixture(options = {}) {
   const context = {
     document: { querySelector: element }, AbortSignal, setTimeout,
     window: { confirm: text => { confirmations.push(text); return options.confirm !== false; } },
+    ...(options.languages ? { navigator: { languages: options.languages } } : {}),
   };
-  vm.runInNewContext(script, context);
+  vm.createContext(context);
+  vm.runInContext(i18nScript, context);
+  vm.runInContext(script, context);
   const response = (body, status = 200) => new Response(JSON.stringify(body), { status });
   const updater = context.window.createOFMUpdater({
     setBusy() {}, onMessage: text => messages.push(text), pause: async () => {},
@@ -162,4 +166,33 @@ test('restart-required response is not reported as installed or automatically re
   assert.match(p.messages.at(-1), /重启/);
   assert.doesNotMatch(p.messages.at(-1), /更新已生效/);
   assert.equal(p.calls.some(call => /restart|enabled/.test(call.path)), false);
+});
+
+test('Chinese confirmation text is unchanged by the message catalog', async () => {
+  const p = fixture();
+  await p.updater.check(); await p.updater.install();
+  assert.equal(p.confirmations[0], '确认更新到 v0.4.0（linux/amd64）？\n\n' +
+    'CPA 将从本插件 GitHub Release 下载指定版本、校验 SHA-256 并安装，随后尝试热加载。切换时正在进行的模型请求可能中断。\n' +
+    '不会更改账号数据，不需要在服务器运行编译命令，也不会自动重启整个 CPA。\n' +
+    '\n首次使用会把下列地址加入 plugins.store-sources，保留已有更新源。CPA 保存配置时可能将旧布局规范化为 v8。\n' + registry);
+  // Chinese keeps the server's own release message.
+  const q = fixture();
+  await q.updater.check();
+  assert.equal(q.messages.at(-1), 'Release available');
+});
+
+test('English browser gets English update flow, release state and confirmation', async () => {
+  const p = fixture({ languages: ['en-US', 'zh-CN'] });
+  await p.updater.check();
+  assert.equal(p.element('#release-version').textContent, 'Current v0.3.0 · Latest release v0.4.0 · linux/amd64');
+  assert.match(p.messages.at(-1), /^A new official version is available\./);
+  await p.updater.install();
+  assert.match(p.confirmations[0], /^Update to v0\.4\.0 \(linux\/amd64\)\?\n\n/);
+  assert.match(p.confirmations[0], /plugins\.store-sources/);
+  assert.match(p.messages.at(-1), /^Update applied: v0\.4\.0 is now running\./);
+  for (const text of [...p.messages, ...p.confirmations]) assert.doesNotMatch(text, /[\u4e00-\u9fff]/);
+  const r = fixture({ configured: true, restartRequired: true, languages: ['en'] });
+  await r.updater.check(); await r.updater.install();
+  assert.match(r.messages.at(-1), /^CPA cannot replace this plugin while it is running\./);
+  assert.match(r.messages.at(-1), /check again after restarting\.$/);
 });

@@ -85,6 +85,15 @@ func TestSameOriginConsoleAssetsArePublicCodeOnly(t *testing.T) {
 			if !bytes.Contains(response.Body, []byte(`href="./console-layout.css"`)) {
 				t.Fatal("embedded layout stylesheet is missing")
 			}
+			catalog := bytes.Index(response.Body, []byte(`src="./i18n.js"`))
+			if catalog < 0 || catalog > bytes.Index(response.Body, []byte(`src="./eac-feedback.js"`)) ||
+				catalog > bytes.Index(response.Body, []byte(`src="./console-bridge.js"`)) {
+				t.Fatal("the message catalog must load before the adapter scripts that read it")
+			}
+		}
+		if resource == "/i18n.js" && (!bytes.Equal(response.Body, i18nScript) ||
+			response.Headers.Get("Content-Type") != "text/javascript; charset=utf-8") {
+			t.Fatal("message catalog is not served as the embedded script")
 		}
 	}
 	for _, path := range []string{"/app-assets/../service/runner.mjs", "/app-assets/assets.json", "/app/unknown", "/app-assets/settings.json"} {

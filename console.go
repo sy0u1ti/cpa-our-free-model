@@ -40,7 +40,7 @@ func consoleAssetNames() []string {
 }
 
 func consoleResourcePaths() []string {
-	paths := []string{"/manager.js", "/updater.js", "/eac-feedback.js", "/console-layout.css", "/console-bridge.js", "/engine-bridge.js", "/app", "/engine", "/plugin-cover", "/plugin-asset"}
+	paths := []string{"/manager.js", "/i18n.js", "/updater.js", "/eac-feedback.js", "/console-layout.css", "/console-bridge.js", "/engine-bridge.js", "/app", "/engine", "/plugin-cover", "/plugin-asset"}
 	for _, name := range consoleAssetNames() {
 		paths = append(paths, "/app-assets/"+name)
 	}
@@ -58,6 +58,9 @@ func consoleResource(request managementRequest) (httpResponse, bool) {
 		body = managementPage
 	case consoleResourceBase + "/manager.js":
 		body = managementScript
+		headers.Set("Content-Type", "text/javascript; charset=utf-8")
+	case consoleResourceBase + "/i18n.js":
+		body = i18nScript
 		headers.Set("Content-Type", "text/javascript; charset=utf-8")
 	case consoleResourceBase + "/updater.js":
 		body = updaterScript
@@ -80,7 +83,8 @@ func consoleResource(request managementRequest) (httpResponse, bool) {
 			return jsonHTTP(500, map[string]string{"error": "控制台资源不可用"}), true
 		}
 		body = bytes.ReplaceAll(original, []byte(`="/assets/`), []byte(`="./app-assets/`))
-		body = bytes.Replace(body, []byte("<head>"), []byte("<head>\n<script src=\"./eac-feedback.js\"></script>\n<script src=\"./console-bridge.js\"></script>"), 1)
+		// i18n.js first: the two adapter scripts read their messages from it.
+		body = bytes.Replace(body, []byte("<head>"), []byte("<head>\n<script src=\"./i18n.js\"></script>\n<script src=\"./eac-feedback.js\"></script>\n<script src=\"./console-bridge.js\"></script>"), 1)
 		body = bytes.Replace(body, []byte("</head>"), []byte("<link rel=\"stylesheet\" href=\"./console-layout.css\">\n</head>"), 1)
 		body = bytes.ReplaceAll(body, []byte("本地控制台"), []byte("CPA 管理控制台"))
 		headers.Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-src 'self'; img-src 'self' data: https:; font-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'self'")

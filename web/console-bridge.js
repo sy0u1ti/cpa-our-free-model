@@ -45,6 +45,7 @@
   const engineFrames = () => [...document.querySelectorAll('.ws-frame, .ofm_engineframe')];
   const makeID = () => [...crypto.getRandomValues(new Uint8Array(16))].map(value => value.toString(16).padStart(2, '0')).join('');
   const prefix = '/api/management';
+  const t = key => window.ofmI18n.t(key);
   const messageJSON = (status, error) => new Response(JSON.stringify({ error }), { status, headers: { 'content-type': 'application/json' } });
 
   // The upstream console nests the model workspace in a second iframe. Both
@@ -117,7 +118,7 @@
         if (Array.isArray(body.value.models)) for (const row of body.value.models) row.id = (event.data.modelPrefix ?? 'ofm/') + row.id;
       }
       text = JSON.stringify(body);
-    } catch { text = JSON.stringify({ error: 'CPA 返回了无法识别的管理响应，请返回插件设置重新验证管理密钥。' }); }
+    } catch { text = JSON.stringify({ error: t('bridge.badResponse') }); }
     entry.resolve(new Response(text, { status: event.data.status, headers: { 'content-type': 'application/json' } }));
   });
 
@@ -129,7 +130,7 @@
     // so the server can attach the privileged OFM session without exposing it to
     // this sandboxed document.
     if (url.origin !== location.origin || !url.pathname.startsWith(prefix + '/')) return nativeFetch(request);
-    if (parent === window) return messageJSON(401, '请从 CPA 侧栏的“免费模型管理”进入控制台。');
+    if (parent === window) return messageJSON(401, t('bridge.openFromSidebar'));
     if (url.pathname === prefix + '/logout') {
       parent.postMessage({ kind: 'ofm-logout' }, parentTarget);
       return new Response('{"ok":true}', { headers: { 'content-type': 'application/json' } });
@@ -140,10 +141,10 @@
     if (url.pathname === prefix + '/session' && request.method === 'POST') {
       return new Response('{"ok":true}', { headers: { 'content-type': 'application/json' } });
     }
-    if (!['GET', 'POST'].includes(request.method)) return messageJSON(405, '不支持此操作。');
+    if (!['GET', 'POST'].includes(request.method)) return messageJSON(405, t('bridge.unsupported'));
     let body;
     if (request.method === 'POST') {
-      try { body = JSON.parse(await request.text()); } catch { return messageJSON(400, '控制台请求必须是 JSON 对象。'); }
+      try { body = JSON.parse(await request.text()); } catch { return messageJSON(400, t('bridge.jsonRequired')); }
     }
     request.signal.throwIfAborted();
     const id = makeID();
@@ -152,7 +153,7 @@
         const entry = pending.get(id); if (!entry) return;
         clearTimeout(entry.timer); pending.delete(id);
         parent.postMessage({ kind: 'ofm-cancel', id }, parentTarget);
-        reject(new DOMException('请求已取消', 'AbortError'));
+        reject(new DOMException(t('bridge.cancelled'), 'AbortError'));
       };
       const timer = setTimeout(() => {
         abort();

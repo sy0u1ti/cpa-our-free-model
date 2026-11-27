@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const feedback = fs.readFileSync(new URL('../web/eac-feedback.js', import.meta.url), 'utf8');
+const i18n = fs.readFileSync(new URL('../web/i18n.js', import.meta.url), 'utf8');
 const bundle = fs.readFileSync(new URL('../service/vendor/ofm/packages/standalone/web/channels-CUES-TF9.js', import.meta.url), 'utf8');
 const adapter = fs.readFileSync(new URL('../console.go', import.meta.url), 'utf8');
 const eacBlock = adapter.slice(adapter.indexOf('var eacConsolePatches'), adapter.indexOf('var engineConsolePatches'));
@@ -24,7 +25,7 @@ assert.match(served, /pool:g,poolError:d}=bt\(\)/, 'the EAC page must retain the
 
   // The pinned login factory is a closure over its own state helpers. These stubs
   // mirror just enough of them to drive `login()` and read the notice it sets.
-  function loginHook(source, failure) {
+  function loginHook(source, failure, search = '') {
     const states = [];
     const useState = value => { const index = states.length; states.push(typeof value === 'function' ? value() : value); return [states[index], next => { states[index] = next; }]; };
     // The pinned factory destructures its React helpers by minified name:
@@ -35,8 +36,11 @@ assert.match(served, /pool:g,poolError:d}=bt\(\)/, 'the EAC page must retain the
       K: async () => { throw new Error(failure); },
       Y: async () => { throw new Error('unused'); },
       vn: null, wt() {}, yt: 600000,
+      // The served console frame receives the manager's language as ?lang=.
+      location: new URL('https://cpa.example/v0/resource/plugins/our-free-model/app' + search),
     };
     vm.createContext(context);
+    vm.runInContext(i18n, context);
     vm.runInContext(feedback, context);
     const start = source.indexOf('function Ka({t:n,summary:a,onAuth:t})');
     const end = source.indexOf('function ', start + 9);
@@ -79,4 +83,20 @@ test('unknown EAC error details cannot expose upstream secrets or be mislabeled 
 test('EAC page starts in a loading state instead of presenting stale summary authorization', () => {
   assert.match(served, /function Bo\(\{summary:se\}\)\{const\[me,le\]=te\.useState\(void 0\)/);
   assert.doesNotMatch(served, /function Bo\(\{summary:se\}\)\{const\[me,le\]=te\.useState\(se\.eacAuth\)/);
+});
+
+test('EAC reasons follow the console frame language and never fall back to raw error text', async () => {
+  const hook = loginHook(served, 'eac-disabled', '?layout=embedded&lang=en');
+  await hook.run();
+  assert.equal(hook.notice(), 'Unable to start (The EAC source is not enabled. Enable auto-install-eac or configure a trusted eac-source-dir, then reopen the console.)');
+  assert.match(hook.feedback.reason(new Error('gateway-http-503')), /^The authorization gateway returned HTTP 503\./);
+  assert.match(hook.feedback.reason({ name: 'TimeoutError' }), /^The request timed out\./);
+  // Catalog keys are not error codes: an upstream message that happens to name
+  // one must still get the generic reason.
+  for (const probe of ['page.title', 'gatewayHTTP', 'unknown', '__proto__']) {
+    assert.match(hook.feedback.reason(new Error(probe)), /^The EAC operation did not finish\./);
+  }
+  const chinese = loginHook(served, 'no-lane', '?lang=zh-TW');
+  await chinese.run();
+  assert.match(chinese.notice(), /渠道尚未准备好/);
 });
