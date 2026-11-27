@@ -8,6 +8,9 @@
 
   window.createOFMUpdater = ({ fetchManagement, setBusy, onMessage, pause = ms => new Promise(resolve => setTimeout(resolve, ms)) }) => {
     const $ = selector => document.querySelector(selector);
+    const { t, fromServer } = window.ofmI18n;
+    const storeErrors = ['plugin_update_requires_restart', 'plugin_store_source_conflict',
+      'plugin_store_installed_source_unknown', 'plugin_install_failed', 'plugin_not_found'];
     let candidate;
     let busy = false;
     let pendingVersion = '';
@@ -23,16 +26,10 @@
     }
     async function readResponse(response) {
       let value;
-      try { value = await response.json(); } catch { throw new Error('CPA 返回了无法识别的响应，请检查反向代理和 CPA 版本。'); }
+      try { value = await response.json(); } catch { throw new Error(t('updater.badResponse')); }
       if (!response.ok) {
-        const messages = {
-          plugin_update_requires_restart: 'CPA 无法在运行时替换此插件，请在维护窗口重启后重新检查。',
-          plugin_store_source_conflict: '插件由另一个商店源管理，已停止更新；请从原安装源更新。',
-          plugin_store_installed_source_unknown: 'CPA 无法确认原安装源，已停止更新，请先检查插件商店配置。',
-          plugin_install_failed: 'CPA 下载、校验或写入安装包失败，请检查服务器网络、目录权限和 CPA 日志。',
-          plugin_not_found: '更新源尚未收录此插件，请确认 registry.json 已发布。',
-        };
-        const error = new Error(messages[value.error] ?? `CPA 返回 HTTP ${response.status}，请检查管理密钥、远程管理设置和 CPA 日志。`);
+        const error = new Error(storeErrors.includes(value.error) ? t('updater.error.' + value.error)
+          : t('updater.httpError', { status: response.status }));
         error.restartRequired = value.restart_required === true;
         throw error;
       }
@@ -45,23 +42,23 @@
       if (busy) return;
       busy = true; setBusy(true); syncButtons();
       try { await action(); }
-      catch (error) { message(error.name === 'TimeoutError' ? '操作超时，未确认更新成功。请检查网络后重试。' : error.message); }
+      catch (error) { message(error.name === 'TimeoutError' ? t('updater.timeout') : error.message); }
       finally { busy = false; setBusy(false); syncButtons(); }
     }
     function validateRelease(info) {
       if (info.registryUrl !== registry || !versionPattern.test(info.currentVersion ?? '') ||
           !['available', 'current', 'development', 'unpublished', 'unpackaged', 'unavailable'].includes(info.state)) {
-        throw new Error('正式版本响应不符合本插件的更新契约，已停止。');
+        throw new Error(t('updater.badContract'));
       }
       if (info.state === 'available' && (!versionPattern.test(info.latestVersion ?? '') ||
           info.tag !== 'v' + info.latestVersion && info.tag !== info.latestVersion ||
           info.releaseUrl !== repository + '/releases/tag/' + info.tag)) {
-        throw new Error('正式版本来源或版本号不合法，已停止。');
+        throw new Error(t('updater.badRelease'));
       }
       return info;
     }
     function selectEntry(store) {
-      if (!Array.isArray(store.plugins) || !Array.isArray(store.sources)) throw new Error('CPA 不支持所需的插件商店接口，请使用已验证的 CPA 8.0.23 或兼容版本。');
+      if (!Array.isArray(store.plugins) || !Array.isArray(store.sources)) throw new Error(t('updater.storeUnsupported'));
       const entries = store.plugins.filter(entry => entry.id === pluginID && entry.repository === repository &&
         entry.install_type === 'github-release' && [registry, officialRegistry].includes(entry.source_url) &&
         /^[a-z0-9-]+$/.test(entry.source_id ?? '') &&
@@ -70,7 +67,7 @@
         entries.find(entry => entry.source_url === registry) ?? entries[0];
       if (selected && (selected.install_source_status === 'unknown' ||
           selected.installed_source_id && selected.installed_source_id !== selected.source_id)) {
-        throw new Error('插件的原安装源不匹配，已停止；不会卸载插件或覆盖原来源设置。');
+        throw new Error(t('updater.sourceMismatch'));
       }
       return selected;
     }
@@ -79,11 +76,11 @@
       if (response.status === 404) {
         const value = await response.json().catch(() => null);
         if (value?.error === 'not_found') return [];
-        throw new Error('CPA 缺少安全修改更新源的 v8 配置接口，请升级 CPA；不会覆盖整份配置文件。');
+        throw new Error(t('updater.configUnsupported'));
       }
       const value = await readResponse(response);
       if (value === null) return [];
-      if (!Array.isArray(value) || value.some(item => typeof item !== 'string')) throw new Error('CPA 的插件更新源配置格式不合法。');
+      if (!Array.isArray(value) || value.some(item => typeof item !== 'string')) throw new Error(t('updater.badSources'));
       return value;
     }
     async function waitForRunning(target) {
@@ -98,41 +95,40 @@
     }
     function completed(target) {
       pendingVersion = ''; candidate = undefined; installed = true;
-      message(`更新已生效：当前运行 v${target}。点击“刷新管理页”加载新版界面，之后需要重新输入管理密钥。`);
+      message(t('updater.completed', { version: target }));
     }
     const verify = () => task(async () => {
       if (!pendingVersion) return;
-      message(`正在核实 v${pendingVersion} 是否已经运行……`);
+      message(t('updater.verifying', { version: pendingVersion }));
       if (await waitForRunning(pendingVersion)) completed(pendingVersion);
-      else message(`尚未确认 v${pendingVersion} 运行，不能判定更新成功。请检查 CPA 日志；若宿主要求重启，请重启后再点“确认运行版本”。`);
+      else message(t('updater.notConfirmed', { version: pendingVersion }));
     });
     const check = () => task(async () => {
       candidate = undefined; installed = false;
-      message('正在检查正式 Release 和当前服务器平台……');
+      message(t('updater.checking'));
       candidate = validateRelease(await api('v0', 'ofm/releases'));
-      $('#release-version').textContent = `当前 v${candidate.currentVersion} · 正式版 ${candidate.latestVersion ? 'v' + candidate.latestVersion : '未发布'} · ${candidate.platform}`;
-      message(candidate.message);
+      $('#release-version').textContent = t('updater.releaseLine', { current: candidate.currentVersion,
+        latest: candidate.latestVersion ? 'v' + candidate.latestVersion : t('updater.unpublished'), platform: candidate.platform });
+      message(fromServer('server.release.' + candidate.state, candidate.message));
     });
     const install = () => task(async () => {
       if (candidate?.state !== 'available' || pendingVersion) return;
       const checked = validateRelease(await api('v0', 'ofm/releases'));
       if (checked.state !== 'available' || checked.latestVersion !== candidate.latestVersion) {
         candidate = undefined;
-        throw new Error('可安装版本已变化，请重新检查后再更新。');
+        throw new Error(t('updater.versionChanged'));
       }
-      message('正在核对 CPA 原生更新能力和插件来源……');
+      message(t('updater.checkingStore'));
       let entry = selectEntry(await api('v8', 'plugins/store', 'GET', undefined, 120000));
       const previousSources = entry ? undefined : await sources();
       const addSource = !entry && !previousSources.includes(registry);
-      const consent = `确认更新到 v${checked.latestVersion}（${checked.platform}）？\n\n` +
-        'CPA 将从本插件 GitHub Release 下载指定版本、校验 SHA-256 并安装，随后尝试热加载。切换时正在进行的模型请求可能中断。\n' +
-        '不会更改账号数据，不需要在服务器运行编译命令，也不会自动重启整个 CPA。\n' +
-        (addSource ? `\n首次使用会把下列地址加入 plugins.store-sources，保留已有更新源。CPA 保存配置时可能将旧布局规范化为 v8。\n${registry}` : '');
-      if (!window.confirm(consent)) { message('已取消，未下载或安装插件。'); return; }
+      const consent = t('updater.confirmHead', { version: checked.latestVersion, platform: checked.platform }) +
+        t('updater.confirmBody') + (addSource ? t('updater.confirmSource', { registry }) : '');
+      if (!window.confirm(consent)) { message(t('updater.cancelled')); return; }
       if (addSource) {
-        message('正在添加本插件更新源，保留其他源和插件配置……');
+        message(t('updater.addingSource'));
         const currentSources = await sources();
-        if (JSON.stringify(currentSources) !== JSON.stringify(previousSources)) throw new Error('更新源配置刚刚发生变化，请重新检查；未覆盖其他修改。');
+        if (JSON.stringify(currentSources) !== JSON.stringify(previousSources)) throw new Error(t('updater.sourcesChanged'));
         await api('v8', 'config/plugins/store-sources', 'PUT', [...currentSources, registry]);
       }
       if (!entry) {
@@ -144,34 +140,34 @@
           await pause(1000);
         }
       }
-      if (!entry) throw new Error('CPA 尚不能读取本插件更新源。请确认 registry.json 与正式 Release 已发布，并检查服务器访问 GitHub 的网络。');
+      if (!entry) throw new Error(t('updater.sourceUnreadable'));
       // Pin the approved version. Never let a later "latest" lookup silently
       // replace the version shown in the confirmation.
-      message(`CPA 正在下载、校验并安装 v${checked.latestVersion}，请保持页面打开……`);
+      message(t('updater.installing', { version: checked.latestVersion }));
       pendingVersion = checked.latestVersion;
       let result;
       try {
         result = await api('v8', `plugins/store/${pluginID}/install?source=${encodeURIComponent(entry.source_id)}`, 'POST', { version: checked.latestVersion }, 180000);
       } catch (error) {
         if (error.restartRequired) {
-          message(error.message + ' 尚未确认新版已安装；重启后请重新检查。');
+          message(error.message + t('updater.restartUnconfirmed'));
           pendingVersion = '';
           return;
         }
         if (await waitForRunning(checked.latestVersion)) completed(checked.latestVersion);
-        else message(error.message + ' 尚未确认运行版本，请先点“确认运行版本”，不要重复安装。');
+        else message(error.message + t('updater.runningUnconfirmed'));
         return;
       }
       if (result.status !== 'installed' || result.id !== pluginID || result.version !== checked.latestVersion) {
-        throw new Error('CPA 安装响应与已确认版本不一致，请先核实运行版本，未判定成功。');
+        throw new Error(t('updater.installMismatch'));
       }
       if (result.restart_required === true) {
-        message(`v${checked.latestVersion} 已安装，但 CPA 要求重启才能生效。请手动重启后点“确认运行版本”。`);
+        message(t('updater.restartRequired', { version: checked.latestVersion }));
         return;
       }
-      message(`v${checked.latestVersion} 安装完成，正在确认 CPA 已加载新版……`);
+      message(t('updater.installed', { version: checked.latestVersion }));
       if (await waitForRunning(checked.latestVersion)) completed(checked.latestVersion);
-      else message(`安装接口已完成，但尚未确认 v${checked.latestVersion} 运行。请检查 CPA 日志或重启宿主，再点“确认运行版本”。`);
+      else message(t('updater.installedUnconfirmed', { version: checked.latestVersion }));
     });
     syncButtons();
     return { check, install, verify, syncButtons };

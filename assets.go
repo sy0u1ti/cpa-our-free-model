@@ -172,6 +172,9 @@ var managementPage []byte
 //go:embed web/manager.js
 var managementScript []byte
 
+//go:embed web/i18n.js
+var i18nScript []byte
+
 //go:embed web/updater.js
 var updaterScript []byte
 

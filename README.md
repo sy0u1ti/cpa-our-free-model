@@ -249,10 +249,13 @@ plugins:
 ```
 
 4. Open **免费模型管理** in CPA's plugin sidebar, enter your CPA **management
-   key**, and click **打开账号控制台**. It opens inside the same CPA page/domain.
+   key**, and click **Open account console** (**打开账号控制台**). It opens inside
+   the same CPA page/domain. The management page follows the Management Center
+   language (English or Chinese); add `?lang=en` or `?lang=zh-CN` to its URL to
+   choose one. The embedded original OFM account console stays in Chinese.
 5. Anonymous/Kilo pools need no account. Log in to other channels in that console,
-   then click **同步模型到 CPA**. Client model IDs start with `ofm/`.
-6. To sync only some models, click **选择要同步的模型…**. Unchecked models leave
+   then click **Sync models to CPA** (**同步模型到 CPA**). Client model IDs start with `ofm/`.
+6. To sync only some models, click **Choose models to sync…** (**选择要同步的模型…**). Unchecked models leave
    the CPA catalog and are refused at execution time (HTTP 404) even before CPA
    reloads it. The choice is stored in `data-dir/model-selection.json` (mode
    0600) rather than in the plugin config, so it survives upgrades and prefix
@@ -301,7 +304,7 @@ remaining separately identified hardening work.
 
 ### From the management page
 
-Click **检查更新**, then **一键更新** and confirm. Only a stable GitHub Release
+Click **Check for updates** (**检查更新**), then **Update now** (**一键更新**) and confirm. Only a stable GitHub Release
 with the matching platform ZIP and `checksums.txt` can enable the install button.
 Unpublished Releases, missing assets, failed checks and local development builds
 are not presented as installable updates.

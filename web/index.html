@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>免费模型管理 · CPA</title>
+  <title data-i18n="page.title">免费模型管理 · CPA</title>
   <link rel="icon" href="data:,">
   <style>
     :root { color-scheme: light dark; --paper: #f0eddf; --ink: #1e3934; --muted: #65756a; --line: #c9d0bf; --accent: #bcef55; }
     * { box-sizing: border-box; }
     body { margin: 0; color: var(--ink); background: radial-gradient(ellipse at 100% 0%, #dbe6b4, transparent 55%), var(--paper); font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", SimSun, serif; }
+    html:lang(en) body { font-family: Georgia, "Times New Roman", serif; }
     main { max-width: 880px; margin: 7vh auto; padding: 32px; }
     .eyebrow, label, button, input, output, pre, .note, .toolbar { font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; }
     .eyebrow { letter-spacing: .16em; font-size: 12px; border-bottom: 1px solid var(--line); padding-bottom: 18px; }
@@ -77,91 +78,92 @@
 </head>
 <body>
 <main id="landing">
-  <div class="eyebrow">OUR FREE MODEL &nbsp; / &nbsp; CPA 适配插件</div>
-  <h1 class="standalone-copy">模型在此汇聚。<br>远程也能直达。</h1>
-  <h1 class="embedded-copy">免费模型管理</h1>
-  <p class="intro">通过当前 CPA 域名管理免费模型、账号渠道与用量。无需打开 VPS 的本机地址，也不用额外开放端口。</p>
+  <div class="eyebrow">OUR FREE MODEL &nbsp; / &nbsp; <span data-i18n="landing.eyebrow">CPA 适配插件</span></div>
+  <h1 class="standalone-copy"><span data-i18n="landing.heroLine1">模型在此汇聚。</span><br><span data-i18n="landing.heroLine2">远程也能直达。</span></h1>
+  <h1 class="embedded-copy" data-i18n="landing.embeddedTitle">免费模型管理</h1>
+  <p class="intro" data-i18n="landing.intro">通过当前 CPA 域名管理免费模型、账号渠道与用量。无需打开 VPS 的本机地址，也不用额外开放端口。</p>
   <section aria-labelledby="access-label">
-    <label id="access-label" for="key">CPA 管理密钥</label>
-    <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="填写 CPA 管理密钥，不是模型客户端密钥">
-    <p class="note">密钥仅在当前页面内存中使用，只发送给当前 CPA，不写入网址、浏览器存储或日志。远程访问请使用 HTTPS。</p>
+    <label id="access-label" for="key" data-i18n="access.keyLabel">CPA 管理密钥</label>
+    <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="填写 CPA 管理密钥，不是模型客户端密钥" data-i18n-placeholder="access.keyPlaceholder">
+    <p class="note" data-i18n="access.keyNote">密钥仅在当前页面内存中使用，只发送给当前 CPA，不写入网址、浏览器存储或日志。远程访问请使用 HTTPS。</p>
     <div class="actions">
-      <button id="open" class="primary" type="button">打开账号控制台 &rarr;</button>
-      <button id="status" type="button">查看服务状态</button>
-      <button id="refresh" type="button">同步模型到 CPA</button>
-      <button id="choose-models" type="button">选择要同步的模型…</button>
-      <button id="forget" type="button">清除密钥</button>
+      <button id="open" class="primary" type="button" data-i18n="access.open">打开账号控制台 &rarr;</button>
+      <button id="status" type="button" data-i18n="access.status">查看服务状态</button>
+      <button id="refresh" type="button" data-i18n="access.refresh">同步模型到 CPA</button>
+      <button id="choose-models" type="button" data-i18n="access.chooseModels">选择要同步的模型…</button>
+      <button id="forget" type="button" data-i18n="access.forget">清除密钥</button>
     </div>
-    <output id="result" aria-live="polite">输入管理密钥，即可通过当前 CPA 打开控制台。</output>
+    <output id="result" aria-live="polite" data-i18n="access.prompt">输入管理密钥，即可通过当前 CPA 打开控制台。</output>
     <pre id="details" hidden></pre>
   </section>
   <section id="selection-panel" hidden aria-labelledby="selection-heading">
-    <h2 id="selection-heading">同步到 CPA 的模型</h2>
-    <p class="note">取消勾选的模型不会再出现在 CPA 的模型列表中，客户端直接请求也会被拒绝；控制台里的账号、额度与渠道设置不受影响。选择结果保存在插件的私有数据目录，升级插件不会丢失。</p>
+    <h2 id="selection-heading" data-i18n="selection.heading">同步到 CPA 的模型</h2>
+    <p class="note" data-i18n="selection.note">取消勾选的模型不会再出现在 CPA 的模型列表中，客户端直接请求也会被拒绝；控制台里的账号、额度与渠道设置不受影响。选择结果保存在插件的私有数据目录，升级插件不会丢失。</p>
     <div class="selection-toolbar">
-      <input id="selection-search" type="search" placeholder="搜索模型名称或 ID…" autocomplete="off" spellcheck="false" aria-label="搜索模型">
+      <input id="selection-search" type="search" placeholder="搜索模型名称或 ID…" autocomplete="off" spellcheck="false" aria-label="搜索模型" data-i18n-placeholder="selection.searchPlaceholder" data-i18n-aria-label="selection.searchLabel">
       <div class="actions">
-        <button id="selection-all" type="button">全选</button>
-        <button id="selection-none" type="button">全不选</button>
-        <button id="selection-invert" type="button">反选</button>
+        <button id="selection-all" type="button" data-i18n="selection.all">全选</button>
+        <button id="selection-none" type="button" data-i18n="selection.none">全不选</button>
+        <button id="selection-invert" type="button" data-i18n="selection.invert">反选</button>
       </div>
     </div>
     <p id="selection-summary" class="note" role="status" aria-live="polite"></p>
-    <ul id="selection-list" class="selection-list" aria-label="模型列表"></ul>
+    <ul id="selection-list" class="selection-list" aria-label="模型列表" data-i18n-aria-label="selection.listLabel"></ul>
     <p id="selection-stale" class="note" hidden></p>
     <div class="actions">
-      <button id="selection-save" class="primary" type="button">保存并同步 &rarr;</button>
-      <button id="selection-cancel" type="button">取消</button>
+      <button id="selection-save" class="primary" type="button" data-i18n="selection.save">保存并同步 &rarr;</button>
+      <button id="selection-cancel" type="button" data-i18n="selection.cancel">取消</button>
     </div>
   </section>
   <section>
-    <h2>更新插件</h2>
-    <p class="note">直接在这里更新，不必登录服务器敲命令。CPA 从正式 Release 下载对应平台安装包、校验 SHA-256 并尝试热加载；只有确认新版正在运行，才会显示更新成功。</p>
+    <h2 data-i18n="update.heading">更新插件</h2>
+    <p class="note" data-i18n="update.note">直接在这里更新，不必登录服务器敲命令。CPA 从正式 Release 下载对应平台安装包、校验 SHA-256 并尝试热加载；只有确认新版正在运行，才会显示更新成功。</p>
     <div class="update-card">
-      <p id="release-version">正式发布通道 · 由 CPA 原生安装器执行</p>
-      <output id="update-result" aria-live="polite">点击检查更新，确认当前平台是否有可安装的新版本。</output>
-      <progress id="update-progress" aria-label="插件更新进行中" hidden></progress>
+      <p id="release-version" data-i18n="update.channel">正式发布通道 · 由 CPA 原生安装器执行</p>
+      <output id="update-result" aria-live="polite" data-i18n="update.prompt">点击检查更新，确认当前平台是否有可安装的新版本。</output>
+      <progress id="update-progress" aria-label="插件更新进行中" data-i18n-aria-label="update.progress" hidden></progress>
       <div class="actions">
-        <button id="updates" type="button">检查更新</button>
-        <button id="install-update" class="primary" type="button" disabled>一键更新 &rarr;</button>
-        <button id="verify-update" type="button" hidden>确认运行版本</button>
-        <button id="reload-update" type="button" hidden>刷新管理页</button>
+        <button id="updates" type="button" data-i18n="update.check">检查更新</button>
+        <button id="install-update" class="primary" type="button" data-i18n="update.install" disabled>一键更新 &rarr;</button>
+        <button id="verify-update" type="button" data-i18n="update.verify" hidden>确认运行版本</button>
+        <button id="reload-update" type="button" data-i18n="update.reload" hidden>刷新管理页</button>
       </div>
-      <p class="note">安装前会再次确认。首次可能需要添加本插件更新源；保留账号数据和其他更新源。热加载可能中断当前请求，若宿主要求重启会明确提示，不会自动重启 CPA。</p>
+      <p class="note" data-i18n="update.installNote">安装前会再次确认。首次可能需要添加本插件更新源；保留账号数据和其他更新源。热加载可能中断当前请求，若宿主要求重启会明确提示，不会自动重启 CPA。</p>
     </div>
     <details>
-      <summary>源码更新（开发者备用）</summary>
-      <p class="note">仓库提交不等于正式安装包。没有 Release 或需要自行编译时，仍可在服务器的干净源码仓库执行更新命令。</p>
-      <div class="actions"><button id="source-updates" type="button">检查源码提交</button><button id="copy-command" type="button">复制源码更新命令</button></div>
-      <output id="source-update-result" aria-live="polite">尚未检查源码。</output>
-      <pre id="update-command">node scripts/update.mjs --apply --plugin-dir /你的/CPA/plugins</pre>
-      <p class="note">将路径改为实际插件目录，需要 Git、Go、Node 和 C 编译器。此备用命令会备份旧动态库，不自动重启 CPA。</p>
+      <summary data-i18n="source.summary">源码更新（开发者备用）</summary>
+      <p class="note" data-i18n="source.note">仓库提交不等于正式安装包。没有 Release 或需要自行编译时，仍可在服务器的干净源码仓库执行更新命令。</p>
+      <div class="actions"><button id="source-updates" type="button" data-i18n="source.check">检查源码提交</button><button id="copy-command" type="button" data-i18n="source.copy">复制源码更新命令</button></div>
+      <output id="source-update-result" aria-live="polite" data-i18n="source.notChecked">尚未检查源码。</output>
+      <pre id="update-command" data-i18n="source.command">node scripts/update.mjs --apply --plugin-dir /你的/CPA/plugins</pre>
+      <p class="note" data-i18n="source.commandNote">将路径改为实际插件目录，需要 Git、Go、Node 和 C 编译器。此备用命令会备份旧动态库，不自动重启 CPA。</p>
     </details>
   </section>
-  <section><h2>连接说明</h2><p class="note">客户端仍连接 CPA，默认模型 ID 带 <code>ofm/</code> 前缀。渠道登录或模型开关变更后，点击“同步模型到 CPA”。控制台的数据操作始终经过 CPA 管理鉴权。部分厂商使用自己的 OAuth 回调规则，可能仍需按厂商提示转发回调端口。</p></section>
-  <footer>直接基于 <a href="https://github.com/Ebony-Vinyl/dsh-our-free-model" target="_blank" rel="noopener noreferrer">原项目 Our Free Model</a>，独立适配 CPA。参考二开不是源码依赖。原项目授权与上游服务限制仍然适用。</footer>
+  <section><h2 data-i18n="notes.heading">连接说明</h2><p class="note"><span data-i18n="notes.beforePrefix">客户端仍连接 CPA，默认模型 ID 带</span> <code>ofm/</code> <span data-i18n="notes.afterPrefix">前缀。渠道登录或模型开关变更后，点击“同步模型到 CPA”。控制台的数据操作始终经过 CPA 管理鉴权。部分厂商使用自己的 OAuth 回调规则，可能仍需按厂商提示转发回调端口。</span></p></section>
+  <footer><span data-i18n="footer.before">直接基于</span> <a href="https://github.com/Ebony-Vinyl/dsh-our-free-model" target="_blank" rel="noopener noreferrer" data-i18n="footer.link">原项目 Our Free Model</a><span data-i18n="footer.after">，独立适配 CPA。参考二开不是源码依赖。原项目授权与上游服务限制仍然适用。</span></footer>
 </main>
 <div id="workspace" hidden>
-  <div class="toolbar" role="region" aria-label="插件工作区">
+  <div class="toolbar" role="region" aria-label="插件工作区" data-i18n-aria-label="workspace.label">
     <strong class="workspace-name">OFM <span aria-hidden="true">/</span> CPA</strong>
-    <button id="back" type="button">插件设置</button>
-    <button id="connection-toggle" type="button" aria-expanded="false" aria-controls="connection-panel">接入信息</button>
-    <a id="standalone-link" target="_blank" rel="noopener noreferrer" hidden>独立打开 &nearr;</a>
-    <button id="logout" type="button">退出管理</button>
+    <button id="back" type="button" data-i18n="workspace.back">插件设置</button>
+    <button id="connection-toggle" type="button" data-i18n="workspace.connection" aria-expanded="false" aria-controls="connection-panel">接入信息</button>
+    <a id="standalone-link" data-i18n="workspace.standalone" target="_blank" rel="noopener noreferrer" hidden>独立打开 &nearr;</a>
+    <button id="logout" type="button" data-i18n="workspace.logout">退出管理</button>
     <output id="workspace-feedback" aria-live="polite"></output>
   </div>
   <div id="connection-panel" hidden>
     <p id="connection-note"></p>
-    <button id="copy-base" type="button">复制 CPA 地址</button>
+    <button id="copy-base" type="button" data-i18n="workspace.copyBase">复制 CPA 地址</button>
   </div>
   <!-- Opaque origin on purpose: the vendored console is large generated upstream
        code and must not be able to read this page's DOM (which holds the CPA
        management key) or hook its fetch. Scripts, forms, modals, downloads and
        popups are the capabilities the console actually needs. -->
-  <iframe id="console-frame" title="免费模型账号控制台" referrerpolicy="no-referrer"
+  <iframe id="console-frame" title="免费模型账号控制台" data-i18n-title="workspace.frameTitle" referrerpolicy="no-referrer"
     sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"
     allow="clipboard-write"></iframe>
 </div>
+<script src="./i18n.js"></script>
 <script src="./updater.js"></script>
 <script src="./manager.js"></script>
 </body>

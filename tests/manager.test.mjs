@@ -6,11 +6,12 @@ import { setImmediate } from 'node:timers/promises';
 
 const script = fs.readFileSync(new URL('../web/manager.js', import.meta.url), 'utf8');
 const updaterScript = fs.readFileSync(new URL('../web/updater.js', import.meta.url), 'utf8');
-function page({ embedded = false } = {}) {
+const i18nScript = fs.readFileSync(new URL('../web/i18n.js', import.meta.url), 'utf8');
+function page({ embedded = false, search = '', hostLang } = {}) {
   const elements = new Map();
   const events = new Map();
   const requests = [], replies = [];
-  const location = new URL('https://cpa.example:8443/proxy/v0/resource/plugins/our-free-model/console');
+  const location = new URL('https://cpa.example:8443/proxy/v0/resource/plugins/our-free-model/console' + search);
   // Minimal element double: clearing textContent drops children (as the panel
   // relies on when it re-renders) and registered listeners stay callable.
   const createNode = () => {
@@ -77,7 +78,11 @@ function page({ embedded = false } = {}) {
   };
   context.window.self = context.window;
   context.window.top = embedded ? {} : context.window;
+  // The CPA Management Center is a same-origin parent whose <html lang> names
+  // the language the user picked there.
+  if (hostLang !== undefined) context.window.parent = { document: { documentElement: { lang: hostLang } } };
   vm.createContext(context);
+  vm.runInContext(i18nScript, context);
   vm.runInContext(updaterScript, context);
   vm.runInContext(script, context);
   return { element, events, requests, replies, saved, location, document: context.document };
@@ -86,7 +91,7 @@ function page({ embedded = false } = {}) {
 test('Chinese manager opens original UI under the exact current CPA origin and proxy prefix', async () => {
   const p = page();
   await p.element('#open').onclick();
-  assert.equal(p.element('#console-frame').src, '/proxy/v0/resource/plugins/our-free-model/app');
+  assert.equal(p.element('#console-frame').src, '/proxy/v0/resource/plugins/our-free-model/app?lang=zh-CN');
   assert.equal(p.element('#workspace').hidden, false);
   assert.match(p.element('#connection-note').textContent, /https:\/\/cpa.example:8443\/proxy\/v1/);
   for (const request of p.requests) {
@@ -101,9 +106,9 @@ test('CPA embedded mode selects a compact child layout without reading the host 
   await p.element('#open').onclick();
   assert.equal(p.document.documentElement.dataset.cpaEmbedded, 'true');
   assert.equal(p.document.documentElement.dataset.consoleOpen, 'true');
-  assert.equal(p.element('#console-frame').src, '/proxy/v0/resource/plugins/our-free-model/app?layout=embedded');
+  assert.equal(p.element('#console-frame').src, '/proxy/v0/resource/plugins/our-free-model/app?layout=embedded&lang=zh-CN');
   assert.equal(p.element('#standalone-link').hidden, false);
-  assert.equal(p.element('#standalone-link').href, '/proxy/v0/resource/plugins/our-free-model/console');
+  assert.equal(p.element('#standalone-link').href, '/proxy/v0/resource/plugins/our-free-model/console?lang=zh-CN');
   assert.ok(!p.element('#standalone-link').href.includes('management-fixture'));
   assert.equal(p.element('#connection-panel').hidden, true);
   p.element('#connection-toggle').onclick();
@@ -303,4 +308,55 @@ test('model selection sends the exact hidden set and reports the outcome', async
   assert.match(p.element('#result').textContent, /已保存：同步 1 个模型，排除 2 个/);
   const write = p.requests.filter(row => row.url.endsWith('/ofm/selection') && row.options.method === 'POST').at(-1);
   assert.equal(write.options.headers.Authorization, 'Bearer management-fixture-only');
+});
+
+test('English Management Center: the page, its messages and the console frame use English', async () => {
+  const p = page({ embedded: true, hostLang: 'en' });
+  assert.equal(p.document.documentElement.lang, 'en');
+  await p.element('#open').onclick();
+  assert.equal(p.element('#console-frame').src, '/proxy/v0/resource/plugins/our-free-model/app?layout=embedded&lang=en');
+  assert.equal(p.element('#standalone-link').href, '/proxy/v0/resource/plugins/our-free-model/console?lang=en');
+  assert.equal(p.element('#connection-note').textContent,
+    'Client address: https://cpa.example:8443/proxy/v1; model prefix: ofm/. Use a CPA client API key, not the management key.');
+  p.element('#back').onclick();
+  assert.equal(p.element('#result').textContent, 'Back to plugin settings.');
+  await p.element('#status').onclick();
+  assert.equal(p.element('#details').textContent.split('\n')[0], 'Plugin version: 0.3.0');
+  assert.match(p.element('#details').textContent, /^Service status: Running$/m);
+  assert.match(p.element('#details').textContent, /^EAC source: Unknown$/m);
+  await p.element('#choose-models').onclick();
+  assert.equal(p.element('#result').textContent, 'Loaded 3 upstream models. Uncheck a model to exclude it.');
+  assert.equal(p.element('#selection-summary').textContent, 'Selected: 2 / 3. 1 unchecked model will not sync to CPA.');
+  const first = p.element('#selection-list').children[0];
+  assert.equal(first.appended.at(-1).textContent, '125K context');
+  await p.element('#selection-save').onclick();
+  assert.equal(p.element('#result').textContent, 'Saved: 2 synced, 1 excluded. CPA reloads the catalog within a few seconds.');
+  for (const selector of ['#result', '#details', '#connection-note', '#selection-summary']) {
+    assert.doesNotMatch(p.element(selector).textContent, /[\u4e00-\u9fff]/, selector);
+  }
+});
+
+test('an explicit lang parameter wins over the host page, and Chinese stays byte-identical', async () => {
+  const p = page({ embedded: true, hostLang: 'en', search: '?lang=zh-TW' });
+  assert.equal(p.document.documentElement.lang, 'zh-CN');
+  await p.element('#status').onclick();
+  assert.equal(p.element('#details').textContent.split('\n').slice(0, 2).join('\n'), '插件版本：0.3.0\n服务状态：运行中');
+  assert.equal(p.element('#result').textContent, '已获取服务状态。');
+  await p.element('#open').onclick();
+  assert.equal(p.element('#connection-note').textContent,
+    '客户端地址：https://cpa.example:8443/proxy/v1；模型前缀：ofm/。使用 CPA 客户端密钥，不是管理密钥。');
+  assert.equal(p.element('#console-frame').src, '/proxy/v0/resource/plugins/our-free-model/app?layout=embedded&lang=zh-CN');
+});
+
+test('console frame failures are reported to the frame in the page language', async () => {
+  const p = page({ hostLang: 'en-GB' });
+  await p.element('#open').onclick();
+  const handler = p.events.get('message');
+  const source = p.element('#console-frame').contentWindow;
+  p.element('#key').value = '';
+  handler({ origin: 'null', source, data: { kind: 'ofm-request', id: 'e'.repeat(32), path: '/api/management/summary', method: 'GET' } });
+  await setImmediate(); await setImmediate();
+  const reply = p.replies.at(-1)[0];
+  assert.equal(reply.status, 502);
+  assert.equal(JSON.parse(reply.text).error, 'The console request failed, was cancelled or lost its connection.');
 });
